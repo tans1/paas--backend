@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  password  String    @db.VarChar(255)
+  role      String    @db.VarChar(50)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  projects          Project[]        @relation("UserProjects")
+  payments          Payment[]
+  userAlerts        UserAlert[]
+  oauthProviders    OAuthProvider[]
+}
+
+model Project {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(255)
+  url          String    @db.VarChar(2083)
+  linkedByUser User      @relation("UserProjects", fields: [linkedByUserId], references: [id])
+  linkedByUserId Int
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  deployments  Deployment[]
+}
+
+model Deployment {
+  id                 Int       @id @default(autoincrement())
+  repo               Project   @relation(fields: [repoId], references: [id])
+  repoId             Int
+  status             String    @db.VarChar(50)
+  branch             String    @db.VarChar(100)
+  environmentVariables Json?   @map("environment_variables")
+  rollbackTo         Deployment? @relation("Rollback", fields: [rollbackToId], references: [id])
+  rollbackToId       Int?      @map("rollback_to_id")
+  rollbackedDeployments Deployment[] @relation("Rollback")
+
+  createdAt          DateTime  @default(now()) @map("created_at")
+  logs               DeploymentLog[]
+}
+
+model DeploymentLog {
+  id            Int      @id @default(autoincrement())
+  deployment    Deployment @relation(fields: [deploymentId], references: [id])
+  deploymentId  Int
+  logLevel      String   @db.VarChar(20) @map("log_level")
+  message       String
+  timestamp     DateTime @default(now()) @map("timestamp")
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       Int
+  amount       Decimal  @db.Decimal(10, 2)
+  method       String   @db.VarChar(50)
+  status       String   @db.VarChar(50)
+  transactionId String  @unique @db.VarChar(255) @map("transaction_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+}
+
+model Server {
+  id               Int     @id @default(autoincrement())
+  resourceUsage    Json?   @map("resource_usage")
+  hostedApplications Json? @map("hosted_applications")
+  createdAt        DateTime @default(now()) @map("created_at")
+}
+
+model UserAlert {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  message    String
+  type       String   @db.VarChar(50)
+  createdAt  DateTime @default(now()) @map("created_at")
+}
+
+model AdminAnalytics {
+  id         Int      @id @default(autoincrement())
+  metric     String   @db.VarChar(100)
+  value      Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+}
+
+model OAuthProvider {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  provider    String   @db.VarChar(50)
+  accessToken String   @db.VarChar(255) @map("access_token")
+  createdAt   DateTime @default(now()) @map("created_at")
+}
