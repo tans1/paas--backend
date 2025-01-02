@@ -1,1 +1,1 @@
-export interface AdminRepositoryInterface {}
+export abstract class AdminRepositoryInterface {}

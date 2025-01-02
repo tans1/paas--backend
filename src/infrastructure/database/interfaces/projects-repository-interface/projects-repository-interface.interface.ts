@@ -1,1 +1,1 @@
-export interface ProjectsRepositoryInterface {}
+export abstract class ProjectsRepositoryInterface {}
