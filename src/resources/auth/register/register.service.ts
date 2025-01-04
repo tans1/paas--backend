@@ -6,7 +6,7 @@ import { CreateUserDto } from 'src/resources/users/dto/create-user.dto';
 export class RegisterService {
     constructor(private usersService: UsersService) {}
     async register(payload: CreateUserDto) {
-        const user = await this.usersService.create(payload); // Bring in the user repository
+        const user = await this.usersService.create(payload); 
         return user;
       }
 }

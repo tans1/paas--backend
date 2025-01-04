@@ -8,7 +8,7 @@ export class UsersService {
     }
     async create(payload: any) {
         return this.usersRepository.create(payload);
-        // return 'This action adds a new user';
+        
     }
     
     async findAll() {
