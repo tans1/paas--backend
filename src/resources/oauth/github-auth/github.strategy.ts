@@ -8,7 +8,7 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     super({
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: 'http://localhost:3000/oauth/github-redirect',
+      callbackURL: process.env.GITHUB_CALLBACK_URL,
       scope: ['user:email'],
     });
   }
