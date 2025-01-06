@@ -79,7 +79,7 @@ git push origin feature/your-branch-name
 
 ## 8. Assign a Reviewer and Notify Them
 1. Assign a reviewer to your PR using GitHub's **Assignees** feature.
-2. Notify the reviewer via Telegram or your team's preferred communication channel to review your PR.
+2. Notify the reviewer via Telegram.
 
 ## 9. Respond to Feedback
 Address any feedback provided by the reviewer promptly. Once all changes are approved, the reviewer will merge the PR into the main branch.
