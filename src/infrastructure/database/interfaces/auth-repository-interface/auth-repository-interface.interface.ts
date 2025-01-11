@@ -1,1 +1,1 @@
-export interface AuthRepositoryInterface {}
+export abstract class AuthRepositoryInterface {}

@@ -17,8 +17,8 @@ model User {
   id        Int       @id @default(autoincrement())
   name      String    @db.VarChar(255)
   email     String    @unique @db.VarChar(255)
-  password  String    @db.VarChar(255)
-  role      String    @db.VarChar(50)
+  password  String?    @db.VarChar(255)
+  role      String?    @db.VarChar(50)
   createdAt DateTime  @default(now()) @map("created_at")
 
   projects          Project[]        @relation("UserProjects")
@@ -113,7 +113,7 @@ model OAuthProvider {
   id          Int      @id @default(autoincrement())
   user        User     @relation(fields: [userId], references: [id])
   userId      Int
-  provider    String   @db.VarChar(50)
+  provider    String?   @db.VarChar(50)
   accessToken String   @db.VarChar(255) @map("access_token")
   createdAt   DateTime @default(now()) @map("created_at")
 }
