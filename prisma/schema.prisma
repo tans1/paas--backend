@@ -37,6 +37,8 @@ model GithubAuth {
 
   accessToken String   @map("access_token") @db.VarChar(255)
   createdAt   DateTime @default(now()) @map("created_at")
+
+  expired      Boolean?
 }
 
 model Project {
