@@ -27,7 +27,7 @@ model User {
   oauthProviders OAuthProvider[]
 
   githubAuth     GithubAuth?
-  githubUsername String      @unique @map("github_username") @db.VarChar(255)
+  githubUsername String?      @unique @map("github_username") @db.VarChar(255)
 }
 
 model GithubAuth {
