@@ -30,7 +30,7 @@ export class NotFoundException extends HttpException {
 export class InternalErrorException extends HttpException {
   constructor(
     message: string = 'Internal Server Error',
-    status: number = HttpStatus.FORBIDDEN,
+    status: number = HttpStatus.INTERNAL_SERVER_ERROR,
   ) {
     super(message, status);
   }
