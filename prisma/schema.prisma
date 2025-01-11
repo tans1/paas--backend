@@ -10,8 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://finalyearprojectdb_user:CR6nDelC9i6FlIidAoKLNFIUkR9SVXKw@dpg-ctt6up3v2p9s738g0v10-a.oregon-postgres.render.com/finalyearprojectdb"
-  
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -28,7 +27,7 @@ model User {
   oauthProviders OAuthProvider[]
 
   githubAuth     GithubAuth?
-  githubUsername String?      @unique @map("github_username") @db.VarChar(255)
+  githubUsername String?    @unique @map("github_username") @db.VarChar(255)
 }
 
 model GithubAuth {
