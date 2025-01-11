@@ -2,8 +2,8 @@ name: Deploy
 
 on:
   push:
-    # paths:
-    #   - prisma/migrations/**
+    paths:
+      - prisma/migrations/**
     branches:
       - main
 
@@ -27,5 +27,3 @@ jobs:
         run: npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      - name: Generate Prisma Client
-        run: npx prisma generate
