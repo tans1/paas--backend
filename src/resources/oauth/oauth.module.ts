@@ -6,9 +6,10 @@ import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { GithubService } from './github-auth/github.service';
 import { GithubStrategy } from './github-auth/github.strategy';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(),PassportModule.register({})],
+  imports: [ConfigModule.forRoot(),PassportModule.register({}),UsersModule],
   controllers: [OauthController],
   providers: [GoogleService,GoogleStrategy,GithubService,GithubStrategy]
 })

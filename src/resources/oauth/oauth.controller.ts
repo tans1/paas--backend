@@ -1,4 +1,5 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { GoogleOAuthGuard } from './google-auth/google-oauth.guard';
 import { GoogleService } from './google-auth/google.service';
 import { Public } from '../auth/public-strategy';
@@ -18,8 +19,12 @@ export class OauthController {
     @Public()
     @Get('google-redirect')
     @UseGuards(GoogleOAuthGuard)
-    googleAuthRedirect(@Req() req) {
-      return this.googleService.googleLogin(req);
+    async googleAuthRedirect(@Req() req,@Res() res: Response) {
+      const payload =  await this.googleService.googleLogin(req);
+      if (!payload) {
+        return res.redirect(`${process.env.FRONT_END_URL}/login-failure`);
+      }
+      return res.redirect(`${process.env.FRONT_END_URL}/login-success?token=${payload.access_token}`);
     }
 
     @Public()
@@ -30,7 +35,11 @@ export class OauthController {
     @Public()
     @Get('github-redirect')
     @UseGuards(GithubOAuthGuard)
-    githubAuthRedirect(@Req() req) {
-      return this.githubService.githubLogin(req);
+    async githubAuthRedirect(@Req() req, @Res() res: Response) {
+      const payload =  await this.githubService.githubLogin(req);
+      if (!payload) {
+        return res.redirect(`${process.env.FRONT_END_URL}/login-failure`);
+      }
+      return res.redirect(`${process.env.FRONT_END_URL}/login-success?token=${payload.access_token}`);
     }
 }
