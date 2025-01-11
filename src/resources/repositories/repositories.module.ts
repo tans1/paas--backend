@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { RepositoriesController } from './repositories.controller';
 import { ListService } from './list/list.service';
 import { WebhooksService } from './webhooks/webhooks.service';
+import { ConnectService } from './connect/connect.service';
 
 @Module({
   controllers: [RepositoriesController],
-  providers: [ListService, WebhooksService]
+  providers: [ListService, WebhooksService, ConnectService],
 })
 export class RepositoriesModule {}
