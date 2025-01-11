@@ -9,14 +9,15 @@ import { RepositoriesModule } from './repositories/repositories.module';
 import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfaces.module';
 
 @Module({
-    imports: [UsersModule,
-        AdminModule,
-        ServersModule,
-        AuthModule, 
-        OauthModule,
-        PaymentModule,
-        RepositoriesModule,
-        InterfacesModule
-    ],
+  imports: [
+    UsersModule,
+    AdminModule,
+    ServersModule,
+    AuthModule,
+    OauthModule,
+    PaymentModule,
+    RepositoriesModule,
+    InterfacesModule,
+  ],
 })
 export class ModulesModule {}

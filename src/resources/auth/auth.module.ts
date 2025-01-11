@@ -27,7 +27,7 @@ import { RolesGuard } from './guards/role-guard/roles.guard';
     },
     {
       provide: APP_GUARD,
-      useClass: RolesGuard
+      useClass: RolesGuard,
     },
     LoginService,
     LogoutService,

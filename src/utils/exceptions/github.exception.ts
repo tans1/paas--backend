@@ -8,7 +8,7 @@ export class TokenNotFoundException extends HttpException {
 
 export class CallBackFailedException extends HttpException {
   constructor() {
-    super('Could not get GitHub access token', HttpStatus.FORBIDDEN);
+    super('Callback failed', HttpStatus.FORBIDDEN);
   }
 }
 
@@ -38,7 +38,7 @@ export class InternalErrorException extends HttpException {
 
 export class InvalidDataException extends HttpException {
   constructor(
-    message: string = 'Internal Server Error',
+    message: string = 'Invalid data',
     status: number = HttpStatus.FORBIDDEN,
   ) {
     super(message, status);

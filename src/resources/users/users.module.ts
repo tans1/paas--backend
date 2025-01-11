@@ -9,7 +9,7 @@ import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfa
 @Module({
   controllers: [UsersController],
   providers: [ProfileService, AlertService, UsersService],
-  exports:[UsersService],
-  imports: [DtoModule,InterfacesModule]
+  exports: [UsersService],
+  imports: [DtoModule, InterfacesModule],
 })
 export class UsersModule {}

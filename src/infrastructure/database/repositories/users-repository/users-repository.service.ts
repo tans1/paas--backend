@@ -1,9 +1,8 @@
-import { 
-  HttpException, 
-  Injectable, 
-  BadRequestException, 
-  InternalServerErrorException, 
-  ConflictException 
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common';
 import { UsersRepositoryInterface } from './../../interfaces/users-repository-interface/users-repository-interface.interface';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
@@ -26,13 +25,14 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       return user;
     } catch (error) {
       console.error('Error fetching user by email:', error);
-      throw new InternalServerErrorException('Failed to fetch user. Please try again later.');
+      throw new InternalServerErrorException(
+        'Failed to fetch user.Please try again later.',
+      );
     }
   }
 
   async create(payload: any) {
     try {
-   
       const password = payload.password;
       if (password) {
         const salt = await bcrypt.genSalt();
@@ -44,12 +44,13 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
         data: payload,
       });
     } catch (error) {
-     
-      if (error.code === 'P2002') { 
+      if (error.code === 'P2002') {
         throw new ConflictException('A user with this email already exists.');
       }
       console.error('Error creating user:', error);
-      throw new InternalServerErrorException('Failed to create user. Please try again later.');
+      throw new InternalServerErrorException(
+        'Failed to create user. Please try again later.',
+      );
     }
   }
 }

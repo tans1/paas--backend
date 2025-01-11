@@ -10,40 +10,46 @@ import { AuthRepositoryInterface } from '../interfaces/auth-repository-interface
 import { ProjectsRepositoryInterface } from '../interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { ServersRepositoryInterface } from '../interfaces/servers-repository-interface/servers-repository-interface.interface';
 import { UsersRepositoryInterface } from '../interfaces/users-repository-interface/users-repository-interface.interface';
-import { Prisma } from '@prisma/client';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
-
+import { GithubRepositoryInterface } from './github-repository-interface/github-repository-interface.interface';
+import { GithubRepositoryService } from '../repositories/github-repository/github-repository.service';
 
 @Module({
-    imports: [RepositoriesModule, PrismaModule],
-  providers: [{
-    provide: AdminRepositoryInterface, 
-    useClass: AdminRepositoryService, 
-  }, 
-  {
-    provide: AuthRepositoryInterface, 
-    useClass: AuthRepositoryService, 
-  },
-  {
-    provide: ProjectsRepositoryInterface, 
-    useClass: ProjectsRepositoryService, 
-  },
-  {
-    provide: ServersRepositoryInterface,
-    useClass: ServersRepositoryService, 
-  },
-  {
-    provide: UsersRepositoryInterface, 
-    useClass: UsersRepositoryService, 
-  },
-    ],
-    exports: [
-        AdminRepositoryInterface, 
-        AuthRepositoryInterface, 
-        ProjectsRepositoryInterface, 
-        ServersRepositoryInterface, 
-        UsersRepositoryInterface
-    ]
+  imports: [RepositoriesModule, PrismaModule],
+  providers: [
+    {
+      provide: AdminRepositoryInterface,
+      useClass: AdminRepositoryService,
+    },
+    {
+      provide: GithubRepositoryInterface,
+      useClass: GithubRepositoryService,
+    },
+    {
+      provide: AuthRepositoryInterface,
+      useClass: AuthRepositoryService,
+    },
+    {
+      provide: ProjectsRepositoryInterface,
+      useClass: ProjectsRepositoryService,
+    },
+    {
+      provide: ServersRepositoryInterface,
+      useClass: ServersRepositoryService,
+    },
+    {
+      provide: UsersRepositoryInterface,
+      useClass: UsersRepositoryService,
+    },
+  ],
+  exports: [
+    AdminRepositoryInterface,
+    AuthRepositoryInterface,
+    ProjectsRepositoryInterface,
+    ServersRepositoryInterface,
+    UsersRepositoryInterface,
+    GithubRepositoryInterface,
+  ],
 })
 export class InterfacesModule {}

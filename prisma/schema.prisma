@@ -14,106 +14,105 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  name      String    @db.VarChar(255)
-  email     String    @unique @db.VarChar(255)
-  password  String?    @db.VarChar(255)
-  role      String?    @db.VarChar(50)
-  createdAt DateTime  @default(now()) @map("created_at")
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  password  String?  @db.VarChar(255)
+  role      String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
 
-  projects          Project[]        @relation("UserProjects")
-  payments          Payment[]
-  userAlerts        UserAlert[]
-  oauthProviders    OAuthProvider[]
+  projects       Project[]       @relation("UserProjects")
+  payments       Payment[]
+  userAlerts     UserAlert[]
+  oauthProviders OAuthProvider[]
 
-  githubAuth        GithubAuth?
+  githubAuth     GithubAuth?
+  githubUsername String      @unique @map("github_username") @db.VarChar(255)
 }
 
 model GithubAuth {
-  id          Int      @id @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      Int @unique
+  id             Int    @id @default(autoincrement())
+  user           User   @relation(fields: [githubUsername], references: [githubUsername])
+  githubUsername String @unique
 
-  githubUsername String   @db.VarChar(255) @map("github_username")
-  
-  accessToken String   @db.VarChar(255) @map("access_token")
+  accessToken String   @map("access_token") @db.VarChar(255)
   createdAt   DateTime @default(now()) @map("created_at")
 }
 
 model Project {
-  id           Int       @id @default(autoincrement())
-  name         String    @db.VarChar(255)
-  url          String    @db.VarChar(2083)
-  linkedByUser User      @relation("UserProjects", fields: [linkedByUserId], references: [id])
+  id             Int      @id @default(autoincrement())
+  name           String   @db.VarChar(255)
+  url            String   @db.VarChar(2083)
+  linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
   linkedByUserId Int
-  createdAt    DateTime  @default(now()) @map("created_at")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  deployments  Deployment[]
+  deployments Deployment[]
 }
 
 model Deployment {
-  id                 Int       @id @default(autoincrement())
-  repo               Project   @relation(fields: [repoId], references: [id])
-  repoId             Int
-  status             String    @db.VarChar(50)
-  branch             String    @db.VarChar(100)
-  environmentVariables Json?   @map("environment_variables")
-  rollbackTo         Deployment? @relation("Rollback", fields: [rollbackToId], references: [id])
-  rollbackToId       Int?      @map("rollback_to_id")
+  id                    Int          @id @default(autoincrement())
+  repo                  Project      @relation(fields: [repoId], references: [id])
+  repoId                Int
+  status                String       @db.VarChar(50)
+  branch                String       @db.VarChar(100)
+  environmentVariables  Json?        @map("environment_variables")
+  rollbackTo            Deployment?  @relation("Rollback", fields: [rollbackToId], references: [id])
+  rollbackToId          Int?         @map("rollback_to_id")
   rollbackedDeployments Deployment[] @relation("Rollback")
 
-  createdAt          DateTime  @default(now()) @map("created_at")
-  logs               DeploymentLog[]
+  createdAt DateTime        @default(now()) @map("created_at")
+  logs      DeploymentLog[]
 }
 
 model DeploymentLog {
-  id            Int      @id @default(autoincrement())
-  deployment    Deployment @relation(fields: [deploymentId], references: [id])
-  deploymentId  Int
-  logLevel      String   @db.VarChar(20) @map("log_level")
-  message       String
-  timestamp     DateTime @default(now()) @map("timestamp")
+  id           Int        @id @default(autoincrement())
+  deployment   Deployment @relation(fields: [deploymentId], references: [id])
+  deploymentId Int
+  logLevel     String     @map("log_level") @db.VarChar(20)
+  message      String
+  timestamp    DateTime   @default(now()) @map("timestamp")
 }
 
 model Payment {
-  id           Int      @id @default(autoincrement())
-  user         User     @relation(fields: [userId], references: [id])
-  userId       Int
-  amount       Decimal  @db.Decimal(10, 2)
-  method       String   @db.VarChar(50)
-  status       String   @db.VarChar(50)
-  transactionId String  @unique @db.VarChar(255) @map("transaction_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        Int
+  amount        Decimal  @db.Decimal(10, 2)
+  method        String   @db.VarChar(50)
+  status        String   @db.VarChar(50)
+  transactionId String   @unique @map("transaction_id") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at")
 }
 
 model Server {
-  id               Int     @id @default(autoincrement())
-  resourceUsage    Json?   @map("resource_usage")
-  hostedApplications Json? @map("hosted_applications")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id                 Int      @id @default(autoincrement())
+  resourceUsage      Json?    @map("resource_usage")
+  hostedApplications Json?    @map("hosted_applications")
+  createdAt          DateTime @default(now()) @map("created_at")
 }
 
 model UserAlert {
-  id         Int      @id @default(autoincrement())
-  user       User     @relation(fields: [userId], references: [id])
-  userId     Int
-  message    String
-  type       String   @db.VarChar(50)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  message   String
+  type      String   @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
 }
 
 model AdminAnalytics {
-  id         Int      @id @default(autoincrement())
-  metric     String   @db.VarChar(100)
-  value      Json?
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        Int      @id @default(autoincrement())
+  metric    String   @db.VarChar(100)
+  value     Json?
+  createdAt DateTime @default(now()) @map("created_at")
 }
 
 model OAuthProvider {
   id          Int      @id @default(autoincrement())
   user        User     @relation(fields: [userId], references: [id])
   userId      Int
-  provider    String?   @db.VarChar(50)
-  accessToken String   @db.VarChar(255) @map("access_token")
+  provider    String?  @db.VarChar(50)
+  accessToken String   @map("access_token") @db.VarChar(255)
   createdAt   DateTime @default(now()) @map("created_at")
 }

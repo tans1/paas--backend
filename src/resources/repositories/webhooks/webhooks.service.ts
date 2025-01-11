@@ -21,9 +21,11 @@ export class WebhooksService {
       active: true,
     };
 
-    const response = await octokit.repos.createWebhook(webhookConfig);
+    // const response = await octokit.repos.createWebhook(webhookConfig);
+    // return response.data;
 
-    return response.data;
+    await octokit.repos.createWebhook(webhookConfig);
+    return { message: 'Webhook created successfully' };
   }
   async handleWebhookEvent(signature: string, event: string, payload: any) {
     const hmac = createHmac('sha256', process.env.WEBHOOK_SECRET);
