@@ -2,13 +2,10 @@ name: Deploy
 
 on: 
   push:
+    paths:
+      - prisma/migrations/**
     branches:
       - main
-  # push:
-  #   paths:
-  #     - prisma/migrations/**
-  #   branches:
-  #     - main
 
 jobs:
   deploy:
@@ -27,6 +24,6 @@ jobs:
         run: npm install
 
       - name: Apply all pending migrations to the database
-        run: npx prisma migrate resolve --applied 20250116200555_remove_user_githubauth_relation
+        run: npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
