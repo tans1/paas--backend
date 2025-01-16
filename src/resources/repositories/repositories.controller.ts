@@ -14,7 +14,6 @@ import {
   ApiQuery,
   ApiResponse,
   ApiBody,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 
@@ -62,7 +61,8 @@ export class RepositoriesController {
     status: 200,
     description: 'Returns a list of user repositories.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
+  @Public()
   @Get('/user')
   async listUserRepositories(@Query('githubUsername') githubUsername: string) {
     return this.listService.getAllUserRepos(githubUsername);
@@ -95,6 +95,7 @@ export class RepositoriesController {
     description: 'Returns detailed information about the repository.',
   })
   // @ApiBearerAuth('JWT-auth')
+  @Public()
   @Get('/user/info')
   async getRepoInfo(
     @Query('githubUsername') githubUsername: string,
@@ -136,9 +137,11 @@ export class RepositoriesController {
   @Public()
   @Post('/webhook')
   async handleWebhookEvent(@Req() req: Request) {
-    const signature = req.header('X-Hub-Signature-256');
+    const signature = req.header('X-Signature');
     const event = req.header('X-GitHub-Event');
     const payload = req.body;
+    console.log(signature, event, payload);
+    console.log('header', req.headers);
     if (!signature || !event || !payload) {
       throw new OtherException('Missing headers or payload');
     }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { InvalidDataException } from '../../../utils/exceptions/github.exception';
-import { OctokitService } from '../utils/octokit';
+import { OctokitService } from '../octokit/octokit.service';
 @Injectable()
 export class WebhooksService {
   constructor(private readonly octokitService: OctokitService) {}

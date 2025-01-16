@@ -1,7 +1,10 @@
+import { Injectable } from '@nestjs/common';
+
 import { Octokit } from '@octokit/rest';
 
 import { GithubRepositoryInterface } from '@/infrastructure/database/interfaces/github-repository-interface/github-repository-interface.interface';
 
+@Injectable()
 export class OctokitService {
   constructor(private readonly githubRepository: GithubRepositoryInterface) {}
 
