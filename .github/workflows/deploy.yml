@@ -1,11 +1,14 @@
 name: Deploy
 
-on:
+on: 
   push:
-    paths:
-      - prisma/migrations/**
     branches:
       - main
+  # push:
+  #   paths:
+  #     - prisma/migrations/**
+  #   branches:
+  #     - main
 
 jobs:
   deploy:
