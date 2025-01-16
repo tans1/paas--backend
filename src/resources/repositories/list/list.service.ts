@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OctokitService } from '../utils/octokit';
+import { OctokitService } from '../octokit/octokit.service';
 
 @Injectable()
 export class ListService {
@@ -12,7 +12,10 @@ export class ListService {
       repo,
     });
 
-    return data;
+    return {
+      message: 'Successfully fetched repository info',
+      data,
+    };
   }
 
   async getAllUserRepos(githubUsername: string) {
@@ -22,6 +25,9 @@ export class ListService {
       per_page: 100,
     });
 
-    return data;
+    return {
+      message: 'Successfully fetched user repositories',
+      data,
+    };
   }
 }

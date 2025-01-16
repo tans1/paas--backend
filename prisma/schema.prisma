@@ -25,14 +25,10 @@ model User {
   payments       Payment[]
   userAlerts     UserAlert[]
   oauthProviders OAuthProvider[]
-
-  githubAuth     GithubAuth?
-  githubUsername String?    @unique @map("github_username") @db.VarChar(255)
 }
 
 model GithubAuth {
   id             Int    @id @default(autoincrement())
-  user           User   @relation(fields: [githubUsername], references: [githubUsername])
   githubUsername String @unique
 
   accessToken String   @map("access_token") @db.VarChar(255)

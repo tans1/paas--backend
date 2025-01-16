@@ -62,6 +62,12 @@ export class ConnectService {
 
       const githubUsername = userInfo.data.login;
       await this.githubRepository.create(githubUsername, accessToken);
+      return {
+        message: 'Successfully connected to GitHub',
+        data: {
+          githubUsername,
+        },
+      };
     } catch (error) {
       console.error(error);
       throw new CallBackFailedException();

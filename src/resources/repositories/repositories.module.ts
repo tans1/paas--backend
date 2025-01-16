@@ -3,8 +3,8 @@ import { RepositoriesController } from './repositories.controller';
 import { ListService } from './list/list.service';
 import { WebhooksService } from './webhooks/webhooks.service';
 import { ConnectService } from './connect/connect.service';
-import { OctokitService } from './utils/octokit';
 import { InterfacesModule } from '../../infrastructure/database/interfaces/interfaces.module';
+import { OctokitService } from './octokit/octokit.service';
 
 @Module({
   controllers: [RepositoriesController],
