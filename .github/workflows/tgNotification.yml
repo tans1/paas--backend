@@ -20,7 +20,25 @@ jobs:
 
           ACTUAL_TIME="$(date -d "$PR_CREATED_AT" '+%H:%M, %d %b %Y' 2>/dev/null || echo "$PR_CREATED_AT")"
 
-          msg_text="*Pull Request Alert*\n\n*Project:* Backend\n*Sender:* ${SENDER_NAME}\n*Title:* ${PR_TITLE}\n*Source Branch:* ${SOURCE_BRANCH}\n*Target Branch:* ${TARGET_BRANCH}\n*Created At:* ${ACTUAL_TIME}"
+          msg_text="*Pull Request Alert*
+          ---
+
+          *Project:* Backend
+
+
+          *Sender:* ${SENDER_NAME}
+
+
+          *Title:* ${PR_TITLE}
+
+
+          *Source Branch:* ${SOURCE_BRANCH}
+
+
+          *Target Branch:* ${TARGET_BRANCH}
+
+
+          *Created At:* ${ACTUAL_TIME}"
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_TO }}" \
