@@ -1,31 +1,28 @@
 name: Deploy
 
-on:
+on: 
   push:
     paths:
-      - prisma/migrations/** 
+      - prisma/migrations/**
     branches:
-      - main 
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      
       - name: Checkout repo
         uses: actions/checkout@v3
 
-     
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 
-     
+          node-version:
+
       - name: Install dependencies
         run: npm install
 
-      
       - name: Apply all pending migrations to the database
         run: npx prisma migrate deploy
         env:
