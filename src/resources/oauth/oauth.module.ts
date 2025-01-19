@@ -9,8 +9,8 @@ import { GithubStrategy } from './github-auth/github.strategy';
 import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(),PassportModule.register({}),UsersModule],
+  imports: [ConfigModule.forRoot(), PassportModule.register({}), UsersModule],
   controllers: [OauthController],
-  providers: [GoogleService,GoogleStrategy,GithubService,GithubStrategy]
+  providers: [GoogleService, GoogleStrategy, GithubService, GithubStrategy],
 })
 export class OauthModule {}

@@ -6,6 +6,6 @@ import { RolesService } from './roles/roles.service';
 
 @Module({
   controllers: [AdminController],
-  providers: [UsersService, AnalyticsService, RolesService]
+  providers: [UsersService, AnalyticsService, RolesService],
 })
 export class AdminModule {}

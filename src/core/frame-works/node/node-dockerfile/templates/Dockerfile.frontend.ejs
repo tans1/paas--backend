@@ -1,0 +1,32 @@
+<% 
+  // Check if nodeVersion is "latest" or undefined, default to 18 otherwise use the provided version.
+  const resolvedNodeVersion = (nodeVersion === 'latest' || !nodeVersion) ? '18' : nodeVersion; 
+%>
+
+# Use the specified Node.js version or default to 18 if latest or undefined
+FROM node:<%= resolvedNodeVersion %>-alpine
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Copy all source files
+COPY . .
+# Install dependencies
+RUN npm install
+
+<% if (buildCommand) { %>
+# Build the project
+RUN <%= buildCommand %>
+<% } %>
+
+# Install serve package globally to serve the dist directory
+RUN npm install -g serve
+
+# Expose the application port
+EXPOSE 4200
+
+# Serve the dist directory
+CMD ["serve", "-s", "dist","-l","4200"]

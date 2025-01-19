@@ -6,18 +6,17 @@ import { Roles } from '../auth/guards/role-guard/roles.decorator';
 import { Role } from '../auth/guards/role-guard/role.enum';
 @Controller('user')
 export class UsersController {
-      @HttpCode(HttpStatus.OK)
-      @Get("profile")
-      @Roles(Role.Admin)
-      @ApiBearerAuth('JWT-auth')
-      @ApiOperation({ summary: "User Profile" })
-      @ApiResponse({
-        status: 200,
-        description: "The record found",
-        type: [BaseUser],
-      })
-      
-      profile(@Req() req : Request) {
-        return req?.user;
-      }
+  @HttpCode(HttpStatus.OK)
+  @Get('profile')
+  @Roles(Role.Admin)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'User Profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'The record found',
+    type: [BaseUser],
+  })
+  profile(@Req() req: Request) {
+    return req?.user;
+  }
 }

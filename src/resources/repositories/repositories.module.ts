@@ -5,6 +5,6 @@ import { WebhooksService } from './webhooks/webhooks.service';
 
 @Module({
   controllers: [RepositoriesController],
-  providers: [ListService, WebhooksService]
+  providers: [ListService, WebhooksService],
 })
 export class RepositoriesModule {}

@@ -14,36 +14,36 @@ import { Prisma } from '@prisma/client';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
 
-
 @Module({
-    imports: [RepositoriesModule, PrismaModule],
-  providers: [{
-    provide: AdminRepositoryInterface, 
-    useClass: AdminRepositoryService, 
-  }, 
-  {
-    provide: AuthRepositoryInterface, 
-    useClass: AuthRepositoryService, 
-  },
-  {
-    provide: ProjectsRepositoryInterface, 
-    useClass: ProjectsRepositoryService, 
-  },
-  {
-    provide: ServersRepositoryInterface,
-    useClass: ServersRepositoryService, 
-  },
-  {
-    provide: UsersRepositoryInterface, 
-    useClass: UsersRepositoryService, 
-  },
-    ],
-    exports: [
-        AdminRepositoryInterface, 
-        AuthRepositoryInterface, 
-        ProjectsRepositoryInterface, 
-        ServersRepositoryInterface, 
-        UsersRepositoryInterface
-    ]
+  imports: [RepositoriesModule, PrismaModule],
+  providers: [
+    {
+      provide: AdminRepositoryInterface,
+      useClass: AdminRepositoryService,
+    },
+    {
+      provide: AuthRepositoryInterface,
+      useClass: AuthRepositoryService,
+    },
+    {
+      provide: ProjectsRepositoryInterface,
+      useClass: ProjectsRepositoryService,
+    },
+    {
+      provide: ServersRepositoryInterface,
+      useClass: ServersRepositoryService,
+    },
+    {
+      provide: UsersRepositoryInterface,
+      useClass: UsersRepositoryService,
+    },
+  ],
+  exports: [
+    AdminRepositoryInterface,
+    AuthRepositoryInterface,
+    ProjectsRepositoryInterface,
+    ServersRepositoryInterface,
+    UsersRepositoryInterface,
+  ],
 })
 export class InterfacesModule {}

@@ -24,11 +24,14 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     let email = emails?.[0]?.value || null;
     if (!email) {
       try {
-        const emailResponse = await fetch('https://api.github.com/user/emails', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+        const emailResponse = await fetch(
+          'https://api.github.com/user/emails',
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           },
-        });
+        );
         const emailData = await emailResponse.json();
         email = emailData?.find((e: any) => e.primary)?.email || null;
       } catch (error) {

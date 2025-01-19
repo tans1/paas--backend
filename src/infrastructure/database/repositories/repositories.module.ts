@@ -6,13 +6,14 @@ import { ServersRepositoryService } from './servers-repository/servers-repositor
 import { UsersRepositoryService } from './users-repository/users-repository.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
-
 @Module({
-  providers: [AdminRepositoryService,
+  providers: [
+    AdminRepositoryService,
     AuthRepositoryService,
     ProjectsRepositoryService,
     ServersRepositoryService,
-    UsersRepositoryService],
-  imports:[PrismaModule ]
+    UsersRepositoryService,
+  ],
+  imports: [PrismaModule],
 })
 export class RepositoriesModule {}

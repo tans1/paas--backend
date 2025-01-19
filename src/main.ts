@@ -3,15 +3,18 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+const envFile =
+  process.env.NODE_ENV === 'production'
+    ? '.env.production'
+    : '.env.development';
 dotenv.config({ path: envFile });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: '*', 
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', 
-    allowedHeaders: 'Content-Type, Accept, Authorization', 
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
   const config = new DocumentBuilder()
     .setTitle('pass-final-year-project')
@@ -24,7 +27,7 @@ async function bootstrap() {
         scheme: 'bearer',
         bearerFormat: 'JWT',
       },
-      'JWT-auth'
+      'JWT-auth',
     )
     .build();
 
