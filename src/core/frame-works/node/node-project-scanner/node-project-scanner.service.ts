@@ -34,7 +34,7 @@ export class NodeProjectScannerService {
         }
       }
 
-      const { buildCommand, startCommand } = FrameworkMap[detectedFramework];
+      const { buildCommand, startCommand,defaultBuildLocation } = FrameworkMap[detectedFramework];
 
       return {
         projectPath,
@@ -42,6 +42,7 @@ export class NodeProjectScannerService {
         framework: detectedFramework,
         startCommand,
         buildCommand,
+        defaultBuildLocation
       };
     } catch (error) {
       console.error(`Error scanning project: ${error.message}`);

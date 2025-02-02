@@ -41,7 +41,6 @@ export class CreateImageService {
   
       await this.startContainer(imageName);
     } catch (error) {
-      // Check for Docker errors
       if (error instanceof Docker.DockerError) {
         throw new HttpException(
           `Docker error: ${error.message}`,
@@ -75,23 +74,21 @@ export class CreateImageService {
 
   private async startContainer(imageName: string): Promise<void> {
     try {
-      console.log(`Starting container from image: ${imageName}`);
-      const container = await this.docker.createContainer({
+        const container = await this.docker.createContainer({
         Image: imageName,
         name: `${imageName}-container`,
         Tty: true,
-        ExposedPorts: {
-          '4200/tcp': {},
-        },
+        ExposedPorts: { '4200/tcp': {} },
         HostConfig: {
-          PortBindings: {
-            '4200/tcp': [{ HostPort: '4200' }],
-          },
+          PortBindings: { '4200/tcp': [{}] }, 
         },
       });
-
+      
       await container.start();
-      console.log(`Container '${imageName}-container' started successfully.`);
+      
+      const containerInfo = await container.inspect();
+      const assignedPort = containerInfo.NetworkSettings.Ports['4200/tcp'][0].HostPort;
+      console.log(`Container started on port: ${assignedPort}`);
     } catch (error) {
       if (error instanceof Docker.DockerError) {
         throw new HttpException(

@@ -18,6 +18,7 @@ export class NodeDockerfileService {
     framework?: string;
     startCommand: string;
     buildCommand?: string;
+    defaultBuildLocation?: string;
   }): Promise<void> {
     const { projectPath, nodeVersion = '16', framework, startCommand, buildCommand } = projectConfig;
 
@@ -28,9 +29,26 @@ export class NodeDockerfileService {
 
       let dockerfileContent = '';
       if (FrameworkMap[framework].type === 'frontend') {
+
+        if (framework === 'angular') {
+          const angularConfigPath = path.join(projectPath, 'angular.json');
+          const angularConfigContent = await fs.promises.readFile(angularConfigPath, 'utf-8');
+          const angularConfig = JSON.parse(angularConfigContent);
+      
+          // Get the project name dynamically if defaultProject is undefined
+          const projectName = angularConfig.defaultProject || Object.keys(angularConfig.projects)[0];
+      
+          if (!projectName) {
+              throw new Error("No projects found in angular.json");
+          }
+      
+          const outputPath = angularConfig.projects[projectName].architect.build.options.outputPath;
+          projectConfig.defaultBuildLocation = `${outputPath}/browser`;
+      }
         dockerfileContent = ejs.render(templateContent, {
           nodeVersion,
-          buildCommand: buildCommand || 'npm run build -- --output-path dist',
+          buildCommand: buildCommand,
+          outputDir: projectConfig.defaultBuildLocation,
         });
       }
 
@@ -38,6 +56,7 @@ export class NodeDockerfileService {
         dockerfileContent = ejs.render(templateContent, {
           nodeVersion,
           startCommand,
+
         });
       }
 

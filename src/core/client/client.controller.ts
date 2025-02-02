@@ -21,7 +21,7 @@ export class ClientController {
   upload() {
     console.log('upload');
     const projectPath =
-      'C:\\Users\\user\\Desktop\\Final_Year_Project\\backend\\projects\\nuxtjs';
+      'C:\\Users\\user\\Desktop\\Final_Year_Project\\backend\\projects\\my-vue-app';
     this.eventEmitter.emit(EventNames.PROJECT_UPLOADED, {
       projectPath: projectPath,
     });

@@ -1,33 +1,41 @@
-// frameworks.constants.ts
 export const FrameworkMap = {
   react: {
     type: 'frontend',
     dockerFile: 'Dockerfile.frontend.ejs',
     dependency: 'react-scripts',
-    buildCommand: 'npm run build -- --output-path=dist',
-    startCommand: 'react-scripts start',
+    buildCommand: 'npm run build',
+    defaultBuildLocation: 'build', 
   },
-  vue: {
-    
+  vite: {
     type: 'frontend',
     dockerFile: 'Dockerfile.frontend.ejs',
-    dependency: 'vue',
-    buildCommand: 'npm run build -- --dest=dist',
+    dependency: 'vite',
+    buildCommand: 'npm run build',
+    defaultBuildDir: 'dist', 
+  },
+  vue: {
+    type: 'frontend',
+    dockerFile: 'Dockerfile.frontend.ejs',
+    dependency: '@vue/cli-service',
+    buildCommand: 'npm run build',
     startCommand: 'vue-cli-service serve',
+    defaultBuildLocation: 'dist',
   },
   angular: {
     type: 'frontend',
     dockerFile: 'Dockerfile.frontend.ejs',
-    dependency: '@angular/core',
-    buildCommand: 'npm run build -- --output-path=dist --verbose',
+    dependency: '@angular/cli',
+    buildCommand: 'npm run build',
     startCommand: 'ng serve',
+    defaultBuildLocation: 'dist', 
   },
   next: {
     type: 'frontend',
     dockerFile: 'Dockerfile.frontend.ejs',
     dependency: 'next',
-    buildCommand: 'npm run build -- --dist-dir=dist',
+    buildCommand: 'npm run build',
     startCommand: 'next start',
+    defaultBuildLocation: '.next', // Next.js uses ".next" as the default build folder
   },
   express: {
     type: 'backend',
@@ -35,13 +43,15 @@ export const FrameworkMap = {
     dependency: 'express',
     buildCommand: 'npm run build',
     startCommand: 'node index.js',
+    defaultBuildLocation: 'dist', // Customizable, depends on build setup
   },
   nest: {
     type: 'backend',
     dockerFile: 'Dockerfile.backend.ejs',
     dependency: '@nestjs/core',
-    buildCommand: 'npm run build -- --output-path=dist',
+    buildCommand: 'npm run build',
     startCommand: 'nest start',
+    defaultBuildLocation: 'dist', // NestJS uses "dist" as the default build folder
   },
   default: {
     type: 'backend',
@@ -49,5 +59,6 @@ export const FrameworkMap = {
     dependency: '',
     buildCommand: 'npm run build',
     startCommand: 'node index.js',
+    defaultBuildLocation: 'dist', // Default fallback build location
   },
 };

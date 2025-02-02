@@ -35,12 +35,12 @@
     "@octokit/rest": "^21.0.2",
     "@prisma/client": "^6.1.0",
     "@types/axios": "^0.9.36",
-    "axios": "^1.7.9",
     "@types/passport-jwt": "^4.0.1",
+    "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "dockerode": "^4.0.3",
+    "dockerode": "^4.0.4",
     "ejs": "^3.1.10",
     "event-emitter": "^0.3.5",
     "ignore": "^7.0.3",
@@ -94,5 +94,6 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf"
 }
