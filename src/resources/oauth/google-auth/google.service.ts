@@ -23,7 +23,13 @@ export class GoogleService {
     const { email, firstName: name } = req.user;
     let user;
 
-    user = await this.usersService.findOneBy(email);
+    try{
+
+      user = await this.usersService.findOneBy(email);
+    }
+    catch(e){
+      console.log(e);
+    }
 
     if (!user) {
       user = await this.usersService.create({
