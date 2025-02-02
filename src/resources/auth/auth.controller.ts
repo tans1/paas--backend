@@ -7,19 +7,21 @@ import { Public } from './public-strategy';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
-@Controller("auth")
-@ApiTags("auth")
+@Controller('auth')
+@ApiTags('auth')
 export class AuthController {
-  constructor(private loginService: LoginService, 
-    private registerService : RegisterService) {}
+  constructor(
+    private loginService: LoginService,
+    private registerService: RegisterService,
+  ) {}
 
   @Public()
   @HttpCode(HttpStatus.OK)
-  @Post("login")
-  @ApiOperation({ summary: "User Login" })
+  @Post('login')
+  @ApiOperation({ summary: 'User Login' })
   @ApiResponse({
     status: 200,
-    description: "The record found",
+    description: 'The record found',
     type: [BaseUser],
   })
   signIn(@Body() loginDto: LoginDto) {
@@ -27,18 +29,18 @@ export class AuthController {
   }
   @Public()
   @HttpCode(HttpStatus.OK)
-  @Post("signup")
-  @ApiOperation({ summary: "User Signup" })
+  @Post('signup')
+  @ApiOperation({ summary: 'User Signup' })
   @ApiResponse({
     status: 200,
-    description: "The record found",
+    description: 'The record found',
     type: [BaseUser],
   })
   signUp(@Body() registerDto: RegisterDto) {
     const payload = {
       ...registerDto,
-      createdAt: new Date()
-    }
+      createdAt: new Date(),
+    };
     return this.registerService.register(payload);
   }
 }

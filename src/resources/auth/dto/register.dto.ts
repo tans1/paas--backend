@@ -11,11 +11,11 @@ export class RegisterDto {
   @IsEmail()
   @IsNotEmpty()
   email: string;
-  
+
   @ApiProperty()
   @IsNotEmpty()
   role: string;
- 
+
   @ApiProperty()
   @IsNotEmpty()
   @MinLength(6)

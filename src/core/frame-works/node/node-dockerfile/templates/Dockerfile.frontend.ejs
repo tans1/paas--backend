@@ -1,0 +1,35 @@
+<% 
+  // Resolve Node.js version, defaulting to 18 if 'latest' or undefined
+  const resolvedNodeVersion = (nodeVersion === 'latest' || !nodeVersion) ? '18' : nodeVersion;
+  // Use a different variable name to avoid shadowing
+  const userOutputDir = typeof outputDir !== 'undefined' ? outputDir : 'dist';
+%>
+
+# Use the resolved Node.js version
+FROM node:<%= resolvedNodeVersion %>-alpine
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy all source files
+COPY . .
+
+# Install dependencies
+RUN npm install
+
+<% if (buildCommand) { %>
+# Build the project
+RUN <%= buildCommand %>
+<% } %>
+
+# Install serve globally
+RUN npm install -g serve
+
+# Expose the application port
+EXPOSE 4200
+
+# Serve the specified directory using the renamed variable
+CMD ["sh", "-c", "serve -s ${OUTPUT_DIR:-<%= userOutputDir %>} -l 4200"]

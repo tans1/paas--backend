@@ -6,6 +6,6 @@ import { NextModule } from './next/next.module';
 import { NuxtModule } from './nuxt/nuxt.module';
 
 @Module({
-  imports: [NodeModule, GoModule, PythonModule, NextModule, NuxtModule]
+  imports: [NodeModule, GoModule, PythonModule, NextModule, NuxtModule],
 })
 export class FrameWorksModule {}

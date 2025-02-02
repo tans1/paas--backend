@@ -1,4 +1,5 @@
 import {
+  HttpException,
   Injectable,
   BadRequestException,
   InternalServerErrorException,
@@ -26,7 +27,7 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
     } catch (error) {
       console.error('Error fetching user by email:', error);
       throw new InternalServerErrorException(
-        'Failed to fetch user.Please try again later.',
+        'Failed to fetch user. Please try again later.',
       );
     }
   }

@@ -7,6 +7,8 @@ import { ContainerSetupModule } from './container-setup/container-setup.module';
 import { CliModule } from './cli/cli.module';
 import { FileSystemModule } from './file-system/file-system.module';
 import { ClientModule } from './client/client.module';
+import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
+// import { EventsModule } from './events/event.module';
 @Module({
   imports: [
     FrameWorksModule,
@@ -17,6 +19,8 @@ import { ClientModule } from './client/client.module';
     CliModule,
     FileSystemModule,
     ClientModule,
+    EventEmitterModule.forRoot(),
   ],
+  exports: [],
 })
 export class CoreModule {}
