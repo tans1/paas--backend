@@ -40,25 +40,30 @@ export class CreateImageService {
       console.log(`Docker image '${imageName}' created successfully.`);
   
       await this.startContainer(imageName);
-    } catch (error) {
-      if (error instanceof Docker.DockerError) {
+    } 
+      catch (error) {
+        console.error('Docker error:', error);
+      
+        if (error.statusCode) { // dockerode errors typically have this field
+          throw new HttpException(
+            `Docker error: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      
+        if (error.code === 'ENOENT') {
+          throw new HttpException(
+            `File not found: ${error.message}`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      
         throw new HttpException(
-          `Docker error: ${error.message}`,
+          `Unexpected error: ${error.message}`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
       
-      if (error.code === 'ENOENT') {
-        throw new HttpException(
-          `File not found: ${error.message}`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      throw new HttpException(
-        `Unexpected error: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   private async handleDockerStream(stream: NodeJS.ReadableStream): Promise<void> {
@@ -74,36 +79,56 @@ export class CreateImageService {
 
   private async startContainer(imageName: string): Promise<void> {
     try {
-        const container = await this.docker.createContainer({
+      const container = await this.docker.createContainer({
         Image: imageName,
         name: `${imageName}-container`,
         Tty: true,
         ExposedPorts: { '4200/tcp': {} },
         HostConfig: {
-          PortBindings: { '4200/tcp': [{}] }, 
+          PortBindings: { '4200/tcp': [{}] },
         },
       });
       
       await container.start();
       
-      const containerInfo = await container.inspect();
-      const assignedPort = containerInfo.NetworkSettings.Ports['4200/tcp'][0].HostPort;
+      let containerInfo;
+      const maxRetries = 5;
+      const delayMs = 1000;
+      for (let i = 0; i < maxRetries; i++) {
+        containerInfo = await container.inspect();
+        const portBindings = containerInfo?.NetworkSettings?.Ports?.['4200/tcp'];
+        if (portBindings && portBindings[0] && portBindings[0].HostPort) {
+          break; 
+        }
+        console.log(`Waiting for port mapping to be assigned... (${i + 1}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+      
+      const portBindings = containerInfo.NetworkSettings.Ports['4200/tcp'];
+      if (!portBindings || !portBindings[0] || !portBindings[0].HostPort) {
+        throw new Error("Failed to obtain HostPort mapping from container");
+      }
+      
+      const assignedPort = portBindings[0].HostPort;
       console.log(`Container started on port: ${assignedPort}`);
+      
     } catch (error) {
-      if (error instanceof Docker.DockerError) {
+      console.error('Docker error:', error);
+    
+      if (error.statusCode) { 
         throw new HttpException(
           `Docker error: ${error.message}`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-      } else {
-        throw new HttpException(
-          `Failed to start container: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
       }
+    
+      throw new HttpException(
+        `Failed to start container: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
-
+  
   private getRootFileNames(dir: string): string[] {
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
