@@ -1,12 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { GithubRepositoryInterface } from '@/infrastructure/database/interfaces/github-repository-interface/github-repository-interface.interface';
+import { UsersService } from '../../users/users.service';
 
 @Injectable()
 export class OctokitService {
-  constructor(private readonly githubRepository: GithubRepositoryInterface) {}
+  constructor(
+    private readonly githubRepository: GithubRepositoryInterface,
+    private readonly usersService: UsersService,
+  ) {}
 
-  public async getOctokit(username: string): Promise<any> {
-    const accessToken = await this.githubRepository.getAccessToken(username);
+  public async getOctokit(email: string): Promise<any> {
+    //  get the accesstoken from the user table with the user githubUsername : username
+    const user = await this.usersService.findOneBy(email);
+    const accessToken = user.githubAccessToken;
 
     // Dynamically import Octokit from @octokit/rest
     const { Octokit } = await import('@octokit/rest');

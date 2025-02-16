@@ -75,8 +75,8 @@ export class RepositoriesController {
   @Get('/user')
   async listUserRepositories(@Req() req: AuthenticatedRequest) {
     const email = req.user.email;
-    const user = await this.userService.findOneBy(email);
-    return this.listService.getAllUserRepos(user.githubUsername);
+    // const user = await this.userService.findOneBy(email);
+    return this.listService.getAllUserRepos(email);
   }
 
   @ApiOperation({
@@ -108,8 +108,8 @@ export class RepositoriesController {
     @Query('repo') repo: string,
   ) {
     const email = req.user.email;
-    const user = await this.userService.findOneBy(email);
-    return this.listService.getRepoInfo(user.githubUsername, owner, repo);
+    // const user = await this.userService.findOneBy(email);
+    return this.listService.getRepoInfo(email, owner, repo);
   }
 
   @ApiOperation({
@@ -135,8 +135,8 @@ export class RepositoriesController {
   ) {
     const { owner, repo } = body;
     const email = req.user.email;
-    const user = await this.userService.findOneBy(email);
-    return this.webHookService.createWebhook(owner, repo, user.githubUsername);
+    // const user = await this.userService.findOneBy(email);
+    return this.webHookService.createWebhook(owner, repo, email);
   }
 
   @ApiOperation({

@@ -6,8 +6,8 @@ import { OctokitService } from '../octokit/octokit.service';
 export class WebhooksService {
   constructor(private readonly octokitService: OctokitService) {}
 
-  async createWebhook(owner: string, repo: string, githubUsername: string) {
-    const octokit = await this.octokitService.getOctokit(githubUsername);
+  async createWebhook(owner: string, repo: string, email: string) {
+    const octokit = await this.octokitService.getOctokit(email);
 
     const webhookConfig = {
       owner,

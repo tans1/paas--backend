@@ -29,6 +29,7 @@ export class GithubService {
     }
 
     if (!user) {
+      // Todo: store, the user githubAccess token and the githubUsername
       user = await this.usersService.create({ email, name });
     }
 
