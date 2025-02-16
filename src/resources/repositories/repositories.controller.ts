@@ -14,6 +14,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 
@@ -23,6 +24,8 @@ import { ListService } from './list/list.service';
 import { OtherException } from '@/utils/exceptions/github.exception';
 import { DeployDto } from './dto/deploy';
 import { Public } from '../auth/public-strategy';
+import { UsersService } from '../users/users.service';
+import { AuthenticatedRequest } from '../../utils/types/user.types';
 
 @ApiTags('Repositories')
 @Controller('repositories')
@@ -31,12 +34,25 @@ export class RepositoriesController {
     private connectService: ConnectService,
     private webHookService: WebhooksService,
     private listService: ListService,
+    private userService: UsersService,
   ) {}
+
+  @ApiOperation({
+    summary: 'Connect the user github account with the app',
+    description:
+      "To connect the user github account with the app, incase the user is not connected and didn't registered with github account initially",
+  })
   @Public()
   @Get('/connect/github')
   async redirectToGitHubAuth(@Res() res: Response) {
     res.redirect(this.connectService.redirectToGitHubAuth());
   }
+
+  @ApiOperation({
+    summary: 'a callback endpoint to handle the github connection',
+    description:
+      "This endpoint is called by github after the user has connected the account with the app, it will handle the callback and save the user's github token",
+  })
   @Public()
   @Get('/connect/github/callback')
   async handleGitHubCallback(@Query('code') code: string) {
@@ -51,21 +67,16 @@ export class RepositoriesController {
     summary: 'List User Repositories',
     description: 'Fetches all repositories for a specific GitHub user.',
   })
-  @ApiQuery({
-    name: 'githubUsername',
-    type: String,
-    required: true,
-    description: 'The GitHub username of the user.',
-  })
   @ApiResponse({
     status: 200,
     description: 'Returns a list of user repositories.',
   })
-  // @ApiBearerAuth('JWT-auth')
-  @Public()
+  @ApiBearerAuth('JWT-auth')
   @Get('/user')
-  async listUserRepositories(@Query('githubUsername') githubUsername: string) {
-    return this.listService.getAllUserRepos(githubUsername);
+  async listUserRepositories(@Req() req: AuthenticatedRequest) {
+    const email = req.user.email;
+    const user = await this.userService.findOneBy(email);
+    return this.listService.getAllUserRepos(user.githubUsername);
   }
 
   @ApiOperation({
@@ -73,16 +84,11 @@ export class RepositoriesController {
     description: 'Fetches information about a specific GitHub repository.',
   })
   @ApiQuery({
-    name: 'githubUsername',
-    type: String,
-    required: true,
-    description: 'The GitHub username of the repository owner.',
-  })
-  @ApiQuery({
     name: 'owner',
     type: String,
     required: true,
-    description: 'The owner of the repository.',
+    description:
+      'The owner of the repository.which can be a GitHub username or organization name',
   })
   @ApiQuery({
     name: 'repo',
@@ -94,20 +100,22 @@ export class RepositoriesController {
     status: 200,
     description: 'Returns detailed information about the repository.',
   })
-  // @ApiBearerAuth('JWT-auth')
-  @Public()
+  @ApiBearerAuth('JWT-auth')
   @Get('/user/info')
   async getRepoInfo(
-    @Query('githubUsername') githubUsername: string,
+    @Req() req: AuthenticatedRequest,
     @Query('owner') owner: string,
     @Query('repo') repo: string,
   ) {
-    return this.listService.getRepoInfo(githubUsername, owner, repo);
+    const email = req.user.email;
+    const user = await this.userService.findOneBy(email);
+    return this.listService.getRepoInfo(user.githubUsername, owner, repo);
   }
 
   @ApiOperation({
-    summary: 'Create a Webhook',
-    description: 'Sets up a webhook for a GitHub repository.',
+    summary: 'Deploy',
+    description:
+      'Deploy a specific project and set up a webhook for a GitHub repository.',
   })
   @ApiBody({
     type: DeployDto,
@@ -117,22 +125,24 @@ export class RepositoriesController {
     status: 201,
     description: 'Returns the details of the created webhook.',
   })
-  // @ApiBearerAuth('JWT-auth')
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(201)
   @Public()
   @Post('/deploy')
-  async createWebhook(@Body() body: DeployDto) {
-    const { owner, repo, githubUsername } = body;
-    return this.webHookService.createWebhook(owner, repo, githubUsername);
+  async createWebhook(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: DeployDto,
+  ) {
+    const { owner, repo } = body;
+    const email = req.user.email;
+    const user = await this.userService.findOneBy(email);
+    return this.webHookService.createWebhook(owner, repo, user.githubUsername);
   }
 
   @ApiOperation({
     summary: 'Handle Webhook Events',
-    description: 'Handles events received from GitHub webhooks.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Acknowledges receipt of the webhook event.',
+    description:
+      'Handles events received from GitHub webhooks for a specific repository. This endpoint is called by GitHub.',
   })
   @Public()
   @Post('/webhook')
