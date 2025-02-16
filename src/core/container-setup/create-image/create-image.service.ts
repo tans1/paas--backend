@@ -5,20 +5,26 @@ import * as Docker from 'dockerode';
 import * as path from 'path';
 import * as fs from 'fs';
 import ignore from 'ignore';
+import { v4 as uuidv4 } from 'uuid';
+import {ImageBuildGateway} from '../Image-build-gateway';
+import { AlsService } from '@/utils/als/als.service';
 
 @Injectable()
 export class CreateImageService {
   private docker: Docker;
 
-  constructor() {
+  constructor(private imageBuildGateway : ImageBuildGateway,private readonly alsService: AlsService) {
     this.docker = new Docker(); 
   }
 
-  @OnEvent(EventNames.DOCKERFILE_GENERATED)
+
+  @OnEvent(EventNames.SourceCodeReady)
   async createImage(payload: { projectPath: string; imageName: string }) {
-    const { projectPath, imageName } = payload;
+    const { projectPath } = payload;
+    const imageName = `imagename-${uuidv4()}`.toLowerCase();
     console.log('Creating Docker image...');
-  
+    
+    // TODO: we should track the image for each project and delete old ones before creating new ones.
     try {
       const tarPath = path.resolve(projectPath);
       console.log(`Building image from ${tarPath} with name: ${imageName}`);
@@ -44,7 +50,7 @@ export class CreateImageService {
       catch (error) {
         console.error('Docker error:', error);
       
-        if (error.statusCode) { // dockerode errors typically have this field
+        if (error.statusCode) { 
           throw new HttpException(
             `Docker error: ${error.message}`,
             HttpStatus.INTERNAL_SERVER_ERROR,
@@ -67,10 +73,13 @@ export class CreateImageService {
   }
 
   private async handleDockerStream(stream: NodeJS.ReadableStream): Promise<void> {
+    const repositoryId = this.alsService.getrepositoryId();
     return new Promise((resolve, reject) => {
       stream.on('data', (chunk) => {
         process.stdout.write(chunk.toString());
         console.log(chunk.toString());
+        let logMessage = chunk.toString();
+        this.imageBuildGateway.sendLogToUser(repositoryId, logMessage);
       });
       stream.on('end', resolve);
       stream.on('error', reject);
@@ -111,6 +120,12 @@ export class CreateImageService {
       
       const assignedPort = portBindings[0].HostPort;
       console.log(`Container started on port: ${assignedPort}`);
+
+      const repositoryId = this.alsService.getrepositoryId();
+      if (repositoryId){
+
+        this.imageBuildGateway.sendLogToUser(repositoryId, `Container started on port: ${assignedPort}`);
+      }
       
     } catch (error) {
       console.error('Docker error:', error);

@@ -137,7 +137,7 @@ export class RepositoriesController {
   @Public()
   @Post('/webhook')
   async handleWebhookEvent(@Req() req: Request) {
-    const signature = req.header('X-Signature');
+    const signature = req.header('x-hub-signature-256');
     const event = req.header('X-GitHub-Event');
     const payload = req.body;
     console.log(signature, event, payload);
@@ -145,6 +145,7 @@ export class RepositoriesController {
     if (!signature || !event || !payload) {
       throw new OtherException('Missing headers or payload');
     }
+    
     await this.webHookService.handleWebhookEvent(signature, event, payload);
   }
 }
