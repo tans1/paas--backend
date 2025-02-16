@@ -22,11 +22,9 @@ export class GithubService {
     const { email, name } = req.user;
     let user;
 
-    try{
-
+    try {
       user = await this.usersService.findOneBy(email);
-    }
-    catch(e){
+    } catch (e) {
       console.log(e);
     }
 
