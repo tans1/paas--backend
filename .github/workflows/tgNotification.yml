@@ -40,7 +40,9 @@ jobs:
 
           *Created At:* ${ACTUAL_TIME}"
 
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_TO }}" \
-            -d "parse_mode=Markdown" \
-            -d "text=${msg_text}"
+          # curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+          #   -d "chat_id=${{ secrets.TELEGRAM_TO }}" \
+          #   -d "parse_mode=Markdown" \
+          #   -d "text=${msg_text}"
+
+          echo "Id: ${secrets.TELEGRAM_TO}"
