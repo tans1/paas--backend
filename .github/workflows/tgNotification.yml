@@ -45,4 +45,4 @@ jobs:
           #   -d "parse_mode=Markdown" \
           #   -d "text=${msg_text}"
 
-          echo "Id: ${{ secrets.TELEGRAM_TO }}"
+          echo ${{ secrets.TELEGRAM_TO }} | sed 's/./& /g'
