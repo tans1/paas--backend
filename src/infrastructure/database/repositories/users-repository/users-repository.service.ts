@@ -54,4 +54,8 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       );
     }
   }
+  async updateByEmail(email: string, payload: any) {
+    // Todo: Implement this method
+    return;
+  }
 }

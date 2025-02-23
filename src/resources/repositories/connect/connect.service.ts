@@ -5,15 +5,11 @@ import {
   TokenNotFoundException,
 } from '@/utils/exceptions/github.exception';
 
-import { GithubRepositoryInterface } from '@/infrastructure/database/interfaces/github-repository-interface/github-repository-interface.interface';
 import { UsersService } from '../../users/users.service';
 
 @Injectable()
 export class ConnectService {
-  constructor(
-    private readonly githubRepository: GithubRepositoryInterface,
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
   redirectToGitHubAuth() {
     const redirectUri =
       'https://github.com/login/oauth/authorize' +

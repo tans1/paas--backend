@@ -12,8 +12,6 @@ import { ServersRepositoryInterface } from '../interfaces/servers-repository-int
 import { UsersRepositoryInterface } from '../interfaces/users-repository-interface/users-repository-interface.interface';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
-import { GithubRepositoryInterface } from './github-repository-interface/github-repository-interface.interface';
-import { GithubRepositoryService } from '../repositories/github-repository/github-repository.service';
 
 @Module({
   imports: [RepositoriesModule, PrismaModule],
@@ -22,10 +20,7 @@ import { GithubRepositoryService } from '../repositories/github-repository/githu
       provide: AdminRepositoryInterface,
       useClass: AdminRepositoryService,
     },
-    {
-      provide: GithubRepositoryInterface,
-      useClass: GithubRepositoryService,
-    },
+
     {
       provide: AuthRepositoryInterface,
       useClass: AuthRepositoryService,
@@ -49,7 +44,6 @@ import { GithubRepositoryService } from '../repositories/github-repository/githu
     ProjectsRepositoryInterface,
     ServersRepositoryInterface,
     UsersRepositoryInterface,
-    GithubRepositoryInterface,
   ],
 })
 export class InterfacesModule {}
