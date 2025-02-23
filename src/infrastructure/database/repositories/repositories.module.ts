@@ -6,8 +6,6 @@ import { ServersRepositoryService } from './servers-repository/servers-repositor
 import { UsersRepositoryService } from './users-repository/users-repository.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
-import { GithubRepositoryService } from './github-repository/github-repository.service';
-
 @Module({
   providers: [
     AdminRepositoryService,
@@ -15,7 +13,6 @@ import { GithubRepositoryService } from './github-repository/github-repository.s
     ProjectsRepositoryService,
     ServersRepositoryService,
     UsersRepositoryService,
-    GithubRepositoryService,
   ],
   imports: [PrismaModule],
 })
