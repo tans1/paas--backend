@@ -44,7 +44,7 @@ export class OauthController {
       return res.redirect(`${process.env.FRONT_END_URL}/login-failure`);
     }
     return res.redirect(
-      `${process.env.FRONT_END_URL}/login-success?token=${payload.access_token}`,
+      `${process.env.FRONT_END_URL}/login-success?token=${payload.access_token}&username=${payload.username}`,
     );
   }
 }

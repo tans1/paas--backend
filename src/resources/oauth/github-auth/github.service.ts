@@ -19,7 +19,7 @@ export class GithubService {
       throw new NotFoundException('No user data available in the request.');
     }
 
-    const { email, name } = req.user;
+    const { email, name,username } = req.user;
     let user;
 
     try{
@@ -31,14 +31,14 @@ export class GithubService {
     }
 
     if (!user) {
-      user = await this.usersService.create({ email, name });
+      user = await this.usersService.create({ email, name,githubUsername :username });
     }
 
     try {
       const payload = { sub: user.id, email: user.email, role: user.role };
       const access_token = await this.jwtService.signAsync(payload);
 
-      return { access_token };
+      return { access_token,username };
     } catch (e) {
       throw new InternalServerErrorException(
         'Error occurred while generating the JWT token.',

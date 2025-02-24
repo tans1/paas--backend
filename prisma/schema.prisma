@@ -19,6 +19,7 @@ model User {
   email     String   @unique @db.VarChar(255)
   password  String?  @db.VarChar(255)
   role      String?  @db.VarChar(50)
+  githubUsername String? @db.VarChar(255) @unique
   createdAt DateTime @default(now()) @map("created_at")
 
   projects       Project[]       @relation("UserProjects")
@@ -44,6 +45,9 @@ model Project {
   linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
   linkedByUserId Int
   createdAt      DateTime @default(now()) @map("created_at")
+
+  deployedIp String? @map("deployed_ip")
+  deployedPort Int? @map("deployed_port")
 
   deployments Deployment[]
 }

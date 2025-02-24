@@ -54,4 +54,25 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       );
     }
   }
+
+  async findOneByUserName(userName: string)
+  {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          githubUsername : userName,
+        },
+      });
+      if (!user) {
+        throw new BadRequestException(`User with userName ${userName} not found.`);
+      }
+      return user;
+    } catch (error) {
+      console.error('Error fetching user by userName:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch user. Please try again later.',
+      );
+    }
+
+  }
 }

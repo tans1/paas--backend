@@ -23,6 +23,7 @@ import { ListService } from './list/list.service';
 import { OtherException } from '@/utils/exceptions/github.exception';
 import { DeployDto } from './dto/deploy';
 import { Public } from '../auth/public-strategy';
+import { ProjectService } from './project/create-project/project.service';
 
 @ApiTags('Repositories')
 @Controller('repositories')
@@ -31,6 +32,7 @@ export class RepositoriesController {
     private connectService: ConnectService,
     private webHookService: WebhooksService,
     private listService: ListService,
+    private projectService: ProjectService,
   ) {}
   @Public()
   @Get('/connect/github')
@@ -146,6 +148,9 @@ export class RepositoriesController {
       throw new OtherException('Missing headers or payload');
     }
     
+    if(event == 'ping'){
+      await this.projectService.createProject(payload);
+    }
     await this.webHookService.handleWebhookEvent(signature, event, payload);
   }
 }

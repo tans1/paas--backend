@@ -14,6 +14,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
 import { GithubRepositoryInterface } from './github-repository-interface/github-repository-interface.interface';
 import { GithubRepositoryService } from '../repositories/github-repository/github-repository.service';
+import { DeploymentRepositoryInterface } from './deployment-repository-interface/deployment-repository-interface.interface';
+import { DeploymentRepositoryService } from '../repositories/deployment-repository/deployment-repository.service';
 
 @Module({
   imports: [RepositoriesModule, PrismaModule],
@@ -41,6 +43,10 @@ import { GithubRepositoryService } from '../repositories/github-repository/githu
     {
       provide: UsersRepositoryInterface,
       useClass: UsersRepositoryService,
+    },
+    {
+      provide: DeploymentRepositoryInterface,
+      useClass: DeploymentRepositoryService,
     },
   ],
   exports: [

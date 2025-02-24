@@ -13,7 +13,7 @@ export class UsersService {
   }
 
   async findOneBy(email: string) {
-    return this.usersRepository.findOneBy(email);
+    return await this.usersRepository.findOneBy(email);
   }
 
   async update(id: number, payload: any) {
