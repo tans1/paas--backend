@@ -5,11 +5,11 @@ import {
   TokenNotFoundException,
 } from '@/utils/exceptions/github.exception';
 
-import { GithubRepositoryInterface } from '@/infrastructure/database/interfaces/github-repository-interface/github-repository-interface.interface';
+import { UsersService } from '../../users/users.service';
 
 @Injectable()
 export class ConnectService {
-  constructor(private readonly githubRepository: GithubRepositoryInterface) {}
+  constructor(private readonly usersService: UsersService) {}
   redirectToGitHubAuth() {
     const redirectUri =
       'https://github.com/login/oauth/authorize' +
@@ -49,6 +49,7 @@ export class ConnectService {
       interface GitHubUser {
         login: string;
         id: number;
+        email: string;
       }
 
       const userInfo = await axios.get<GitHubUser>(
@@ -61,7 +62,12 @@ export class ConnectService {
       );
 
       const githubUsername = userInfo.data.login;
-      await this.githubRepository.create(githubUsername, accessToken);
+      const email = userInfo.data.email;
+      // await this.githubRepository.create(githubUsername, accessToken);
+      await this.usersService.updateByEmail(email, {
+        githubUsername,
+        githubAccessToken: accessToken,
+      });
       return {
         message: 'Successfully connected to GitHub',
         data: {

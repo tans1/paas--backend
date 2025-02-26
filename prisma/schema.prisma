@@ -19,7 +19,9 @@ model User {
   email     String   @unique @db.VarChar(255)
   password  String?  @db.VarChar(255)
   role      String?  @db.VarChar(50)
-  githubUsername String? @db.VarChar(255) @unique
+  githubUsername String? @db.VarChar(255)
+  githubAccessToken String?   @map("access_token") @db.VarChar(255)
+
   createdAt DateTime @default(now()) @map("created_at")
 
   projects       Project[]       @relation("UserProjects")
@@ -28,15 +30,15 @@ model User {
   oauthProviders OAuthProvider[]
 }
 
-model GithubAuth {
-  id             Int    @id @default(autoincrement())
-  githubUsername String @unique
+// model GithubAuth {
+//   id             Int    @id @default(autoincrement())
+//   githubUsername String @unique
 
-  accessToken String   @map("access_token") @db.VarChar(255)
-  createdAt   DateTime @default(now()) @map("created_at")
+//   accessToken String   @map("access_token") @db.VarChar(255)
+//   createdAt   DateTime @default(now()) @map("created_at")
 
-  expired      Boolean?
-}
+//   expired      Boolean?
+// }
 
 model Project {
   id             Int      @id @default(autoincrement())

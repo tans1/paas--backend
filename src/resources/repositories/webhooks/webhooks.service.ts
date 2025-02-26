@@ -13,8 +13,8 @@ export class WebhooksService {
     private alsService : AlsService
   ) {}
 
-  async createWebhook(owner: string, repo: string, githubUsername: string) {
-    const octokit = await this.octokitService.getOctokit(githubUsername);
+  async createWebhook(owner: string, repo: string, email: string) {
+    const octokit = await this.octokitService.getOctokit(email);
 
     const webhookConfig = {
       owner,

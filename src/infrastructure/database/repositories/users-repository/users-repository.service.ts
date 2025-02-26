@@ -73,6 +73,12 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
         'Failed to fetch user. Please try again later.',
       );
     }
-
   }
+  
+  async updateByEmail(email: string, payload: any) {
+    // Todo: Implement this method
+    return;
+  }
+
+  
 }

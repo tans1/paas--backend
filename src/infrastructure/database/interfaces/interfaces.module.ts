@@ -24,10 +24,7 @@ import { DeploymentRepositoryService } from '../repositories/deployment-reposito
       provide: AdminRepositoryInterface,
       useClass: AdminRepositoryService,
     },
-    {
-      provide: GithubRepositoryInterface,
-      useClass: GithubRepositoryService,
-    },
+
     {
       provide: AuthRepositoryInterface,
       useClass: AuthRepositoryService,

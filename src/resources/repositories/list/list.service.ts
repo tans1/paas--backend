@@ -5,8 +5,8 @@ import { OctokitService } from '../octokit/octokit.service';
 export class ListService {
   constructor(private readonly octokitService: OctokitService) {}
 
-  async getRepoInfo(githubUsername: string, owner: string, repo: string) {
-    const octokit = await this.octokitService.getOctokit(githubUsername);
+  async getRepoInfo(email: string, owner: string, repo: string) {
+    const octokit = await this.octokitService.getOctokit(email);
     const { data } = await octokit.repos.get({
       owner,
       repo,
@@ -18,8 +18,8 @@ export class ListService {
     };
   }
 
-  async getAllUserRepos(githubUsername: string) {
-    const octokit = await this.octokitService.getOctokit(githubUsername);
+  async getAllUserRepos(email: string) {
+    const octokit = await this.octokitService.getOctokit(email);
 
     const { data } = await octokit.repos.listForAuthenticatedUser({
       per_page: 100,

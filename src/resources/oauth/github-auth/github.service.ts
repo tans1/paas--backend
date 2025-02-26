@@ -1,4 +1,4 @@
-import { GithubRepositoryInterface } from '@/infrastructure/database/interfaces/github-repository-interface/github-repository-interface.interface';
+// import { GithubRepositoryInterface } from '@/infrastructure/database/interfaces/github-repository-interface/github-repository-interface.interface';
 import {
   Injectable,
   InternalServerErrorException,
@@ -13,7 +13,7 @@ export class GithubService {
   constructor(
     private jwtService: JwtService,
     private usersService: UsersService,
-    private readonly githubRepository: GithubRepositoryInterface
+    // private readonly githubRepository: GithubRepositoryInterface
   ) {}
 
   async githubLogin(req) {
@@ -24,11 +24,9 @@ export class GithubService {
     const { email, name,username,accessToken} = req.user;
     let user;
 
-    try{
-
+    try {
       user = await this.usersService.findOneBy(email);
-    }
-    catch(e){
+    } catch (e) {
       console.log(e);
     }
 
@@ -37,12 +35,12 @@ export class GithubService {
     }
     
     try {
-      const existingToken = await this.githubRepository.getAccessToken(username);
-      if (existingToken) {
-        await this.githubRepository.updateAccessToken(username, accessToken);
-      } else {
-        await this.githubRepository.create(username, accessToken);
-      }
+      // const existingToken = await this.githubRepository.getAccessToken(username);
+      // if (existingToken) {
+      //   await this.githubRepository.updateAccessToken(username, accessToken);
+      // } else {
+      //   await this.githubRepository.create(username, accessToken);
+      // }
 
       const payload = { sub: user.id, email: user.email, role: user.role };
       const jwt_token = await this.jwtService.signAsync(payload);

@@ -20,6 +20,10 @@ export class UsersService {
     return `This action updates a #${id} user`;
   }
 
+  async updateByEmail(email: string, payload: any) {
+    return `This action updates a user with email ${email}`;
+  }
+
   async remove(id: number) {
     return `This action removes a #${id} user`;
   }
