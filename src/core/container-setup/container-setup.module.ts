@@ -8,6 +8,7 @@ import { ImageBuildService } from './create-image/image-build.service';
 import { ContainerManagementService } from './create-image/container-management.service';
 import { SourceCodeEventHandlerService } from './create-image/source-code-event-handler.service';
 import { DockerPushService } from './create-image/docker-push.service';
+import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
 
 @Module({
   providers: [
@@ -19,9 +20,9 @@ import { DockerPushService } from './create-image/docker-push.service';
     ContainerManagementService,
     SourceCodeEventHandlerService,
     ImageBuildGateway,
-    DockerPushService
+    DockerPushService,
     ],
-  imports: [AlsModule],
+  imports: [AlsModule,InterfacesModule],
 })
 export class ContainerSetupModule {}
 

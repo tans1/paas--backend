@@ -16,29 +16,25 @@ export class ImageBuildService {
     this.docker = new Docker();
   }
 
-  async buildImage(projectPath: string): Promise<string> {
-    // Generate a unique image name
+  async buildImage(projectPath: string,deploymentId : number): Promise<string> {
     const imageName = `imagename-${uuidv4()}`.toLowerCase();
     console.log(`Building Docker image: ${imageName}`);
 
     try {
-      // Resolve the absolute path
       const resolvedTarPath = path.resolve(projectPath);
       console.log(`Resolved tar path: ${resolvedTarPath}`);
 
-      // Get files from directory and filter by .gitignore
       let files = this.fileService.getRootFileNames(resolvedTarPath);
       files = this.fileService.parseGitignore(resolvedTarPath, files);
       console.log('Files included in the build context:', files);
 
-      // Build the image using Docker
       const stream = await this.docker.buildImage(
         { context: resolvedTarPath, src: files },
         { t: imageName },
       );
 
-      await this.dockerLogService.handleDockerStream(stream);
-      console.log(`Docker image '${imageName}' created successfully.`);
+      await this.dockerLogService.handleDockerStream(stream,deploymentId);
+      await this.dockerLogService.logMessage(`Docker image '${imageName}' created successfully.`,deploymentId);
 
       return imageName;
     } catch (error) {

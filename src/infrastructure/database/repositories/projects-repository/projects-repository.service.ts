@@ -10,14 +10,28 @@ export class ProjectsRepositoryService
   constructor(private prisma: PrismaService) {  
     super();
   }
+  async findByUserId(userId: number): Promise<Project[]> {
+    const userProjects = await this.prisma.project.findMany({
+      where: {
+        linkedByUserId: userId, 
+      },
+      include: { deployments: true },
+    });
+
+    return userProjects;
+    
+  }
   async create(payload: CreateProjectDTO): Promise<Project> {
     return await this.prisma.project.create({ data: payload });
   }
-  findById(id: number): Promise<Project | null> {
+  async findByRepoId(id: number): Promise<Project | null> {
+    return await this.prisma.project.findUnique({ where: { repoId: id } });
+  }
+  async findById(id: number): Promise<Project | null> {
     throw new Error('Method not implemented.');
   }
   update(id: number, payload: UpdateProjectDTO): Promise<Project> {
-    throw new Error('Method not implemented.');
+    return this.prisma.project.update({ where: { id }, data: payload });
   }
   delete(id: number): Promise<void> {
     throw new Error('Method not implemented.');

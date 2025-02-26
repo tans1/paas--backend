@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ImageBuildGateway } from '../Image-build-gateway';
 import { AlsService } from '@/utils/als/als.service';
+import { DeploymentRepositoryInterface,CreateDeploymentLogDTO} from '@/infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
 // import { DeploymentService } from './deployment.service';
-
 @Injectable()
 export class DockerLogService {
   constructor(
     private readonly imageBuildGateway: ImageBuildGateway,
     private readonly alsService: AlsService,
-    // private readonly deploymentService: DeploymentService, // Inject DeploymentService
+    private deploymentRepositoryService: DeploymentRepositoryInterface,
   ) {}
 
+  // TODO: Maybe format the log message a bit better.
   async handleDockerStream(stream: NodeJS.ReadableStream, deploymentId?: number): Promise<void> {
     const repositoryId = this.alsService.getrepositoryId();
     return new Promise((resolve, reject) => {
@@ -18,12 +19,10 @@ export class DockerLogService {
         const logMessage = chunk.toString();
         process.stdout.write(logMessage);
         console.log(logMessage);
-        // Send log to the user via your gateway
         this.imageBuildGateway.sendLogToUser(repositoryId, logMessage);
-        // Optionally, store the log in the database if deploymentId is provided
         if (deploymentId) {
           try {
-            // await this.deploymentService.addDeploymentLog(deploymentId, 'info', logMessage);
+            await this.logMessage(logMessage,deploymentId);
           } catch (error) {
             console.error('Failed to store log in DB:', error);
           }
@@ -34,14 +33,21 @@ export class DockerLogService {
     });
   }
 
-  logMessage(message: string, deploymentId?: number): void {
+  async logMessage(message: string, deploymentId?: number) {
     const repositoryId = this.alsService.getrepositoryId();
-    console.log(message);
+    // console.log(message);
     this.imageBuildGateway.sendLogToUser(repositoryId, message);
+
+    const createDeploymentLogDTO:CreateDeploymentLogDTO = {
+      deploymentId: deploymentId,
+      logLevel: 'info',
+      message: message,
+    }
+
     if (deploymentId) {
-    //   this.deploymentService.addDeploymentLog(deploymentId, 'info', message).catch((error) => {
-    //     console.error('Failed to store log in DB:', error);
-    //   });
+      this.deploymentRepositoryService.addLog(createDeploymentLogDTO);
+
     }
   }
 }
+

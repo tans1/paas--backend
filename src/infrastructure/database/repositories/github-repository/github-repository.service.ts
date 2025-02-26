@@ -6,6 +6,18 @@ import { GithubAuth } from '@prisma/client';
 @Injectable()
 export class GithubRepositoryService implements GithubRepositoryInterface {
   constructor(private prisma: PrismaService) {}
+  async updateAccessToken(username: string, accessToken: string): Promise<GithubAuth> {
+    return await this.prisma.githubAuth.update(
+      {
+        where: {
+          githubUsername: username,
+        },
+        data: {
+          accessToken,
+        },
+      },
+    );
+  }
 
   public async create(
     githubUsername: string,

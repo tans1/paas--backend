@@ -7,6 +7,7 @@ import { OauthModule } from './oauth/oauth.module';
 import { PaymentModule } from './payment/payment.module';
 import { RepositoriesModule } from './repositories/repositories.module';
 import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfaces.module';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfa
     PaymentModule,
     RepositoriesModule,
     InterfacesModule,
+    ProjectsModule,
   ],
 })
 export class ModulesModule {}

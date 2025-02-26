@@ -142,8 +142,6 @@ export class RepositoriesController {
     const signature = req.header('x-hub-signature-256');
     const event = req.header('X-GitHub-Event');
     const payload = req.body;
-    console.log(signature, event, payload);
-    console.log('header', req.headers);
     if (!signature || !event || !payload) {
       throw new OtherException('Missing headers or payload');
     }

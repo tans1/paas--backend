@@ -1,7 +1,7 @@
 import { Deployment, DeploymentLog } from '@prisma/client';
 
 export interface CreateDeploymentDTO {
-  repoId: number;
+  projectId: number;
   status: string;
   branch: string;
   environmentVariables?: any; 

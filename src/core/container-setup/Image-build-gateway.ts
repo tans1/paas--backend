@@ -22,7 +22,7 @@ export class ImageBuildGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  sendLogToUser(repositoryId: string, logMessage: string) {
+  sendLogToUser(repositoryId: number, logMessage: string) {
     const userSocket = this.users.get(repositoryId.toString());
     if (userSocket) {
       userSocket.emit("deploymentLog", logMessage);

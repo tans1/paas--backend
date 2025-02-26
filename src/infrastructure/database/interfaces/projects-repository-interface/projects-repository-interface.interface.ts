@@ -2,6 +2,7 @@ import { Project } from '@prisma/client';
 
 export interface CreateProjectDTO {
   name: string;
+  repoId: number;
   url: string;
   linkedByUserId: number;
 }
@@ -16,6 +17,8 @@ export interface UpdateProjectDTO {
 
 export abstract class ProjectsRepositoryInterface {
   abstract create(payload: CreateProjectDTO): Promise<Project>;
+  abstract findByRepoId(id: number): Promise<Project | null>;
+  abstract findByUserId(id: number): Promise<Project[]>;
   abstract findById(id: number): Promise<Project | null>;
   abstract update(id: number, payload: UpdateProjectDTO): Promise<Project>;
   abstract delete(id: number): Promise<void>;
@@ -23,7 +26,20 @@ export abstract class ProjectsRepositoryInterface {
   abstract addDeployment(projectId: number, deploymentId: number): Promise<void>;
 }
 
-// It does make sense to create the project as soon as the person clicks deploy. we create the project
-// when we deploy we create deployments and add them to the project's deployments list
-// so we need a method for that as well. so we added that. 
+// model Project {
+//   id             Int      @id @default(autoincrement())
+//   repoId         Int     @unique @map("repo_id")
+//   name           String   @db.VarChar(255)
+//   url            String   @db.VarChar(2083)
+//   linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
+//   linkedByUserId Int
+//   createdAt      DateTime @default(now()) @map("created_at")
+
+//   deployedIp String? @map("deployed_ip")
+//   deployedPort Int? @map("deployed_port")
+
+//   deployments Deployment[]
+// }
+// User
+
 

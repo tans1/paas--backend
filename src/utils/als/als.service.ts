@@ -5,17 +5,18 @@ import { AsyncLocalStorage } from "async_hooks";
 export class AlsService {
   private readonly als = new AsyncLocalStorage<Map<string, any>>();
 
-  runWithrepositoryInfo(repositoryId: string,repositoryName : string, callback: () => void) {
+  runWithrepositoryInfo(repositoryId: number,repositoryName : string, callback: () => void) {
     const store = new Map();
     store.set("repositoryId", repositoryId);
     store.set("repositoryName", repositoryName);
     this.als.run(store, callback);
   }
 
-  getrepositoryId(): string | undefined {
+  getrepositoryId(): number | undefined {
     return this.als.getStore()?.get("repositoryId");
   }
   getrepositoryName(): string | undefined {
     return this.als.getStore()?.get("repositoryName");
   }
+
 }

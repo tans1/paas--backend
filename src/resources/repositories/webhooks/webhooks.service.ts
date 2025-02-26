@@ -50,7 +50,7 @@ export class WebhooksService {
     const repositoryId = payload.repository?.id;
     const repositoryName = payload.repository?.full_name; 
 
-    this.alsService.runWithrepositoryInfo(repositoryId,repositoryName, () => {
+    this.alsService.runWithrepositoryInfo(repositoryId,repositoryName,() => {
       // this.eventEmitter.emit("deployment.start", repo); 
       this.eventEmitter.emit(EventNames.PushEventReceived, payload);    
     });

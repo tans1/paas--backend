@@ -14,7 +14,7 @@ export class ContainerManagementService {
     this.docker = new Docker();
   }
 
-  async startContainer(imageName: string): Promise<number> {
+  async startContainer(imageName: string,deploymentId:number): Promise<number> {
     try {
       // Create the container using the specified image
       const container = await this.docker.createContainer({
@@ -49,7 +49,7 @@ export class ContainerManagementService {
       // Send a log message to the user
       const repositoryId = this.alsService.getrepositoryId();
       if (repositoryId) {
-        this.dockerLogService.logMessage(`Container started on port: ${assignedPort}`);
+        this.dockerLogService.logMessage(`Container started on port: ${assignedPort}`,deploymentId);
       }
 
       return parseInt(assignedPort);

@@ -7,4 +7,5 @@ export abstract class GithubRepositoryInterface {
   ): Promise<GithubAuth>;
 
   abstract getAccessToken(username: string): Promise<string | null>;
+  abstract updateAccessToken(username: string, accessToken: string): Promise<GithubAuth>;
 }
