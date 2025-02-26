@@ -3,8 +3,10 @@ CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
-    "password" VARCHAR(255) NOT NULL,
-    "role" VARCHAR(50) NOT NULL,
+    "password" VARCHAR(255),
+    "role" VARCHAR(50),
+    "githubUsername" VARCHAR(255),
+    "access_token" VARCHAR(255),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
@@ -13,10 +15,13 @@ CREATE TABLE "User" (
 -- CreateTable
 CREATE TABLE "Project" (
     "id" SERIAL NOT NULL,
+    "repo_id" INTEGER NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "url" VARCHAR(2083) NOT NULL,
     "linkedByUserId" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deployed_ip" TEXT,
+    "deployed_port" INTEGER,
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
 );
@@ -24,7 +29,7 @@ CREATE TABLE "Project" (
 -- CreateTable
 CREATE TABLE "Deployment" (
     "id" SERIAL NOT NULL,
-    "repoId" INTEGER NOT NULL,
+    "projectId" INTEGER NOT NULL,
     "status" VARCHAR(50) NOT NULL,
     "branch" VARCHAR(100) NOT NULL,
     "environment_variables" JSONB,
@@ -93,7 +98,7 @@ CREATE TABLE "AdminAnalytics" (
 CREATE TABLE "OAuthProvider" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
-    "provider" VARCHAR(50) NOT NULL,
+    "provider" VARCHAR(50),
     "access_token" VARCHAR(255) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -104,13 +109,19 @@ CREATE TABLE "OAuthProvider" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_githubUsername_key" ON "User"("githubUsername");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Project_repo_id_key" ON "Project"("repo_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Payment_transaction_id_key" ON "Payment"("transaction_id");
 
 -- AddForeignKey
 ALTER TABLE "Project" ADD CONSTRAINT "Project_linkedByUserId_fkey" FOREIGN KEY ("linkedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_repoId_fkey" FOREIGN KEY ("repoId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_rollback_to_id_fkey" FOREIGN KEY ("rollback_to_id") REFERENCES "Deployment"("id") ON DELETE SET NULL ON UPDATE CASCADE;

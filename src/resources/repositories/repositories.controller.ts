@@ -129,7 +129,6 @@ export class RepositoriesController {
   })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(201)
-  @Public()
   @Post('/deploy')
   async createWebhook(
     @Req() req: AuthenticatedRequest,

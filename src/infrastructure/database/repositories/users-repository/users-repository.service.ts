@@ -76,8 +76,19 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
   }
   
   async updateByEmail(email: string, payload: any) {
-    // Todo: Implement this method
-    return;
+    try {
+      return await this.prisma.user.update({
+        where: {
+          email: email,
+        },
+        data: payload,
+      });
+    } catch (error) {
+      console.error('Error updating user by email:', error);
+      throw new InternalServerErrorException(
+        'Failed to update user. Please try again later.',
+      );
+    }
   }
 
   

@@ -11,16 +11,20 @@ export class ProjectsRepositoryService
     super();
   }
   async findByUserId(userId: number): Promise<Project[]> {
-    const userProjects = await this.prisma.project.findMany({
+    return this.prisma.project.findMany({
       where: {
-        linkedByUserId: userId, 
+        linkedByUserId: userId,
       },
-      include: { deployments: true },
+      include: {
+        deployments: {
+          include: {
+            logs: true, 
+          },
+        },
+      },
     });
-
-    return userProjects;
-    
   }
+  
   async create(payload: CreateProjectDTO): Promise<Project> {
     return await this.prisma.project.create({ data: payload });
   }

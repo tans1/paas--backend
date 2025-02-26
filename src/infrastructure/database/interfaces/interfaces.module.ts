@@ -12,8 +12,8 @@ import { ServersRepositoryInterface } from '../interfaces/servers-repository-int
 import { UsersRepositoryInterface } from '../interfaces/users-repository-interface/users-repository-interface.interface';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
-import { GithubRepositoryInterface } from './github-repository-interface/github-repository-interface.interface';
-import { GithubRepositoryService } from '../repositories/github-repository/github-repository.service';
+// import { GithubRepositoryInterface } from './github-repository-interface/github-repository-interface.interface';
+// import { GithubRepositoryService } from '../repositories/github-repository/github-repository.service';
 import { DeploymentRepositoryInterface } from './deployment-repository-interface/deployment-repository-interface.interface';
 import { DeploymentRepositoryService } from '../repositories/deployment-repository/deployment-repository.service';
 
@@ -52,7 +52,7 @@ import { DeploymentRepositoryService } from '../repositories/deployment-reposito
     ProjectsRepositoryInterface,
     ServersRepositoryInterface,
     UsersRepositoryInterface,
-    GithubRepositoryInterface,
+    // GithubRepositoryInterface,
     DeploymentRepositoryInterface
   ],
 })

@@ -21,7 +21,7 @@ export class UsersService {
   }
 
   async updateByEmail(email: string, payload: any) {
-    return `This action updates a user with email ${email}`;
+    return this.usersRepository.updateByEmail(email, payload);
   }
 
   async remove(id: number) {
