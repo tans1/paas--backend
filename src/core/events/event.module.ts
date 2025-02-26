@@ -13,6 +13,12 @@ export const EventNames = {
   PROJECT_UPLOADED: 'project.uploaded',
   PROJECT_INITIALIZED: 'project.initialized',
 
+  // PushEventReceived
+  PushEventReceived: 'push.event.received',
+
+  // Source code events
+  SourceCodeReady: 'source.code.ready',
+
   // Framework detection events
   FRAMEWORK_DETECTED: 'framework.detected',
   FRAMEWORK_INFORMATION_RETRIEVED: 'framework.information.retrieved',

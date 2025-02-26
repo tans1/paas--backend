@@ -8,7 +8,7 @@ import { Role } from '../auth/guards/role-guard/role.enum';
 export class UsersController {
   @HttpCode(HttpStatus.OK)
   @Get('profile')
-  @Roles(Role.Admin)
+  // @Roles(Role.Admin)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'User Profile' })
   @ApiResponse({

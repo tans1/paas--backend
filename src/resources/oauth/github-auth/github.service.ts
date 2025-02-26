@@ -1,3 +1,4 @@
+// import { GithubRepositoryInterface } from '@/infrastructure/database/interfaces/github-repository-interface/github-repository-interface.interface';
 import {
   Injectable,
   InternalServerErrorException,
@@ -12,6 +13,7 @@ export class GithubService {
   constructor(
     private jwtService: JwtService,
     private usersService: UsersService,
+    // private readonly githubRepository: GithubRepositoryInterface
   ) {}
 
   async githubLogin(req) {
@@ -19,7 +21,7 @@ export class GithubService {
       throw new NotFoundException('No user data available in the request.');
     }
 
-    const { email, name } = req.user;
+    const { email, name,username,accessToken} = req.user;
     let user;
 
     try {
@@ -29,15 +31,21 @@ export class GithubService {
     }
 
     if (!user) {
-      // Todo: store, the user githubAccess token and the githubUsername
-      user = await this.usersService.create({ email, name });
+      user = await this.usersService.create({ email, name,githubUsername :username });
     }
-
+    
     try {
-      const payload = { sub: user.id, email: user.email, role: user.role };
-      const access_token = await this.jwtService.signAsync(payload);
+      // const existingToken = await this.githubRepository.getAccessToken(username);
+      // if (existingToken) {
+      //   await this.githubRepository.updateAccessToken(username, accessToken);
+      // } else {
+      //   await this.githubRepository.create(username, accessToken);
+      // }
 
-      return { access_token };
+      const payload = { sub: user.id, email: user.email, role: user.role };
+      const jwt_token = await this.jwtService.signAsync(payload);
+
+      return { jwt_token,username };
     } catch (e) {
       throw new InternalServerErrorException(
         'Error occurred while generating the JWT token.',
@@ -45,3 +53,5 @@ export class GithubService {
     }
   }
 }
+
+

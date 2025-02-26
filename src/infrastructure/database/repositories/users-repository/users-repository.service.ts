@@ -54,8 +54,42 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       );
     }
   }
-  async updateByEmail(email: string, payload: any) {
-    // Todo: Implement this method
-    return;
+
+  async findOneByUserName(userName: string)
+  {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          githubUsername : userName,
+        },
+      });
+      if (!user) {
+        throw new BadRequestException(`User with userName ${userName} not found.`);
+      }
+      return user;
+    } catch (error) {
+      console.error('Error fetching user by userName:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch user. Please try again later.',
+      );
+    }
   }
+  
+  async updateByEmail(email: string, payload: any) {
+    try {
+      return await this.prisma.user.update({
+        where: {
+          email: email,
+        },
+        data: payload,
+      });
+    } catch (error) {
+      console.error('Error updating user by email:', error);
+      throw new InternalServerErrorException(
+        'Failed to update user. Please try again later.',
+      );
+    }
+  }
+
+  
 }

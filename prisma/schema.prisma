@@ -19,7 +19,7 @@ model User {
   email     String   @unique @db.VarChar(255)
   password  String?  @db.VarChar(255)
   role      String?  @db.VarChar(50)
-  githubUsername String? @db.VarChar(255)
+  githubUsername String? @unique @db.VarChar(255)
   githubAccessToken String?   @map("access_token") @db.VarChar(255)
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -42,19 +42,23 @@ model User {
 
 model Project {
   id             Int      @id @default(autoincrement())
+  repoId         Int     @unique @map("repo_id")
   name           String   @db.VarChar(255)
   url            String   @db.VarChar(2083)
   linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
   linkedByUserId Int
   createdAt      DateTime @default(now()) @map("created_at")
 
+  deployedIp String? @map("deployed_ip")
+  deployedPort Int? @map("deployed_port")
+
   deployments Deployment[]
 }
 
 model Deployment {
   id                    Int          @id @default(autoincrement())
-  repo                  Project      @relation(fields: [repoId], references: [id])
-  repoId                Int
+  project                  Project      @relation(fields: [projectId], references: [id])
+  projectId                Int
   status                String       @db.VarChar(50)
   branch                String       @db.VarChar(100)
   environmentVariables  Json?        @map("environment_variables")

@@ -6,6 +6,8 @@ import { ConnectService } from './connect/connect.service';
 import { InterfacesModule } from '../../infrastructure/database/interfaces/interfaces.module';
 import { OctokitService } from './octokit/octokit.service';
 import { UsersService } from '../users/users.service';
+import { ProjectService } from './project/create-project/project.service';
+import { AlsModule } from '@/utils/als/als.module';
 
 @Module({
   controllers: [RepositoriesController],
@@ -15,7 +17,8 @@ import { UsersService } from '../users/users.service';
     ConnectService,
     OctokitService,
     UsersService,
+    ProjectService
   ],
-  imports: [InterfacesModule],
+  imports: [InterfacesModule,AlsModule],
 })
 export class RepositoriesModule {}

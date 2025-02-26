@@ -24,6 +24,7 @@ import { ListService } from './list/list.service';
 import { OtherException } from '@/utils/exceptions/github.exception';
 import { DeployDto } from './dto/deploy';
 import { Public } from '../auth/public-strategy';
+import { ProjectService } from './project/create-project/project.service';
 import { UsersService } from '../users/users.service';
 import { AuthenticatedRequest } from '../../utils/types/user.types';
 
@@ -34,6 +35,7 @@ export class RepositoriesController {
     private connectService: ConnectService,
     private webHookService: WebhooksService,
     private listService: ListService,
+    private projectService: ProjectService,
     private userService: UsersService,
   ) {}
 
@@ -127,7 +129,6 @@ export class RepositoriesController {
   })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(201)
-  @Public()
   @Post('/deploy')
   async createWebhook(
     @Req() req: AuthenticatedRequest,
@@ -147,13 +148,15 @@ export class RepositoriesController {
   @Public()
   @Post('/webhook')
   async handleWebhookEvent(@Req() req: Request) {
-    const signature = req.header('X-Signature');
+    const signature = req.header('x-hub-signature-256');
     const event = req.header('X-GitHub-Event');
     const payload = req.body;
-    console.log(signature, event, payload);
-    console.log('header', req.headers);
     if (!signature || !event || !payload) {
       throw new OtherException('Missing headers or payload');
+    }
+    
+    if(event == 'ping'){
+      await this.projectService.createProject(payload);
     }
     await this.webHookService.handleWebhookEvent(signature, event, payload);
   }

@@ -5,7 +5,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { EventNames } from 'src/core/events/event.module';
 import { FrameworkMap } from '../frameworks.constants';
-import { v4 as uuidv4 } from 'uuid';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 @Injectable()
@@ -63,10 +62,8 @@ export class NodeDockerfileService {
       const dockerfilePath = path.join(projectPath, 'Dockerfile');
       await fs.promises.writeFile(dockerfilePath, dockerfileContent, 'utf-8');
 
-      this.eventEmitter.emit(EventNames.DOCKERFILE_GENERATED, {
-        projectPath,
-        dockerfilePath,
-        imageName: `${framework}-${uuidv4()}`,
+      this.eventEmitter.emit(EventNames.SourceCodeReady, {
+        projectPath
       });
 
     } catch (error) {

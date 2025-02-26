@@ -13,7 +13,7 @@ export class UsersService {
   }
 
   async findOneBy(email: string) {
-    return this.usersRepository.findOneBy(email);
+    return await this.usersRepository.findOneBy(email);
   }
 
   async update(id: number, payload: any) {
@@ -21,7 +21,7 @@ export class UsersService {
   }
 
   async updateByEmail(email: string, payload: any) {
-    return `This action updates a user with email ${email}`;
+    return this.usersRepository.updateByEmail(email, payload);
   }
 
   async remove(id: number) {

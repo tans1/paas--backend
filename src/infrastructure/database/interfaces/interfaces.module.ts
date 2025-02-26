@@ -12,6 +12,10 @@ import { ServersRepositoryInterface } from '../interfaces/servers-repository-int
 import { UsersRepositoryInterface } from '../interfaces/users-repository-interface/users-repository-interface.interface';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
+// import { GithubRepositoryInterface } from './github-repository-interface/github-repository-interface.interface';
+// import { GithubRepositoryService } from '../repositories/github-repository/github-repository.service';
+import { DeploymentRepositoryInterface } from './deployment-repository-interface/deployment-repository-interface.interface';
+import { DeploymentRepositoryService } from '../repositories/deployment-repository/deployment-repository.service';
 
 @Module({
   imports: [RepositoriesModule, PrismaModule],
@@ -37,6 +41,10 @@ import { RepositoriesModule } from '../repositories/repositories.module';
       provide: UsersRepositoryInterface,
       useClass: UsersRepositoryService,
     },
+    {
+      provide: DeploymentRepositoryInterface,
+      useClass: DeploymentRepositoryService,
+    },
   ],
   exports: [
     AdminRepositoryInterface,
@@ -44,6 +52,8 @@ import { RepositoriesModule } from '../repositories/repositories.module';
     ProjectsRepositoryInterface,
     ServersRepositoryInterface,
     UsersRepositoryInterface,
+    // GithubRepositoryInterface,
+    DeploymentRepositoryInterface
   ],
 })
 export class InterfacesModule {}

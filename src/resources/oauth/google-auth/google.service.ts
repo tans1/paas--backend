@@ -31,6 +31,8 @@ export class GoogleService {
       console.log(e);
     }
 
+    // TODO: Bug when google sign in is peerformed first time we will have a user with no password in our DB  
+
     if (!user) {
       user = await this.usersService.create({
         email,
