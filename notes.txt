@@ -1,0 +1,13 @@
+the domain name came to the backend,
+    1. create DNS zone and record for both the A root and CNAME for the www and root domain 
+    2. update the docker-compose for the specific project
+    3. notify the user to update the Nameserver for the domain name 
+    
+    4. wait till the DNS propagates and then
+    5. run the project so that there will be 2 projects running for the project simultaneously until the dns propagates
+    6. verify the project is running on the new domain name
+    7. notify the user to access the project with the new domain name 
+    8. create a new domain name redirection for few days
+    9. after scheduled date remove the domain name 
+    10. create a new subdomain for the future for another project 
+    
