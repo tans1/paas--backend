@@ -26,8 +26,13 @@ export class ProjectsRepositoryService
   }
   
   async create(payload: CreateProjectDTO): Promise<Project> {
-    return await this.prisma.project.create({ data: payload });
+    return await this.prisma.project.upsert({
+      where: { repoId: payload.repoId },
+      update: {}, 
+      create: payload,
+    });
   }
+  
   async findByRepoId(id: number): Promise<Project | null> {
     return await this.prisma.project.findUnique({ where: { repoId: id } });
   }

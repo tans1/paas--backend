@@ -12,6 +12,7 @@ export interface UpdateProjectDTO {
   url?: string;
   deployedIp?: string;
   deployedPort?: number;
+  deployedUrl?: string;
 
 }
 
@@ -25,21 +26,5 @@ export abstract class ProjectsRepositoryInterface {
   abstract list(filters?: Partial<Project>): Promise<Project[]>;
   abstract addDeployment(projectId: number, deploymentId: number): Promise<void>;
 }
-
-// model Project {
-//   id             Int      @id @default(autoincrement())
-//   repoId         Int     @unique @map("repo_id")
-//   name           String   @db.VarChar(255)
-//   url            String   @db.VarChar(2083)
-//   linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
-//   linkedByUserId Int
-//   createdAt      DateTime @default(now()) @map("created_at")
-
-//   deployedIp String? @map("deployed_ip")
-//   deployedPort Int? @map("deployed_port")
-
-//   deployments Deployment[]
-// }
-// User
 
 

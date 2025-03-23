@@ -31,7 +31,13 @@ export class GithubService {
     }
 
     if (!user) {
-      user = await this.usersService.create({ email, name,githubUsername :username });
+      user = await this.usersService.create({ email, name,githubUsername :username, githubAccessToken: accessToken});
+    }
+    else{
+      await this.usersService.updateByEmail(email, {
+        githubUsername : username,
+        githubAccessToken: accessToken,
+      });
     }
     
     try {
