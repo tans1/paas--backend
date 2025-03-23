@@ -6,10 +6,10 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
   constructor() {
     super({
-      clientID: process.env.GITHUB_CLIENT_ID,
+      clientID: process.env.GITHUB_CLIENT_ID, 
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackURL: process.env.GITHUB_CALLBACK_URL,
-      scope: ['user:email'], // Ensure this scope is included
+      scope: ['repo','user:email'], // Ensure this scope is included
     });
   }
 

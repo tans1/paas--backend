@@ -51,6 +51,7 @@ model Project {
 
   deployedIp String? @map("deployed_ip")
   deployedPort Int? @map("deployed_port")
+  deployedUrl String? @map("deployedUrl")
 
   deployments Deployment[]
 }

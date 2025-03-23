@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EventNames } from 'src/core/events/event.module';
 import { ImageBuildService } from './image-build.service';
-import { ContainerManagementService } from './container-management.service';
+// import { ContainerManagementService } from './container-management.service';
 import { DockerPushService } from './docker-push.service';
 import {
   CreateDeploymentDTO,
@@ -17,7 +17,7 @@ import * as os from 'os';
 export class SourceCodeEventHandlerService {
   constructor(
     private imageBuildService: ImageBuildService,
-    private containerManagementService: ContainerManagementService,
+    // private containerManagementService: ContainerManagementService,
     private dockerPushService: DockerPushService,
     private deploymentRepositoryService: DeploymentRepositoryInterface,
     private alsService: AlsService,
@@ -25,17 +25,17 @@ export class SourceCodeEventHandlerService {
     private projectRepositoryService: ProjectsRepositoryInterface
   ) {}
 
-  // Dynamically retrieves the machine's local IP address
-  private getLocalIpAddress(): string {
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-      for (const net of interfaces[name] || []) {
-        if (net.family === 'IPv4' && !net.internal) {
-          return net.address;
-        }
-      }
-    }
-    return 'localhost';
+ 
+
+  private getSanitizedProjectName(projectName : string): string {
+
+  const sanitizedProjectName = projectName
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/^[^a-z]+/, 'a') ;
+
+  return sanitizedProjectName
+  
   }
 
   @OnEvent(EventNames.SourceCodeReady)
@@ -64,21 +64,18 @@ export class SourceCodeEventHandlerService {
       deployment = await this.deploymentRepositoryService.create(createDeploymentDTO);
       this.dockerLogService.logMessage(`Deployment started for project: ${projectId}`, deployment.id);
 
-      const builtImageName = await this.imageBuildService.buildImage(
+      const projectName = this.getSanitizedProjectName(this.alsService.getrepositoryName())
+      const deployedUrl = `${projectName}.${process.env.DOMAIN_NAME}`;
+      const extendedProjectName = await this.imageBuildService.buildImage(
         payload.projectPath,
-        deployment.id
+        deployment.id,
+        projectName,
+        deployedUrl
       );
 
-      const assignedPort = await this.containerManagementService.startContainer(
-        builtImageName,
-        deployment.id
-      );
-
-      const deployedIp = this.getLocalIpAddress();
-
+  
       await this.projectRepositoryService.update(projectId, {
-        deployedIp,
-        deployedPort: assignedPort,
+        deployedUrl: deployedUrl,
       });
 
       await this.deploymentRepositoryService.update(deployment.id, {
@@ -86,11 +83,11 @@ export class SourceCodeEventHandlerService {
       });
 
       this.dockerLogService.logMessage(
-        `Project ${projectId} is now running on ${deployedIp}:${assignedPort}`,
+        `Project ${projectId} is now running on ${deployedUrl}`,
         deployment.id
       );
-
-      await this.dockerPushService.pushImage(builtImageName);
+      
+      await this.dockerPushService.pushImage(extendedProjectName);
     } catch (error) {
       console.error('Error during deployment process:', error);
 
