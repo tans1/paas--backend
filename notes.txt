@@ -9,5 +9,4 @@ the domain name came to the backend,
     7. notify the user to access the project with the new domain name 
     8. create a new domain name redirection for few days
     9. after scheduled date remove the domain name 
-    10. create a new subdomain for the future for another project 
     

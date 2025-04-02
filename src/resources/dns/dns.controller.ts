@@ -2,77 +2,101 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { DnsService } from './dns.service';
 import { Public } from '../auth/public-strategy';
 import { DNSDto } from './dto/dns.dto';
+// import { Resolver } from 'dns/promises';
 import axios from 'axios';
-import { Resolver } from 'dns/promises';
-
 @Controller('dns')
 export class DnsController {
   constructor(private readonly dnsService: DnsService) {}
 
   @Public()
   @Get()
-  async getDns() {
-    const dnsServers = [
-      '8.8.8.8', // Google
-      '1.1.1.1', // Cloudflare
-      '208.67.222.222', // OpenDNS
-    ];
-
-    // async function checkGlobalPropagation(domain: string, expectedIP: string) {
+  async getDns(): Promise<any> {
     const domain = 'tofikkk.lol';
-    const expectedIP = '95.182.115.218';
-    const resolvers = ['8.8.8.8', '1.1.1.1', '208.67.222.222'];
-    const results: boolean[] = [];
-
-    for (const resolverIP of resolvers) {
-      const resolver = new Resolver();
-      resolver.setServers([resolverIP]);
-
-      try {
-        const addresses = await resolver.resolve4(domain);
-        // Check if any returned IP matches your expected IP
-        const matched = addresses.some((addr) => addr === expectedIP);
-        results.push(matched);
-        console.log(
-          `Resolver ${resolverIP} => ${addresses.join(', ')} => match: ${matched}`,
-        );
-      } catch (err) {
-        console.error(`Resolver ${resolverIP} error:`, err);
-        results.push(false);
-      }
+    const expectedIp = '95.182.115.218';
+    // Define the interface directly if needed
+    interface AxiosResponse<T = any> {
+      data: T;
+      status: number;
+      statusText: string;
+      headers: any;
+      config: any;
+      request?: any;
     }
 
-    // Decide your success criteria
-    const successRate = results.filter(Boolean).length / resolvers.length;
-    return successRate >= 0.8;
-  }
+    interface DNSRecord {
+      name: string;
+      type: number;
+      TTL: number;
+      data: string;
+    }
 
-  // return 'Hello world from the dns';
+    interface DNSResponse {
+      Status: number;
+      TC: boolean;
+      RD: boolean;
+      RA: boolean;
+      AD: boolean;
+      CD: boolean;
+      Question: Array<{
+        name: string;
+        type: number;
+      }>;
+      Answer?: DNSRecord[];
+    }
+
+    // async function checkGlobalDNSPropagation(
+    //   domain: string,
+    //   expectedIp: string,
+    // ) {
+    const providers = [
+      'https://dns.google/resolve',
+      'https://cloudflare-dns.com/dns-query',
+    ];
+
+    const results = await Promise.allSettled(
+      providers.map((url) =>
+        axios.get<DNSResponse>(url, {
+          params: {
+            name: domain,
+            type: 'A',
+          },
+          headers: { Accept: 'application/dns-json' },
+        }),
+      ),
+    );
+
+    return results.filter(
+      (result): result is PromiseFulfilledResult<AxiosResponse<DNSResponse>> =>
+        result.status === 'fulfilled' &&
+        result.value.data.Answer?.some((record) => record.data === expectedIp),
+    );
+    // }
+
+    // Usage example
+    // (async () => {
+    //   const domain = 'tofikkk.lol';
+    //   const expectedIp = '95.182.115.218';
+
+    //   const propagationResults = await checkGlobalDNSPropagation(
+    //     domain,
+    //     expectedIp,
+    //   );
+
+    //   console.log(
+    //     `Propagation confirmed on ${propagationResults.length} DNS providers`,
+    //   );
+    //   propagationResults.forEach((result) => {
+    //     console.log(`- ${result.value.config.url}`);
+    //   });
+    // })();
+  }
 
   @Public()
   @Post()
   async createDns(@Body() body: DNSDto) {
     try {
-      /*
-  should accept/inputs
-  - project id
-  - domain name
-  
-  hardcode the server ip for now
-
-    1. create a zone
-    2. create a DNS record
-    3. fetch the project port from the database
-    3.update the nginx config to include the new domain, port and then reload nginx container
-    4. return the result
-     */
       const zone = await this.dnsService.createZone(body.domain);
       this.dnsService.createDNSRecord(zone.id, body.domain, '95.182.115.218');
-      this.dnsService.generateAndUploadCertificate(body.domain);
-
-      this.dnsService.updateNginxConfigRemote(body.domain, 4173);
-      this.dnsService.reloadNginxContainerRemote();
-      return 'Hello world from the dns';
     } catch (error) {
       console.error('Error creating DNS:', error);
       return error;
