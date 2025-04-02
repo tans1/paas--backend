@@ -28,9 +28,11 @@ export class ImageBuildService {
     const templatePath = path.join(__dirname, 'templates', 'docker-compose.yml.ejs');
     const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
     const extenedProjectName = projectName + extension;
+    
     const dockerComposeContent = ejs.render(templateContent, {
            projectName:  projectName + extension,
-            deploymentUrl: deploymentUrl
+            deploymentUrl: deploymentUrl,
+            envFileName : `${projectName}.env`
             });
 
     const dockerComposePath = path.join(projectPath, 'docker-compose.yml');
@@ -47,5 +49,8 @@ export class ImageBuildService {
     return  extenedProjectName;
 
   }
+
+ 
+  
 
 }
