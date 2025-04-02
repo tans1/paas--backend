@@ -4,8 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as fs from 'fs';
 import * as path from 'path';
 import { EventNames } from 'src/core/events/event.module';
-import { frameworkMap } from '../framework.config';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { FrameworkMap } from '../framework.config';
 
 @Injectable()
 export class FrameworkDetectionService {
@@ -15,33 +14,35 @@ export class FrameworkDetectionService {
   async detectFramework(payload: { projectPath: string }) {
     const { projectPath } = payload;
 
-    try {
-      const files = await fs.promises.readdir(projectPath);
+    for (const [framework, criteria] of Object.entries(FrameworkMap)) {
+      const configFile = criteria.file
+      const filePath = path.join(projectPath, configFile);
+  
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, "utf-8");
+  
+        if (configFile.endsWith(".json")) {
+          try {
+            const data = JSON.parse(content);
+            if (
+              data.dependencies &&
+              criteria.dependencies?.some((dep) => dep in data.dependencies)
+            ) {
+              console.log(`Framework detected: ${framework}`);
+              console.log(`${EventNames.FRAMEWORK_DETECTED}.${framework}`)
+            this.eventEmitter.emit(`${EventNames.FRAMEWORK_DETECTED}.${framework}`, {
+              projectPath,
+              framework,
+              configFile,
+            });
 
-      for (const [configFile, framework] of Object.entries(frameworkMap)) {
-        if (files.includes(configFile)) {
-          console.log(`Framework detected: ${framework}`);
-          this.eventEmitter.emit(`EventNames.FRAMEWORK_DETECTED.${framework}`, {
-            projectPath,
-            framework,
-            configFile,
-          });
-
-          return framework;
+            }
+          } catch (error) {
+            console.error("Error parsing JSON:", error);
+          }
         }
+
+      } 
       }
-
-      console.warn(
-        'Framework detection failed. No known configuration files found.',
-      );
-
-      return 'Unknown';
-    } catch (error) {
-      
-      throw new HttpException(
-        `Error during framework detection: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 }
