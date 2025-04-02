@@ -5,6 +5,8 @@ import { Public } from 'src/resources/auth/public-strategy';
 import { BaseUser } from 'src/resources/users/dto/base-user.dto';
 import { EventNames } from '../events/event.module';
 
+
+// TODO: Consider removing the controller 
 @Controller('client')
 export class ClientController {
   constructor(private eventEmitter: EventEmitter2) {}
@@ -21,7 +23,7 @@ export class ClientController {
   upload() {
     console.log('upload');
     const projectPath =
-      'C:\\Users\\user\\Desktop\\Final_Year_Project\\backend\\projects\\my-vue-app';
+      'C:\\Users\\user\\Desktop\\Final_Year_Project\\backend\\projects\\my-nestjs-app';
     this.eventEmitter.emit(EventNames.PROJECT_UPLOADED, {
       projectPath: projectPath,
     });

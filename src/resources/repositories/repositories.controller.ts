@@ -114,6 +114,7 @@ export class RepositoriesController {
     return this.listService.getRepoInfo(email, owner, repo);
   }
 // TODO: Add a redeploy end point
+// TODO: Make sure to accept .env file when a project is deployed
   @ApiOperation({
     summary: 'Deploy',
     description:
