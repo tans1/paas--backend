@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common';
-import { NodeModule } from './node/node.module';
-import { GoModule } from './go/go.module';
-import { PythonModule } from './python/python.module';
-import { NextModule } from './next/next.module';
-import { NuxtModule } from './nuxt/nuxt.module';
+import { ReactModule } from './react/react.module';
+import { VueModule } from './vue/vue.module';
+import { AngularModule } from './angular/angular.module';
+import { NestJsModule } from './nestjs/nestjs.module';
 
+// TODO: This module needs to be updated
 @Module({
-  imports: [NodeModule, GoModule, PythonModule, NextModule, NuxtModule],
+  imports: [
+    ReactModule,
+    VueModule,
+    AngularModule,
+    NestJsModule,
+  ],
 })
 export class FrameWorksModule {}
