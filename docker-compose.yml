@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - traefik-public
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: FinalYearProjectDb
+    ports:
+      - "5434:5432"  # Expose container port 5432 on host port 5434
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal-network
+
+  app:
+    build: .
+    container_name: app
+    depends_on:
+      - traefik
+      - postgres
+    ports:
+      - "3000:3000"  # Expose your application on port 3000
+    environment:
+      # The DATABASE_URL is updated to use the postgres service name and its internal port (5432)
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/FinalYearProjectDb?schema=public"
+    networks:
+      - internal-network
+      - traefik-public
+
+networks:
+  traefik-public:
+    external: true  # Ensure this network exists; if not, create it manually (e.g., docker network create traefik-public)
+  internal-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
