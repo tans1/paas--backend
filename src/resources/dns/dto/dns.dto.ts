@@ -13,5 +13,5 @@ export class DNSDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  projectId: string;
+  projectId: number;
 }
