@@ -11,7 +11,7 @@ services:
       - "--entryPoints.web.address=:80"
     ports:
       - "80:80"
-      - "8080:8080"  # Traefik dashboard
+      - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
@@ -24,56 +24,61 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: FinalYearProjectDb
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redispass
     ports:
-      - "5434:5432"  # Expose container port 5432 on host port 5434
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - internal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   app:
     build: .
     container_name: app
     depends_on:
-      - traefik
-      - postgres
-      - redis
-        - condition
-          -service_healthy
+      traefik:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
-      - "3000:3000"  # Expose your application on port 3000
+      - "3000:3000"
     environment:
-      # The DATABASE_URL is updated to use the postgres service name and its internal port (5432)
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/FinalYearProjectDb?schema=public"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redispass
     networks:
       - internal-network
       - traefik-public
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock   
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./:/usr/src/app
       - node_modules:/usr/src/app/node_modules
     user: root
 
   redis:
-      image: redis:latest
-      container_name: redis
-      restart: unless-stopped
-      environment:
-        - REDIS_PASSWORD=redispass  
-      ports:
-        - "6379:6379" 
-      volumes:
-        - redis_data:/data
-      networks:
-        - internal-network
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
+    image: redis:latest
+    container_name: redis
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=redispass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   traefik-public:
@@ -84,4 +89,4 @@ networks:
 volumes:
   postgres_data:
   node_modules:
-  redis_data:  
+  redis_data:
