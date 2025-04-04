@@ -15,9 +15,11 @@ services:
       - node_modules:/usr/src/app/node_modules
     networks:
       - traefik-public
-
+<% if (includeEnvFile) { %>
     env_file:
       - <%= envFileName %>
+<% } %>
+
 
 volumes:
   node_modules:
