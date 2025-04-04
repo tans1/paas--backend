@@ -24,6 +24,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: FinalYearProjectDb
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redispass
     ports:
       - "5434:5432"  # Expose container port 5432 on host port 5434
     volumes:
@@ -37,6 +40,9 @@ services:
     depends_on:
       - traefik
       - postgres
+      - redis
+        - condition
+          -service_healthy
     ports:
       - "3000:3000"  # Expose your application on port 3000
     environment:
@@ -45,12 +51,37 @@ services:
     networks:
       - internal-network
       - traefik-public
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   
+      - ./:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+    user: root
+
+  redis:
+      image: redis:latest
+      container_name: redis
+      restart: unless-stopped
+      environment:
+        - REDIS_PASSWORD=redispass  
+      ports:
+        - "6379:6379" 
+      volumes:
+        - redis_data:/data
+      networks:
+        - internal-network
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
 
 networks:
   traefik-public:
-    external: true  # Ensure this network exists; if not, create it manually (e.g., docker network create traefik-public)
+    external: true
   internal-network:
     driver: bridge
 
 volumes:
   postgres_data:
+  node_modules:
+  redis_data:  

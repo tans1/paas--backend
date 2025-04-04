@@ -29,15 +29,21 @@ export class ImageBuildService {
     const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
     const extenedProjectName = projectName + extension;
     
-    const dockerComposeContent = ejs.render(templateContent, {
-           projectName:  projectName + extension,
-            deploymentUrl: deploymentUrl,
-            envFileName : `${projectName}.env`
-            });
+    const envFileName = `${projectName}.env`;
+    const envFilePath = path.join(projectPath, envFileName); 
 
+    const includeEnvFile = fs.existsSync(envFilePath);
+
+    const dockerComposeContent = ejs.render(templateContent, {
+      projectName: projectName + extension,
+      deploymentUrl: deploymentUrl,
+      envFileName: envFileName,
+      includeEnvFile: includeEnvFile
+    });
+   
     const dockerComposePath = path.join(projectPath, 'docker-compose.yml');
     await fs.promises.writeFile(dockerComposePath, dockerComposeContent, 'utf-8');
-    const command = `docker compose up -d --build`;
+    const command = `docker compose up --detach --build`;
     const { stdout, stderr } = await execAsync(command, { cwd: projectPath });
 
     // 3. Log output

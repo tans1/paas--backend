@@ -11,7 +11,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 export class PushEventListenerService {
   private readonly logger = new Logger(PushEventListenerService.name);
   // TODO: Please update this to make it more generic
-  private readonly baseRepoPath = 'C:\\Users\\user\\Desktop\\Final_Year_Project\\backend\\projects';
+  private readonly baseRepoPath = process.env.PROJECTS_BASE_PATH || path.join(process.cwd(), 'projects');
 
   constructor(
     private readonly repositoryBootstrapService: RepositoryBootstrapService,
