@@ -31,6 +31,7 @@ export class DnsController {
         zoneId: zone.id,
         aRecordId: aRecord.id,
         cnameRecordId: cnameRecord.id,
+        name_servers: zone.name_servers,
       });
 
       return {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, LoggerService } from '@nestjs/common';
 import { CloudflareDNSRecord, CloudflareZone } from './types';
 
 import Cloudflare from 'cloudflare';
@@ -11,10 +11,13 @@ import * as fs from 'fs';
 import * as ejs from 'ejs';
 
 import { isIP } from 'net';
-import dns from 'dns/promises';
-import https from 'https';
+import { promises as dnsPromises } from 'dns';
+
+import * as https from 'https';
+
 import fetch, { RequestInit } from 'node-fetch';
 import { ProjectsRepositoryInterface } from '../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 const execAsync = promisify(exec);
 @Injectable()
@@ -22,6 +25,8 @@ export class DnsService {
   private cloudflareApi;
   constructor(
     private readonly projectsRepositoryService: ProjectsRepositoryInterface,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
   ) {
     this.cloudflareApi = new Cloudflare({
       apiEmail: process.env['CLOUDFLARE_EMAIL'],
@@ -46,6 +51,9 @@ export class DnsService {
 
       return response;
     } catch (error: any) {
+      this.logger.error(
+        `Error creating Cloudflare zone for domain ${domain}: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -80,6 +88,9 @@ export class DnsService {
 
       return [aRecord, cnameRecord];
     } catch (error: any) {
+      this.logger.error(
+        `Error creating DNS records for domain ${domain}: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -114,14 +125,17 @@ export class DnsService {
   async checkPropagation(
     domain: string,
     expectedIP: string,
+    expectedNameservers: string[],
     timeout: number = 5000,
   ): Promise<boolean> {
-    // Validate IP format
     const ipVersion = isIP(expectedIP);
-    if (ipVersion !== 4 && ipVersion !== 6) return false;
+    if (ipVersion !== 4 && ipVersion !== 6) {
+      return false;
+    }
 
     try {
-      const resolver = ipVersion === 4 ? dns.resolve4 : dns.resolve6;
+      const resolver =
+        ipVersion === 4 ? dnsPromises.resolve4 : dnsPromises.resolve6;
       const records = (await Promise.race([
         resolver(domain, { ttl: true }),
         new Promise((_, reject) =>
@@ -129,15 +143,49 @@ export class DnsService {
         ),
       ])) as Array<{ address: string }>;
 
-      if (!records.some((r) => r.address === expectedIP)) {
+      if (records.length == 0) {
         return false;
       }
     } catch (err) {
-      console.log(err);
+      this.logger.error(
+        `Error resolving DNS for domain ${domain}: ${err.message}`,
+      );
       return false;
     }
 
-    // Server accessibility check
+    try {
+      // const expectedNameservers = [
+      //   'damiete.ns.cloudflare.com',
+      //   'marlowe.ns.cloudflare.com',
+      // ];
+
+      const nsRecords = (await Promise.race([
+        dnsPromises.resolveNs(domain),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('NS lookup timeout')), timeout),
+        ),
+      ])) as string[];
+
+      if (!nsRecords || nsRecords.length === 0) {
+        return false;
+      }
+
+      const nsAreValid = expectedNameservers.every((expectedNs) =>
+        nsRecords.some((nsRecord) =>
+          nsRecord.toLowerCase().includes(expectedNs.toLowerCase()),
+        ),
+      );
+
+      if (!nsAreValid) {
+        return false;
+      }
+    } catch (err) {
+      this.logger.error(
+        `Error resolving NS records for domain ${domain}: ${err.message}`,
+      );
+      return false;
+    }
+
     const protocols = ['https', 'http'];
     const options: RequestInit = {
       method: 'HEAD',
@@ -154,12 +202,11 @@ export class DnsService {
         const url = `${protocol}://${expectedIP}`;
         const agent =
           protocol === 'https'
-            ? new https.Agent({ rejectUnauthorized: true }) // Keep validation
+            ? new https.Agent({ rejectUnauthorized: true })
             : undefined;
 
         const response = await fetch(url, { ...options, agent });
-
-        if (response.status >= 200 && response.status < 300) {
+        if (response) {
           return true;
         }
       } catch (err) {
@@ -167,7 +214,6 @@ export class DnsService {
         continue;
       }
     }
-
     return false;
   }
 
@@ -180,8 +226,12 @@ export class DnsService {
       await this.projectsRepositoryService.findById(projectId)
     ).localRepoPath;
     const { stdout, stderr } = await execAsync(command, { cwd: projectPath });
-    console.log(stdout);
-    console.error(stderr);
+    if (stdout) {
+      this.logger.log(`stdout: ${stdout}`);
+    }
+    if (stderr) {
+      this.logger.error(`stderr: ${stderr}`);
+    }
 
     //  TODO: Deployment status and log
   }

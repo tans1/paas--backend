@@ -27,10 +27,14 @@ export class SourceCodeEventHandlerService {
   private getSanitizedProjectName(projectName: string): string {
     const sanitizedProjectName = projectName
       .toLowerCase()
-      .replace(/[^a-z0-9_]/g, '_')
-      .replace(/^[^a-z]+/, 'a');
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '')
+      .replace(/-{2,}/g, '-');
 
-    return sanitizedProjectName;
+    return /^[a-z]/.test(sanitizedProjectName)
+      ? sanitizedProjectName
+      : 'a' + sanitizedProjectName;
   }
 
   @OnEvent(EventNames.SourceCodeReady)

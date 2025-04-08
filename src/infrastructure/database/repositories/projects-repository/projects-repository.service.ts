@@ -42,7 +42,9 @@ export class ProjectsRepositoryService
     return await this.prisma.project.findUnique({ where: { repoId: id } });
   }
   async findById(id: number): Promise<Project | null> {
-    throw new Error('Method not implemented.');
+    return await this.prisma.project.findUnique({
+      where: { id },
+    });
   }
   update(id: number, payload: UpdateProjectDTO): Promise<Project> {
     return this.prisma.project.update({ where: { id }, data: payload });

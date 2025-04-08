@@ -27,6 +27,7 @@ export class DnsJobProcessor extends WorkerHost {
       aRecordId: string;
       cnameRecordId: string;
       attempts?: number;
+      name_servers: string[];
     }>,
   ) {
     const {
@@ -37,6 +38,7 @@ export class DnsJobProcessor extends WorkerHost {
       aRecordId,
       cnameRecordId,
       attempts = 0,
+      name_servers,
     } = job.data;
 
     const expectedIP = process.env['SERVER_IP'];
@@ -45,6 +47,7 @@ export class DnsJobProcessor extends WorkerHost {
       const propagated = await this.dnsService.checkPropagation(
         domain,
         expectedIP,
+        name_servers,
       );
 
       if (!propagated) {

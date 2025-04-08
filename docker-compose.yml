@@ -1,19 +1,37 @@
-version: "3.8"
+version: '3'
 
 services:
   traefik:
     image: traefik:v3.3
     container_name: traefik
+    restart: unless-stopped
     command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entryPoints.web.address=:80"
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entryPoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.cloudflare.acme.dnschallenge=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.email=tofikabdu2002@gmail.com
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --log.level=DEBUG
+      - --accesslog=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.delayBeforeCheck=30
+      # - --certificatesresolvers.cloudflare.acme.dnschallenge.propagation.delayBeforeCheck=30
+
     ports:
-      - "80:80"
-      - "8080:8080"
+      - '80:80'
+      - '443:443'
+      - '8080:8080'
+    environment:
+      - CF_DNS_API_TOKEN=ozDpwpbSvYNO6SSGaKhZowqoBIFoKSE84QIyydnA
+
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - ./letsencrypt:/letsencrypt
     networks:
       - traefik-public
 
@@ -25,13 +43,14 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: FinalYearProjectDb
     ports:
-      - "5434:5432"
+      - '5434:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - internal-network
+      # - internal-network
+      - traefik-public
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -47,20 +66,33 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
-      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/FinalYearProjectDb?schema=public"
+      DATABASE_URL: 'postgresql://postgres:postgres@postgres:5432/FinalYearProjectDb?schema=public'
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: redispass
     networks:
-      - internal-network
+      # - internal-network
       - traefik-public
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/usr/src/app
       - node_modules:/usr/src/app/node_modules
     user: root
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.app.rule=(Host(`paas-service.me`) || Host(`www.paas-service.me`))'
+      - 'traefik.http.routers.app.entrypoints=websecure'
+      - 'traefik.http.routers.app.tls=true'
+      - 'traefik.http.routers.app.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.app.tls.domains[0].main=paas-service.me'
+      - 'traefik.http.routers.app.tls.domains[0].sans=www.paas-service.me'
+      - 'traefik.http.services.app.loadbalancer.server.port=3000'
+
+      - 'traefik.http.middlewares.rewrite-host.headers.customRequestHeaders.Host=localhost'
+      - 'traefik.http.routers.app.middlewares=rewrite-host'
+      - traefik.docker.network=web
 
   redis:
     image: redis:latest
@@ -69,13 +101,14 @@ services:
     environment:
       - REDIS_PASSWORD=redispass
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     networks:
-      - internal-network
+      # - internal-network
+      - traefik-public
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,8 +116,8 @@ services:
 networks:
   traefik-public:
     external: true
-  internal-network:
-    driver: bridge
+  # internal-network:
+  #   driver: bridge
 
 volumes:
   postgres_data:
