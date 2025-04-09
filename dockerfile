@@ -21,14 +21,10 @@ RUN npm install --build-from-source
 
 COPY . .
 
-COPY .env .env.development .env.production ./
+COPY .env.development .env.production ./
 
 RUN npm run build
 
 EXPOSE 3000
 
-RUN npx prisma migrate reset
-
-RUN npx prisma migrate dev --name init
-
-CMD ["/bin/sh", "-c", "npm run start"]
+CMD ["/bin/sh", "-c", "npx prisma migrate reset && npx prisma migrate dev --name init && npm run start"]
