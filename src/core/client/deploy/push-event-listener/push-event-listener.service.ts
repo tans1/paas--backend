@@ -10,7 +10,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 @Injectable()
 export class PushEventListenerService {
   private readonly logger = new Logger(PushEventListenerService.name);
-  // TODO: Please update this to make it more generic
   private readonly baseRepoPath = process.env.PROJECTS_BASE_PATH || path.join(process.cwd(), 'projects');
 
   constructor(

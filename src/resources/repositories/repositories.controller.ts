@@ -115,6 +115,8 @@ export class RepositoriesController {
   }
 // TODO: Add a redeploy end point
 // TODO: Make sure to accept .env file when a project is deployed
+// TODO: Authentication  is failling in the deployed version
+// TODO: Make sure both public and private repos are supported
   @ApiOperation({
     summary: 'Deploy',
     description:

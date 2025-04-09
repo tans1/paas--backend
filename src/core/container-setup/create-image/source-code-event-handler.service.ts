@@ -26,7 +26,7 @@ export class SourceCodeEventHandlerService {
   ) {}
 
  
-
+  // TODO: This needs to be updated to use hyphen instead of underscore
   private getSanitizedProjectName(projectName : string): string {
 
   const sanitizedProjectName = projectName
