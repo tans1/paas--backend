@@ -16,12 +16,11 @@ export class PushEventListenerService {
   constructor(
     private readonly repositoryBootstrapService: RepositoryBootstrapService,
     private readonly repositorySyncService: RepositorySyncService,
-    private eventEmitter : EventEmitter2
+    private eventEmitter: EventEmitter2,
   ) {}
 
   @OnEvent(EventNames.PushEventReceived)
   async processNodeProject(payload: any) {
-    
     const repoFullName = payload?.repository?.full_name;
     const cloneUrl = payload?.repository?.clone_url;
     if (!repoFullName || !cloneUrl) {
@@ -35,23 +34,32 @@ export class PushEventListenerService {
     // is this the best way to dispatch the events?
     try {
       if (!repoExists) {
-        this.logger.log(`Repository ${repoFullName} not found locally. Cloning...`);
-        await this.repositoryBootstrapService.bootstrapRepository(cloneUrl, localRepoPath);
+        this.logger.log(
+          `Repository ${repoFullName} not found locally. Cloning...`,
+        );
+        await this.repositoryBootstrapService.bootstrapRepository(
+          cloneUrl,
+          localRepoPath,
+        );
         this.logger.log(`Repository ${repoFullName} cloned successfully.`);
-        this.eventEmitter.emit(EventNames.PROJECT_UPLOADED, { projectPath: localRepoPath });
+        this.eventEmitter.emit(EventNames.PROJECT_UPLOADED, {
+          projectPath: localRepoPath,
+        });
       } else {
-        this.logger.log(`Repository ${repoFullName} exists. Syncing updates...`);
+        this.logger.log(
+          `Repository ${repoFullName} exists. Syncing updates...`,
+        );
         await this.repositorySyncService.syncRepository(localRepoPath);
         this.logger.log(`Repository ${repoFullName} updated successfully.`);
-        this.eventEmitter.emit(EventNames.SourceCodeReady, { projectPath: localRepoPath });
+        this.eventEmitter.emit(EventNames.SourceCodeReady, {
+          projectPath: localRepoPath,
+        });
       }
-
     } catch (error) {
       this.logger.error(
         `Error processing repository ${repoFullName}: ${error.message}`,
         error.stack,
       );
-     
     }
   }
 }

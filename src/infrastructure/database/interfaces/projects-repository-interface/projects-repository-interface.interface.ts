@@ -14,6 +14,10 @@ export interface UpdateProjectDTO {
   deployedPort?: number;
   deployedUrl?: string;
 
+  localRepoPath?: string;
+  zoneId?: string;
+  aRecordId?: string;
+  cnameRecordId?: string;
 }
 
 export abstract class ProjectsRepositoryInterface {
@@ -24,7 +28,8 @@ export abstract class ProjectsRepositoryInterface {
   abstract update(id: number, payload: UpdateProjectDTO): Promise<Project>;
   abstract delete(id: number): Promise<void>;
   abstract list(filters?: Partial<Project>): Promise<Project[]>;
-  abstract addDeployment(projectId: number, deploymentId: number): Promise<void>;
+  abstract addDeployment(
+    projectId: number,
+    deploymentId: number,
+  ): Promise<void>;
 }
-
-

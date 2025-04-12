@@ -74,8 +74,10 @@ export class RepositoriesController {
     description: 'Returns a list of user repositories.',
   })
   @ApiBearerAuth('JWT-auth')
+  // @Public()
   @Get('/user')
   async listUserRepositories(@Req() req: AuthenticatedRequest) {
+    // @Req() req: AuthenticatedRequest
     const email = req.user.email;
     // const user = await this.userService.findOneBy(email);
     return this.listService.getAllUserRepos(email);
@@ -113,8 +115,8 @@ export class RepositoriesController {
     // const user = await this.userService.findOneBy(email);
     return this.listService.getRepoInfo(email, owner, repo);
   }
-// TODO: Add a redeploy end point
-// TODO: Make sure to accept .env file when a project is deployed
+  // TODO: Add a redeploy end point
+  // TODO: Make sure to accept .env file when a project is deployed
   @ApiOperation({
     summary: 'Deploy',
     description:
@@ -129,6 +131,7 @@ export class RepositoriesController {
     description: 'Returns the details of the created webhook.',
   })
   @ApiBearerAuth('JWT-auth')
+  // @Public()
   @HttpCode(201)
   @Post('/deploy')
   async createWebhook(
@@ -155,8 +158,8 @@ export class RepositoriesController {
     if (!signature || !event || !payload) {
       throw new OtherException('Missing headers or payload');
     }
-    
-    if(event == 'ping'){
+
+    if (event == 'ping') {
       await this.projectService.createProject(payload);
     }
     await this.webHookService.handleWebhookEvent(signature, event, payload);

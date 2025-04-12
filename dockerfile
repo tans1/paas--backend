@@ -21,7 +21,7 @@ RUN npm install --build-from-source
 
 COPY . .
 
-COPY .env .env.development .env.production ./
+COPY .env.development .env.production ./
 
 RUN npm run build
 

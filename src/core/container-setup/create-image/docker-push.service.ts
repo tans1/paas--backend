@@ -1,15 +1,15 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import * as Docker from 'dockerode';
 import { DockerLogService } from './docker-log.service';
-import path from 'path';
 import { AlsService } from '@/utils/als/als.service';
 
 @Injectable()
 export class DockerPushService {
   private docker: Docker;
 
-  constructor(private readonly dockerLogService: DockerLogService,
-    private alsService: AlsService
+  constructor(
+    private readonly dockerLogService: DockerLogService,
+    private alsService: AlsService,
   ) {
     this.docker = new Docker();
   }
@@ -27,7 +27,9 @@ export class DockerPushService {
         password: process.env.DOCKER_PASSWORD,
       };
 
-      const pushStream = await this.docker.getImage(pushImageName).push({ authconfig });
+      const pushStream = await this.docker
+        .getImage(pushImageName)
+        .push({ authconfig });
       await this.dockerLogService.handleDockerStream(pushStream);
       console.log(`Image pushed to Docker Hub: ${pushImageName}`);
     } catch (error) {
