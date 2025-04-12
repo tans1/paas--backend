@@ -27,4 +27,4 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["/bin/sh", "-c", "npx prisma migrate reset && npx prisma migrate dev --name init && npm run start"]
+CMD ["/bin/sh", "-c", "npx prisma migrate deploy && npm run start"]

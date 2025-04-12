@@ -33,6 +33,22 @@ export class DnsService {
       apiKey: process.env['CLOUDFLARE_API_KEY'],
     });
   }
+
+  async recordExists(
+    zoneId: string,
+    type: string,
+    name: string,
+  ): Promise<CloudflareDNSRecord | null> {
+    const response = await this.cloudflareApi.dns.records.list({
+      zone_id: zoneId,
+    });
+    const records = response.result || [];
+    const record = records.find(
+      (r: CloudflareDNSRecord) => r.type === type && r.name === name,
+    );
+
+    return record || null;
+  }
   private getRootDomain(domain: string): string {
     const normalizedDomain = domain.toLowerCase();
 
@@ -41,20 +57,35 @@ export class DnsService {
     }
     return normalizedDomain;
   }
-  async createZone(domain: string): Promise<CloudflareZone | null> {
+  async createZone(domain: string): Promise<CloudflareZone> {
     try {
       const rootDomain = this.getRootDomain(domain);
+
+      const existingZones = await this.cloudflareApi.zones.list({
+        name: rootDomain,
+        // status: 'active',
+      });
+
+      if (existingZones.result?.length > 0) {
+        this.logger.log(`Found existing zone for ${rootDomain}`);
+        return existingZones.result[0];
+      }
       const response = await this.cloudflareApi.zones.create({
         name: rootDomain,
         jump_start: true,
       });
 
-      return response;
+      if (!response?.result?.id) {
+        throw new Error('Zone creation failed: No ID returned from Cloudflare');
+      }
+
+      this.logger.log(`Successfully created new zone for ${rootDomain}`);
+      return response.result;
     } catch (error: any) {
       this.logger.error(
-        `Error creating Cloudflare zone for domain ${domain}: ${error.message}`,
+        `Zone operation failed for ${domain}: ${error.message}`,
       );
-      throw error;
+      throw new Error(`Zone operation failed: ${error.message}`);
     }
   }
 
@@ -66,26 +97,33 @@ export class DnsService {
       const SERVER_IP = process.env['SERVER_IP'];
       const rootDomain = this.getRootDomain(domain);
 
-      // TODO: Check if the records already exist
+      let aRecord = await this.recordExists(zoneId, 'A', rootDomain);
+      if (!aRecord) {
+        aRecord = await this.cloudflareApi.dns.records.create({
+          zone_id: zoneId,
+          type: 'A',
+          name: rootDomain,
+          content: SERVER_IP,
+          ttl: 1,
+          proxied: true,
+        });
+      }
 
-      const aRecord = await this.cloudflareApi.dns.records.create({
-        zone_id: zoneId,
-        type: 'A',
-        name: rootDomain,
-        content: SERVER_IP,
-        ttl: 1,
-        proxied: true,
-      });
-
-      const cnameRecord = await this.cloudflareApi.dns.records.create({
-        zone_id: zoneId,
-        type: 'CNAME',
-        name: `www.${rootDomain}`,
-        content: rootDomain,
-        ttl: 1,
-        proxied: true,
-      });
-
+      let cnameRecord = await this.recordExists(
+        zoneId,
+        'CNAME',
+        `www.${rootDomain}`,
+      );
+      if (!cnameRecord) {
+        cnameRecord = await this.cloudflareApi.dns.records.create({
+          zone_id: zoneId,
+          type: 'CNAME',
+          name: `www.${rootDomain}`,
+          content: rootDomain,
+          ttl: 1,
+          proxied: true,
+        });
+      }
       return [aRecord, cnameRecord];
     } catch (error: any) {
       this.logger.error(
@@ -95,6 +133,19 @@ export class DnsService {
     }
   }
 
+  async updateSSLSetting(zoneId, mode = 'strict') {
+    try {
+      const response = await this.cloudflareApi.zones.settings.ssl.edit(
+        zoneId,
+        {
+          value: mode,
+        },
+      );
+      console.log('SSL setting updated:', response);
+    } catch (error) {
+      console.error('Error updating SSL setting:', error);
+    }
+  }
   async createDockerComposeFile(
     domain: string,
     projectId: number,
@@ -105,13 +156,25 @@ export class DnsService {
     const rootDomain = this.getRootDomain(domain);
     const templatePath = path.join(
       __dirname,
+      '..',
+      '..',
+      'core',
+      'container-setup',
+      'create-image',
       'templates',
       'docker-compose.yml.ejs',
     );
     const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
+    const projectName = rootDomain
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '')
+      .replace(/-{2,}/g, '-');
     const dockerComposeContent = ejs.render(templateContent, {
-      projectName: rootDomain,
+      projectName,
       deploymentUrl: rootDomain,
+      includeEnvFile: false,
     });
     const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
     const dockerComposePath = path.join(projectPath, dockerComposeFileName);
@@ -154,11 +217,6 @@ export class DnsService {
     }
 
     try {
-      // const expectedNameservers = [
-      //   'damiete.ns.cloudflare.com',
-      //   'marlowe.ns.cloudflare.com',
-      // ];
-
       const nsRecords = (await Promise.race([
         dnsPromises.resolveNs(domain),
         new Promise((_, reject) =>
@@ -219,8 +277,11 @@ export class DnsService {
 
   async runDockerCompose(domain: string, projectId: number): Promise<void> {
     const rootDomain = this.getRootDomain(domain);
+
+    const projectName = rootDomain.replace(/\./g, '-');
     const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
-    const command = `docker compose -f ${dockerComposeFileName} up -d --build`;
+    // const command = `docker compose -f ${dockerComposeFileName} up -d --build`;
+    const command = `docker compose -p ${projectName} -f ${dockerComposeFileName} up -d --build --remove-orphans`;
 
     const projectPath = (
       await this.projectsRepositoryService.findById(projectId)
@@ -232,90 +293,6 @@ export class DnsService {
     if (stderr) {
       this.logger.error(`stderr: ${stderr}`);
     }
-
-    //  TODO: Deployment status and log
-  }
-
-  async createDomainRedirection(
-    newDomain: string,
-    projectId: number,
-  ): Promise<void> {
-    try {
-      const oldDomain = (
-        await this.projectsRepositoryService.findById(projectId)
-      ).deployedUrl;
-      const newRootDomain = this.getRootDomain(newDomain);
-
-      const zoneId = await this.getZoneId(oldDomain);
-
-      await this.cloudflareApi.zones.rulesets.create(zoneId, {
-        name: `Redirect ${oldDomain} to ${newDomain}`,
-        description: `301 redirect from ${oldDomain} to ${newDomain}`,
-        kind: 'zone',
-        phase: 'http_request_dynamic_redirect',
-        rules: [
-          {
-            action: 'redirect',
-            action_parameters: {
-              from_value: {
-                status_code: 301,
-                target_url: {
-                  value: `https://${newRootDomain}/$1`,
-                },
-              },
-            },
-            expression: `(http.host eq "${oldDomain}") or (http.host eq "www.${oldDomain}")`,
-            description: `Redirect ${oldDomain} to ${newDomain}`,
-          },
-        ],
-      });
-
-      const newZoneId = await this.getZoneId(newRootDomain);
-      const newZoneSettings =
-        await this.cloudflareApi.zones.settings.read(newZoneId);
-
-      if (
-        !newZoneSettings.result.ssl ||
-        newZoneSettings.result.ssl.status !== 'active'
-      ) {
-        await this.cloudflareApi.zones.edgeCertificates.prioritize(newZoneId, {
-          certificates: [newZoneSettings.result.ssl.id],
-        });
-      }
-    } catch (error) {
-      throw new Error(`Redirection setup failed: ${error.message}`);
-    }
-  }
-
-  private async getZoneId(domain: string): Promise<string> {
-    const zones = await this.cloudflareApi.zones.list({ name: domain });
-    if (!zones.result.length) {
-      throw new Error(`Cloudflare zone not found for domain: ${domain}`);
-    }
-    return zones.result[0].id;
-  }
-
-  async deleteOldDNSRecords(projectId: number): Promise<void> {
-    const project = await this.projectsRepositoryService.findById(projectId);
-    const zoneId = project.zoneId;
-    const aRecordId = project.aRecordId;
-    const cnameRecordId = project.cnameRecordId;
-    if (!zoneId || !aRecordId || !cnameRecordId) {
-      throw new Error('Zone ID or DNS Record IDs not found in the database');
-    }
-
-    const aRecordDeleteResponse = await this.cloudflareApi.dns.records.delete(
-      aRecordId,
-      {
-        zoneId,
-      },
-    );
-    const cnameRecordDeleteResponse =
-      await this.cloudflareApi.dns.records.delete(cnameRecordId, {
-        zoneId,
-      });
-
-    console.log(aRecordDeleteResponse, cnameRecordDeleteResponse);
   }
 
   async notifyUser(

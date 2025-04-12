@@ -40,7 +40,9 @@ export class DnsJobProcessor extends WorkerHost {
       attempts = 0,
       name_servers,
     } = job.data;
-
+    console.log(
+      `inside the process method and beginning to check the dns propagation for the ${attempts} attempt`,
+    );
     const expectedIP = process.env['SERVER_IP'];
 
     try {
@@ -51,6 +53,7 @@ export class DnsJobProcessor extends WorkerHost {
       );
 
       if (!propagated) {
+        console.log('Propagation not yet complete');
         if (attempts >= this.MAX_ATTEMPTS) {
           // this.logger.error(`Max attempts reached for ${domain}`);
           await this.dnsService.notifyUser(
@@ -66,8 +69,11 @@ export class DnsJobProcessor extends WorkerHost {
         }
 
         const nextAttempt = attempts + 1;
-        const delay = Math.min(1000 * 60 * 10 * 2 ** nextAttempt, 3600000);
+        const delay = Math.min(1000 * 60 * 10 * 2 ** nextAttempt, 3600000); // 10 min
 
+        console.log(
+          'going to add the job to the queue back and then recheck it',
+        );
         await this.dnsQueue.add(
           'check-propagation',
           { ...job.data, attempts: nextAttempt },
@@ -78,13 +84,22 @@ export class DnsJobProcessor extends WorkerHost {
             removeOnFail: true,
           },
         );
+        console.log(
+          `Job added to queue for domain ${domain} with attempt ${nextAttempt}`,
+        );
 
         return;
       }
 
+      console.log('Propagation complete');
+      console.log('going to run the docker compose');
       await this.dnsService.runDockerCompose(domain, projectId);
-      await this.dnsService.createDomainRedirection(domain, projectId);
-      await this.dnsService.deleteOldDNSRecords(projectId);
+      console.group('after running the docker compose');
+      console.log('going to create the domain redirection');
+      // await this.dnsService.createDomainRedirection(domain, projectId);
+      console.log('going to delete the old dns records');
+
+      // await this.dnsService.deleteOldDNSRecords(projectId);
       await this.dnsService.notifyUser(
         domain,
         userId,
@@ -95,7 +110,7 @@ export class DnsJobProcessor extends WorkerHost {
         'success',
       );
     } catch (error) {
-      console.log(error);
+      console.log('error happend during job processing', error);
       await this.dnsService.notifyUser(
         domain,
         userId,

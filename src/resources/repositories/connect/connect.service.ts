@@ -14,16 +14,15 @@ interface GitHubEmail {
   visibility: string | null;
 }
 
-
 @Injectable()
 export class ConnectService {
   constructor(private readonly usersService: UsersService) {}
   redirectToGitHubAuth() {
     const redirectUri =
-  'https://github.com/login/oauth/authorize' +
-  `?client_id=${process.env.DEP_GITHUB_CLIENT_ID}` +
-  `&redirect_uri=${encodeURIComponent(process.env.DEP_GITHUB_REDIRECT_URL)}` +
-  `&scope=repo,user:email`;
+      'https://github.com/login/oauth/authorize' +
+      `?client_id=${process.env.DEP_GITHUB_CLIENT_ID}` +
+      `&redirect_uri=${encodeURIComponent(process.env.DEP_GITHUB_REDIRECT_URL)}` +
+      `&scope=repo,user:email`;
 
     return redirectUri;
   }
@@ -81,8 +80,12 @@ export class ConnectService {
           },
         );
         // Get the primary email (or the first verified email if none is marked primary)
-        const primaryEmail = emailsResponse.data.find((e) => e.primary && e.verified);
-        email = primaryEmail ? primaryEmail.email : emailsResponse.data[0]?.email;
+        const primaryEmail = emailsResponse.data.find(
+          (e) => e.primary && e.verified,
+        );
+        email = primaryEmail
+          ? primaryEmail.email
+          : emailsResponse.data[0]?.email;
       }
       // await this.githubRepository.create(githubUsername, accessToken);
       await this.usersService.updateByEmail(email, {

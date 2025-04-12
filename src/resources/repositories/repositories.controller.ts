@@ -73,12 +73,12 @@ export class RepositoriesController {
     status: 200,
     description: 'Returns a list of user repositories.',
   })
-  // @ApiBearerAuth('JWT-auth')
-  @Public()
+  @ApiBearerAuth('JWT-auth')
+  // @Public()
   @Get('/user')
-  async listUserRepositories() {
+  async listUserRepositories(@Req() req: AuthenticatedRequest) {
     // @Req() req: AuthenticatedRequest
-    const email = 'tofikabdu2002@gmail.com';
+    const email = req.user.email;
     // const user = await this.userService.findOneBy(email);
     return this.listService.getAllUserRepos(email);
   }
@@ -130,16 +130,16 @@ export class RepositoriesController {
     status: 201,
     description: 'Returns the details of the created webhook.',
   })
-  // @ApiBearerAuth('JWT-auth')
-  @Public()
+  @ApiBearerAuth('JWT-auth')
+  // @Public()
   @HttpCode(201)
   @Post('/deploy')
   async createWebhook(
-    // @Req() req: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
     @Body() body: DeployDto,
   ) {
     const { owner, repo } = body;
-    const email = 'tofikabdu2002@gmail.com';
+    const email = req.user.email;
     // const user = await this.userService.findOneBy(email);
     return this.webHookService.createWebhook(owner, repo, email);
   }

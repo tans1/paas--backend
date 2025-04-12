@@ -1,11 +1,17 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { DnsService } from './dns.service';
-import { Public } from '../auth/public-strategy';
 import { DNSDto } from './dto/dns.dto';
-
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+} from '@nestjs/swagger';
 
+@ApiTags('DNS')
 @Controller('dns')
 export class DnsController {
   constructor(
@@ -13,8 +19,34 @@ export class DnsController {
     @InjectQueue('dns-propagation') private readonly dnsQueue: Queue,
   ) {}
 
-  @Public()
+  @ApiBearerAuth('JWT-auth')
   @Post()
+  @ApiOperation({
+    summary: 'Create DNS records and configuration',
+    description:
+      'This endpoint creates a new DNS zone for the given domain, generates DNS records (A and CNAME), updates the SSL settings, creates a Docker Compose file, and triggers a DNS propagation check. The client is expected to update their domain registrar with the provided nameservers.',
+  })
+  @ApiBody({ type: DNSDto })
+  @ApiResponse({
+    status: 201,
+    description: 'DNS configuration created successfully',
+    content: {
+      'application/json': {
+        example: {
+          message:
+            'Please remove your existing name servers from your domain registrar and update it with these nameservers:',
+          nameservers: ['ns1.example.com', 'ns2.example.com'],
+          next_steps: [
+            'Update nameservers at your domain registrar',
+            'Propagation typically takes 24-48 hours',
+            'We will notify you once setup is complete',
+          ],
+          documentation_url: 'https://example.com/nameserver-setup-guide',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async createDns(@Body() body: DNSDto) {
     try {
       const { domain, projectId } = body;
@@ -23,6 +55,7 @@ export class DnsController {
         zone.id,
         domain,
       );
+      await this.dnsService.updateSSLSetting(zone.id);
       await this.dnsService.createDockerComposeFile(domain, projectId);
       await this.dnsQueue.add('check-propagation', {
         userId: 1,
@@ -35,7 +68,8 @@ export class DnsController {
       });
 
       return {
-        message: 'Please update your domain registrar with these nameservers:',
+        message:
+          'Please remove your existing name servers from your domain registrar and update it with these nameservers:',
         nameservers: zone.name_servers,
         next_steps: [
           'Update nameservers at your domain registrar',
@@ -50,37 +84,3 @@ export class DnsController {
     }
   }
 }
-
-// import { Processor, WorkerHost } from '@nestjs/bullmq';
-// import { Job } from 'bullmq';
-// import { DnsService } from './dns.service';
-
-// @Processor(
-//   'dns-propagation',
-//   /* to enable parallel processing of n jobs */ { concurrency: 2 },
-// )
-// export class DnsJobProcessor extends WorkerHost {
-//   constructor(private readonly dnsService: DnsService) {
-//     super();
-//   }
-
-//   async process(job: Job<{ domain: string; projectId: number }>) {
-//     const { domain, projectId } = job.data;
-//     const expectedIP = process.env['SERVER_IP'];
-
-//     let propagated = false;
-//     while (!propagated) {
-//       propagated = await this.dnsService.checkPropagation(domain, expectedIP);
-//       if (!propagated) {
-//         await new Promise((resolve) => setTimeout(resolve, 10 * 60 * 1000));
-//       }
-//     }
-
-//     // Once the domain has propagated
-//     await this.dnsService.runDockerCompose(domain, projectId);
-//     // TODO: Get the old domain from the database
-//     // await this.dnsService.createDomainRedirection(oldDomain, domain);
-//     // await this.dnsService.deleteOldDNSRecords(projectId);
-//     // await this.dnsService.notifyUser()
-//   }
-// }
