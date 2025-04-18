@@ -137,6 +137,9 @@ export class RepositoriesController {
     @Req() req: AuthenticatedRequest,
     @Body() body: DeployDto,
   ) {
+    // TODO: accept branch name this one needs to be saved to database
+    // TODO: env  varialbes and other conig info, we need to provide the option to submit both env file or just key value pairs and we 
+    // create env file from it.
     const { owner, repo } = body;
     const email = req.user.email;
     // const user = await this.userService.findOneBy(email);

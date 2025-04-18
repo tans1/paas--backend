@@ -7,6 +7,8 @@ import { EventNames } from '../events/event.module';
 
 
 // TODO: Consider removing the controller 
+
+// Just here to make testing the project build and deploy pipline easier
 @Controller('client')
 export class ClientController {
   constructor(private eventEmitter: EventEmitter2) {}

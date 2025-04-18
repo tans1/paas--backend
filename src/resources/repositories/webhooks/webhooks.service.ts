@@ -13,6 +13,7 @@ export class WebhooksService {
     private alsService : AlsService
   ) {}
 
+  // TODO: 
   async createWebhook(owner: string, repo: string, email: string) {
     const octokit = await this.octokitService.getOctokit(email);
 
@@ -35,6 +36,7 @@ export class WebhooksService {
     return { message: 'Webhook created successfully' };
   }
   async handleWebhookEvent(signature: string, event: string, payload: any) {
+    // TODO: check the branch that has the change from the payload
     const hmac = createHmac('sha256', process.env.DEP_WEBHOOK_SECRET);
     const digest = Buffer.from(
       'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex'),

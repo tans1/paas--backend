@@ -19,6 +19,7 @@ export class ListService {
   }
 
   async getAllUserRepos(email: string) {
+    // TODO: Fetch all the branches as well
     const octokit = await this.octokitService.getOctokit(email);
 
     const { data } = await octokit.repos.listForAuthenticatedUser({
