@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProjectDTO, ProjectsRepositoryInterface, UpdateProjectDTO } from './../../interfaces/projects-repository-interface/projects-repository-interface.interface';
+import { CreateProjectDTO, ProjectsRepositoryInterface, UpdateProjectDTO,ProjectWithDeployments } from './../../interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
 import { Project } from '@prisma/client';
 
@@ -10,6 +10,8 @@ export class ProjectsRepositoryService
   constructor(private prisma: PrismaService) {  
     super();
   }
+
+  
   async findByUserId(userId: number): Promise<Project[]> {
     return this.prisma.project.findMany({
       where: {
@@ -33,8 +35,10 @@ export class ProjectsRepositoryService
     });
   }
   
-  async findByRepoId(id: number): Promise<Project | null> {
-    return await this.prisma.project.findUnique({ where: { repoId: id } });
+  async findByRepoId(id: number): Promise<ProjectWithDeployments | null> {
+    return await this.prisma.project.findUnique({ where: { repoId: id },  include: {
+      deployments: true,
+    },}); 
   }
   async findById(id: number): Promise<Project | null> {
     throw new Error('Method not implemented.');
@@ -50,5 +54,15 @@ export class ProjectsRepositoryService
   }
   addDeployment(projectId: number, deploymentId: number): Promise<void> {
     throw new Error('Method not implemented.');
+  }
+  getAllDeployments(projectid:number): Promise<Project> {
+    return this.prisma.project.findUnique({
+      where: {
+        id: projectid,
+      },
+      include: {
+        deployments: true,
+      },
+    });
   }
 }
