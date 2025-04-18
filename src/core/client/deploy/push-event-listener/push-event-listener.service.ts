@@ -23,6 +23,8 @@ export class PushEventListenerService {
     
     const repoFullName = payload?.repository?.full_name;
     const cloneUrl = payload?.repository?.clone_url;
+    const userName = payload?.repository?.owner?.name;
+    const userEmail = payload?.repository?.owner?.email;
     if (!repoFullName || !cloneUrl) {
       this.logger.error('Invalid payload: missing repository information.');
       return;
@@ -31,7 +33,6 @@ export class PushEventListenerService {
     const localRepoPath = path.join(this.baseRepoPath, repoFullName);
 
     const repoExists = fs.existsSync(localRepoPath);
-    // is this the best way to dispatch the events?
     try {
       if (!repoExists) {
         this.logger.log(`Repository ${repoFullName} not found locally. Cloning...`);
@@ -40,7 +41,7 @@ export class PushEventListenerService {
         this.eventEmitter.emit(EventNames.PROJECT_UPLOADED, { projectPath: localRepoPath });
       } else {
         this.logger.log(`Repository ${repoFullName} exists. Syncing updates...`);
-        await this.repositorySyncService.syncRepository(localRepoPath);
+        await this.repositorySyncService.syncRepository(localRepoPath,userName,userEmail);
         this.logger.log(`Repository ${repoFullName} updated successfully.`);
         this.eventEmitter.emit(EventNames.SourceCodeReady, { projectPath: localRepoPath });
       }

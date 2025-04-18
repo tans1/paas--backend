@@ -5,21 +5,20 @@ import * as http from 'isomorphic-git/http/node';
 
 @Injectable()
 export class RepositorySyncService {
-    async syncRepository(localRepoPath){
+    async syncRepository(localRepoPath: string,userName: string, userEmail: string) {
+        // TODO: pull should be performed for the branch the user wants to sync
         try {
             await git.pull({
                 fs,
                 http,
                 dir: localRepoPath,
                 singleBranch: true,
-                author: {
-                    name: 'GitHub OAuth User',  
-                    email: 'oauth-user@example.com', // TODO: Needs to be updated
-                },
+                author: { name: userName, email: userEmail },
+                fastForwardOnly: true 
             });
         } catch (error) {
-            console.error('Error updating repository:', error);
-            throw new Error(`Failed to update repository: ${error.message}`);
-            }
+            console.error('Sync failed:', error);
+            throw new Error(`Sync failed: ${error.message}`);
+        }
     }
 }
