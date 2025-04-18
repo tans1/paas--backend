@@ -12,5 +12,5 @@ RUN npm run build
 FROM nginx:stable-alpine AS production
 COPY --from=build /app/<%= outputDir %> /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE <%= PORT %>
 CMD ["nginx", "-g", "daemon off;"]
