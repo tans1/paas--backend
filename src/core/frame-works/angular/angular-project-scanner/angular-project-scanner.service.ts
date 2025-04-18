@@ -27,13 +27,11 @@ export class AngularProjectScannerService {
     const defaultProject = angularConfig.defaultProject || Object.keys(angularConfig.projects)[0];
     const defaultBuildLocation =
     angularConfig.projects[defaultProject]?.architect?.build?.options?.outputPath || 'dist';
-    const defaultBuildLocationStaticFiles = defaultBuildLocation + '/browser'
-
    
     return {
       projectPath,
       nodeVersion,
-      defaultBuildLocation : defaultBuildLocationStaticFiles,
+      defaultBuildLocation : defaultBuildLocation,
     };
   }
 }
