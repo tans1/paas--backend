@@ -1,16 +1,17 @@
 version: "3.8"
 
 services:
-  <%= projectName %>:
-    image: <%= projectName %>:latest
+  <%=projectName %>:
+    image: <%=imageName %>
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: <%=dockerFile %>
+    container_name: <%=containerName %>
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.<%= projectName %>.rule=Host(`<%= deploymentUrl %>`)"
       - "traefik.http.routers.<%= projectName %>.entrypoints=web"
-      - "traefik.http.services.<%= projectName %>.loadbalancer.server.port=80"
+      - "traefik.http.services.<%= projectName %>.loadbalancer.server.port=<%=PORT %>"
     volumes:
       - node_modules:/usr/src/app/node_modules
     networks:
