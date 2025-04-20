@@ -7,7 +7,7 @@ export class ProjectsService {
     async getProjects(userId: number) {
         return await this.projectsRepositoryService.findByUserId(userId);
     }
-    async getProject(repoId: number) {
-        return await this.projectsRepositoryService.findByRepoId(parseInt(repoId.toString(), 10));
+    async getProject(repoId: number,branch: string) {
+        return await this.projectsRepositoryService.findByRepoAndBranch(parseInt(repoId.toString(), 10),branch);
     }
 }

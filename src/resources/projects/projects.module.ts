@@ -7,5 +7,6 @@ import { InterfacesModule } from '@/infrastructure/database/interfaces/interface
   controllers: [ProjectsController],
   providers: [ProjectsService],
   imports: [InterfacesModule],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}
