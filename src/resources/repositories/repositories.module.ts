@@ -6,8 +6,10 @@ import { ConnectService } from './connect/connect.service';
 import { InterfacesModule } from '../../infrastructure/database/interfaces/interfaces.module';
 import { OctokitService } from './octokit/octokit.service';
 import { UsersService } from '../users/users.service';
-import { ProjectService } from './project/create-project/project.service';
+import { ProjectService } from '../projects/create-project/project.service';
 import { AlsModule } from '@/utils/als/als.module';
+import { ProjectsModule } from '../projects/projects.module';
+import { EnvironmentService } from './utils/environment.service';
 
 @Module({
   controllers: [RepositoriesController],
@@ -17,8 +19,13 @@ import { AlsModule } from '@/utils/als/als.module';
     ConnectService,
     OctokitService,
     UsersService,
-    ProjectService
+    ProjectService,
+    EnvironmentService,
   ],
-  imports: [InterfacesModule,AlsModule],
+  imports: [
+    InterfacesModule,
+    AlsModule,
+    ProjectsModule,
+  ],
 })
 export class RepositoriesModule {}

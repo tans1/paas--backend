@@ -19,16 +19,46 @@ export class ListService {
   }
 
   async getAllUserRepos(email: string) {
-    // TODO: Fetch all the branches as well
-    const octokit = await this.octokitService.getOctokit(email);
-
-    const { data } = await octokit.repos.listForAuthenticatedUser({
-      per_page: 100,
-    });
-
-    return {
-      message: 'Successfully fetched user repositories',
-      data,
-    };
+    try {
+      const octokit = await this.octokitService.getOctokit(email);
+      
+      const repos = await octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+        per_page: 100,
+      });
+  
+      const reposWithBranches = await Promise.all(
+        repos.map(async repo => {
+          try {
+            const branches = await octokit.paginate(
+              octokit.repos.listBranches,
+              {
+                owner: repo.owner.login,
+                repo: repo.name,
+                per_page: 100,
+              }
+            );
+            return {
+              ...repo,
+              branches: branches.map(branch => branch.name),
+            };
+          } catch (error) {
+            console.error(`Error fetching branches for ${repo.full_name}:`, error);
+            return {
+              ...repo,
+              branches: [],
+              error: 'Failed to fetch branches',
+            };
+          }
+        })
+      );
+  
+      return {
+        message: 'Successfully fetched user repositories with branches',
+        data: reposWithBranches,
+      };
+    } catch (error) {
+      console.error('Error fetching user repositories:', error);
+      throw new Error('Failed to fetch user repositories: ' + error.message);
+    }
   }
 }
