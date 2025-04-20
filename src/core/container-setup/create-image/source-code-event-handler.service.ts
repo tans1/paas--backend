@@ -12,6 +12,7 @@ import { DockerLogService } from './docker-log.service';
 import { ProjectsRepositoryInterface } from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
 import * as os from 'os';
 import { PORT } from '@/core/frame-works/angular/constants';
+import { branch } from 'isomorphic-git';
 
 @Injectable()
 export class SourceCodeEventHandlerService {
@@ -28,17 +29,18 @@ export class SourceCodeEventHandlerService {
   async handleSourceCodeReady(payload: {
     projectPath: string;
     projectId: number;
-    branch?: string;
     environmentVariables?: any;
     dockerHubRepo: string;
     PORT?: number;
   }): Promise<void> {
     console.log('SourceCodeReady event received:', payload);
 
+    
     let deployment;
     try {
       const repoId = this.alsService.getrepositoryId();
-      const project = await this.projectRepositoryService.findByRepoId(repoId);
+      const branch = this.alsService.getbranchName(); 
+      const project = await this.projectRepositoryService.findByRepoAndBranch(repoId,branch);
       const deployments = project.deployments || [];
       const latestContainerName = this.getLatestContainerName(deployments);  
       const latestImageName = this.getLatestImageName(deployments);
@@ -47,7 +49,7 @@ export class SourceCodeEventHandlerService {
       const createDeploymentDTO: CreateDeploymentDTO = {
         projectId: projectId,
         status: 'in-progress',
-        branch: payload.branch || 'main',
+        branch: branch,
         environmentVariables: payload.environmentVariables,
       };
 

@@ -7,8 +7,7 @@ import http from 'isomorphic-git/http/node';
 @Injectable()
 export class RepositoryBootstrapService {
     constructor() {}
-    // TODO : Make it specif for a branch that the user wants to clone
-    async bootstrapRepository(cloneUrl: string, localRepoPath: string) {
+    async bootstrapRepository(cloneUrl: string, localRepoPath: string,branch: string,githubAccessToken: string) {
         try {
 
             if (!fs.existsSync(localRepoPath)) {
@@ -21,6 +20,11 @@ export class RepositoryBootstrapService {
                 dir: localRepoPath,
                 url: cloneUrl,
                 singleBranch: true,
+                ref: branch,
+                depth: 1,
+                onAuth: () => {
+                    return { username: 'oauth2', password: githubAccessToken };
+                }
             });
 
             console.log('Repository cloned successfully!');

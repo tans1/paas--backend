@@ -3,10 +3,16 @@ import * as git from 'isomorphic-git';
 import * as fs from 'fs';
 import * as http from 'isomorphic-git/http/node';
 
+// TODO: Some uniform linting rule for the entire project
 @Injectable()
 export class RepositorySyncService {
-    async syncRepository(localRepoPath: string,userName: string, userEmail: string) {
-        // TODO: pull should be performed for the branch the user wants to sync
+    async syncRepository(
+        localRepoPath: string,
+        userName: string, 
+        userEmail: string,
+        branch: string,
+        githubAccessToken: string,
+    ) {
         try {
             await git.pull({
                 fs,
@@ -14,7 +20,11 @@ export class RepositorySyncService {
                 dir: localRepoPath,
                 singleBranch: true,
                 author: { name: userName, email: userEmail },
-                fastForwardOnly: true 
+                fastForwardOnly: true,
+                ref: branch,
+                onAuth: () => {
+                    return { username: 'oauth2', password: githubAccessToken };
+                }
             });
         } catch (error) {
             console.error('Sync failed:', error);
