@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProjectDTO, ProjectsRepositoryInterface, UpdateProjectDTO,ProjectWithDeployments } from './../../interfaces/projects-repository-interface/projects-repository-interface.interface';
+import { CreateProjectDTO, ProjectsRepositoryInterface, UpdateProjectDTO,ProjectWithDeploymentsAndUser } from './../../interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
 import { Project } from '@prisma/client';
 
@@ -29,17 +29,39 @@ export class ProjectsRepositoryService
   
   async create(payload: CreateProjectDTO): Promise<Project> {
     return await this.prisma.project.upsert({
-      where: { repoId: payload.repoId },
-      update: {}, 
+      where: {
+        repoId_branch: {
+          repoId: payload.repoId,
+          branch: payload.branch,
+        },
+      },
+      update: {
+        environmentVariables: payload.environmentVariables,
+      },
       create: payload,
     });
   }
   
-  async findByRepoId(id: number): Promise<ProjectWithDeployments | null> {
-    return await this.prisma.project.findUnique({ where: { repoId: id },  include: {
-      deployments: true,
-    },}); 
+  
+
+  async findByRepoAndBranch(
+    repoId: number,
+    branch: string,
+  ): Promise<ProjectWithDeploymentsAndUser | null> {
+    return await this.prisma.project.findUnique({
+      where: {
+        repoId_branch: {
+          repoId,
+          branch,
+        },
+      },
+      include: {
+        deployments: true,
+        linkedByUser: true,
+      },
+    });
   }
+  
   async findById(id: number): Promise<Project | null> {
     throw new Error('Method not implemented.');
   }

@@ -5,6 +5,8 @@ export interface CreateProjectDTO {
   repoId: number;
   url: string;
   linkedByUserId: number;
+  environmentVariables?: Record<string, string>; 
+  branch: string;
 }
 
 export interface UpdateProjectDTO {
@@ -16,15 +18,17 @@ export interface UpdateProjectDTO {
 
 }
 
-export type ProjectWithDeployments = Prisma.ProjectGetPayload<{
+export type ProjectWithDeploymentsAndUser = Prisma.ProjectGetPayload<{
   include: {
     deployments: true;
+    linkedByUser: true;
   };
 }>;
 
 export abstract class ProjectsRepositoryInterface {
   abstract create(payload: CreateProjectDTO): Promise<Project>;
-  abstract findByRepoId(id: number): Promise<ProjectWithDeployments | null>;
+  // abstract findByRepoId(id: number): Promise<ProjectWithDeployments | null>;
+  abstract findByRepoAndBranch(repoId: number,branch: string,): Promise<ProjectWithDeploymentsAndUser | null>;
   abstract findByUserId(id: number): Promise<Project[]>;
   abstract findById(id: number): Promise<Project | null>;
   abstract update(id: number, payload: UpdateProjectDTO): Promise<Project>;

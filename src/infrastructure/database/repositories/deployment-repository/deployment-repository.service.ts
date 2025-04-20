@@ -8,13 +8,10 @@ import { PrismaService } from '../../prisma/prisma-service/prisma-service.servic
 export class DeploymentRepositoryService implements DeploymentRepositoryInterface {
     constructor(private prisma : PrismaService){}
     async create(payload: CreateDeploymentDTO): Promise<Deployment> {
-        // Extract rollbackToId from the payload
         const { rollbackToId, ...rest } = payload;
       
-        // Prepare the data for Prisma create
         const data: any = { ...rest };
       
-        // If rollbackToId is provided, set the relation using nested connect
         if (rollbackToId) {
           data.rollbackTo = { connect: { id: rollbackToId } };
         }
@@ -42,7 +39,7 @@ export class DeploymentRepositoryService implements DeploymentRepositoryInterfac
                 deploymentId: payload.deploymentId,
                 logLevel: payload.logLevel,
                 message: payload.message,
-                timestamp: new Date(), // Default to current time if not provided
+                timestamp: new Date(), 
             },
         });
     }
