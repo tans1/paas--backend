@@ -18,6 +18,13 @@ export class AlsService {
   getprojectName(): string | undefined {
     return this.als.getStore()?.get("projectName");
   }
+  getbranchName(): string | undefined {
+
+    return this.als.getStore()?.get("branchName");
+  }
+  setbranchName(branchName: string) {
+    this.als.getStore()?.set("branchName", branchName);
+  }
 
   private getSanitizedProjectName(projectName : string): string {
 
