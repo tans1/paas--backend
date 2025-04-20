@@ -6,8 +6,9 @@ import { Project } from '@prisma/client';
 @Injectable()
 export class ProjectsRepositoryService
   extends PrismaService
-  implements ProjectsRepositoryInterface {
-  constructor(private prisma: PrismaService) {  
+  implements ProjectsRepositoryInterface
+{
+  constructor(private prisma: PrismaService) {
     super();
   }
 
@@ -20,13 +21,13 @@ export class ProjectsRepositoryService
       include: {
         deployments: {
           include: {
-            logs: true, 
+            logs: true,
           },
         },
       },
     });
   }
-  
+
   async create(payload: CreateProjectDTO): Promise<Project> {
     return await this.prisma.project.upsert({
       where: {
@@ -63,7 +64,9 @@ export class ProjectsRepositoryService
   }
   
   async findById(id: number): Promise<Project | null> {
-    throw new Error('Method not implemented.');
+    return await this.prisma.project.findUnique({
+      where: { id },
+    });
   }
   update(id: number, payload: UpdateProjectDTO): Promise<Project> {
     return this.prisma.project.update({ where: { id }, data: payload });

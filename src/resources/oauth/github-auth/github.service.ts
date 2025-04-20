@@ -21,7 +21,7 @@ export class GithubService {
       throw new NotFoundException('No user data available in the request.');
     }
 
-    const { email, name,username,accessToken} = req.user;
+    const { email, name, username, accessToken } = req.user;
     let user;
 
     try {
@@ -31,15 +31,19 @@ export class GithubService {
     }
 
     if (!user) {
-      user = await this.usersService.create({ email, name,githubUsername :username, githubAccessToken: accessToken});
-    }
-    else{
+      user = await this.usersService.create({
+        email,
+        name,
+        githubUsername: username,
+        githubAccessToken: accessToken,
+      });
+    } else {
       await this.usersService.updateByEmail(email, {
-        githubUsername : username,
+        githubUsername: username,
         githubAccessToken: accessToken,
       });
     }
-    
+
     try {
       // const existingToken = await this.githubRepository.getAccessToken(username);
       // if (existingToken) {
@@ -51,7 +55,7 @@ export class GithubService {
       const payload = { sub: user.id, email: user.email, role: user.role };
       const jwt_token = await this.jwtService.signAsync(payload);
 
-      return { jwt_token,username };
+      return { jwt_token, username };
     } catch (e) {
       throw new InternalServerErrorException(
         'Error occurred while generating the JWT token.',
@@ -59,5 +63,3 @@ export class GithubService {
     }
   }
 }
-
-

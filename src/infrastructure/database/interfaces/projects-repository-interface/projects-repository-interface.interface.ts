@@ -16,6 +16,10 @@ export interface UpdateProjectDTO {
   deployedPort?: number;
   deployedUrl?: string;
 
+  localRepoPath?: string;
+  zoneId?: string;
+  aRecordId?: string;
+  cnameRecordId?: string;
 }
 
 export type ProjectWithDeploymentsAndUser = Prisma.ProjectGetPayload<{
@@ -37,5 +41,3 @@ export abstract class ProjectsRepositoryInterface {
   abstract addDeployment(projectId: number, deploymentId: number): Promise<void>;
   abstract getAllDeployments(projectid:number): Promise<Project> 
 }
-
-

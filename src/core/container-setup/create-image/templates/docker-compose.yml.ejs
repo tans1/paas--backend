@@ -8,10 +8,19 @@ services:
       dockerfile: <%=dockerFile %>
     container_name: <%=containerName %>
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.<%= projectName %>.rule=Host(`<%= deploymentUrl %>`)"
-      - "traefik.http.routers.<%= projectName %>.entrypoints=web"
-      - "traefik.http.services.<%= projectName %>.loadbalancer.server.port=<%=PORT %>"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.<%= projectName %>.rule=(Host(`<%= deploymentUrl %>`) || Host(`www.<%= deploymentUrl %>`))'
+      - 'traefik.http.routers.<%= projectName %>.entrypoints=websecure'
+      - 'traefik.http.routers.<%= projectName %>.tls=true'
+      - 'traefik.http.routers.<%= projectName %>.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.<%= projectName %>.tls.domains[0].main=<%= deploymentUrl %>'
+      - 'traefik.http.routers.<%= projectName %>.tls.domains[0].sans=www.<%= deploymentUrl %>'
+      #- 'traefik.http.services.<%= projectName %>.loadbalancer.server.port=4173' #TODO: use PORT variable here
+
+      - 'traefik.http.middlewares.rewrite-host.headers.customRequestHeaders.Host=localhost'
+      - 'traefik.http.routers.<%= projectName %>.middlewares=rewrite-host'
+
+
     volumes:
       - node_modules:/usr/src/app/node_modules
     networks:
@@ -28,3 +37,5 @@ volumes:
 networks:
   traefik-public:
     external: true
+
+

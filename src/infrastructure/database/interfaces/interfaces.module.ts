@@ -53,7 +53,7 @@ import { DeploymentRepositoryService } from '../repositories/deployment-reposito
     ServersRepositoryInterface,
     UsersRepositoryInterface,
     // GithubRepositoryInterface,
-    DeploymentRepositoryInterface
+    DeploymentRepositoryInterface,
   ],
 })
 export class InterfacesModule {}

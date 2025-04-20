@@ -8,6 +8,7 @@ import { PaymentModule } from './payment/payment.module';
 import { RepositoriesModule } from './repositories/repositories.module';
 import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfaces.module';
 import { ProjectsModule } from './projects/projects.module';
+import { DnsModule } from './dns/dns.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ProjectsModule } from './projects/projects.module';
     RepositoriesModule,
     InterfacesModule,
     ProjectsModule,
+    DnsModule,
   ],
 })
 export class ModulesModule {}

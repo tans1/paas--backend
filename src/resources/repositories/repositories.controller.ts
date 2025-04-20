@@ -83,8 +83,10 @@ export class RepositoriesController {
     description: 'Returns a list of user repositories.',
   })
   @ApiBearerAuth('JWT-auth')
+  // @Public()
   @Get('/user')
   async listUserRepositories(@Req() req: AuthenticatedRequest) {
+    // @Req() req: AuthenticatedRequest
     const email = req.user.email;
     // const user = await this.userService.findOneBy(email);
     return this.listService.getAllUserRepos(email);
@@ -136,6 +138,7 @@ export class RepositoriesController {
     description: 'Returns the details of the created webhook.',
   })
   @ApiBearerAuth('JWT-auth')
+  // @Public()
   @HttpCode(201)
   @Post('deploy')
   @UseInterceptors(FileInterceptor('envFile'))

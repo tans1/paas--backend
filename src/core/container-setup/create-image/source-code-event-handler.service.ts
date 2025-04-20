@@ -22,7 +22,7 @@ export class SourceCodeEventHandlerService {
     private deploymentRepositoryService: DeploymentRepositoryInterface,
     private alsService: AlsService,
     private dockerLogService: DockerLogService,
-    private projectRepositoryService: ProjectsRepositoryInterface
+    private projectRepositoryService: ProjectsRepositoryInterface,
   ) {}
 
   @OnEvent(EventNames.SourceCodeReady)
@@ -46,6 +46,9 @@ export class SourceCodeEventHandlerService {
       const latestImageName = this.getLatestImageName(deployments);
       const projectId = project.id;
 
+      await this.projectRepositoryService.update(projectId, {
+        localRepoPath: payload.projectPath,
+      });
       const createDeploymentDTO: CreateDeploymentDTO = {
         projectId: projectId,
         status: 'in-progress',
@@ -53,8 +56,12 @@ export class SourceCodeEventHandlerService {
         environmentVariables: payload.environmentVariables,
       };
 
-      deployment = await this.deploymentRepositoryService.create(createDeploymentDTO);
-      this.dockerLogService.logMessage(`Deployment started for project: ${projectId}`, deployment.id);
+      deployment =
+        await this.deploymentRepositoryService.create(createDeploymentDTO);
+      this.dockerLogService.logMessage(
+        `Deployment started for project: ${projectId}`,
+        deployment.id,
+      );
 
       const projectName = this.alsService.getprojectName()
       const deployedUrl = this.getDeployedUrl(projectName)
@@ -69,7 +76,6 @@ export class SourceCodeEventHandlerService {
         deployment.id
       );
 
-  
       await this.projectRepositoryService.update(projectId, {
         deployedUrl: deployedUrl,
       });
@@ -82,7 +88,7 @@ export class SourceCodeEventHandlerService {
 
       this.dockerLogService.logMessage(
         `Project ${projectId} is now running on ${deployedUrl}`,
-        deployment.id
+        deployment.id,
       );
       
       await this.dockerPushService.pushImage(imageName);
@@ -99,13 +105,16 @@ export class SourceCodeEventHandlerService {
         await this.deploymentRepositoryService.update(deployment.id, {
           status: 'failed',
         });
-        this.dockerLogService.logMessage(`Deployment failed: ${error.message}`, deployment.id);
-        
+        this.dockerLogService.logMessage(
+          `Deployment failed: ${error.message}`,
+          deployment.id,
+        );
       }
-      
+
       throw new HttpException(
         `Deployment failed: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR)
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   
   }

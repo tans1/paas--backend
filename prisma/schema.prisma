@@ -54,6 +54,12 @@ model Project {
   deployedUrl String? @map("deployedUrl")
 
   deployments Deployment[]
+
+  localRepoPath String? @map("local_repo_path")
+
+  zoneId String? @map("zone_id")
+  aRecordId String? @map("a_name_record_id")
+  cnameRecordId String? @map("cname_record_id")
 }
 
 model Deployment {
