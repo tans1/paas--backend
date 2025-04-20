@@ -4,7 +4,6 @@ import { VueModule } from './vue/vue.module';
 import { AngularModule } from './angular/angular.module';
 import { NestJsModule } from './nestjs/nestjs.module';
 
-// TODO: This module needs to be updated
 @Module({
   imports: [
     ReactModule,
