@@ -6,7 +6,6 @@ import * as path from 'path';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { PORT } from '../constants';
 
-// TODO: Add docker ignore file as well
 @Injectable()
 export class NestJsDockerfileService {
   constructor() {}
