@@ -13,6 +13,8 @@ export interface UpdateDeploymentDTO {
   branch?: string;
   environmentVariables?: any;
   rollbackToId?: number;
+  imageName?: string;
+  containerName?: string;
 }
 
 export interface CreateDeploymentLogDTO {

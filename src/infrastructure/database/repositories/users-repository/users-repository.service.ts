@@ -20,9 +20,7 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
           email: email,
         },
       });
-      if (!user) {
-        throw new BadRequestException(`User with email ${email} not found.`);
-      }
+      
       return user;
     } catch (error) {
       console.error('Error fetching user by email:', error);
@@ -40,10 +38,11 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
         const hashedPassword = await bcrypt.hash(password, salt);
         payload.password = hashedPassword;
       }
-
-      return await this.prisma.user.create({
-        data: payload,
-      });
+      return await this.prisma.user.upsert({
+        where: { email: payload.email },
+        update: {password : payload.password}, 
+        create: payload,
+    });
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('A user with this email already exists.');

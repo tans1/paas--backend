@@ -4,8 +4,8 @@ import * as ejs from 'ejs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { PORT } from '../constants';
 
-// TODO: Add docker ignore file as well
 @Injectable()
 export class NestJsDockerfileService {
   constructor() {}
@@ -34,10 +34,12 @@ export class NestJsDockerfileService {
       let dockerfileContent = '';
      
       dockerfileContent = ejs.render(templateContent, {
-        nodeVersion
+        nodeVersion,
+        PORT : PORT,
       });
 
-      const dockerfilePath = path.join(projectPath, 'Dockerfile');
+      const dockerFile = `Dockerfile.${process.env.DEPLOYMENT_HASH}`;
+      const dockerfilePath = path.join(projectPath, dockerFile);
       await fs.promises.writeFile(dockerfilePath, dockerfileContent, 'utf-8');
 
     } catch (error) {

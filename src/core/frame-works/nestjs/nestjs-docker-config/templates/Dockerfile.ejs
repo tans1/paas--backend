@@ -7,5 +7,5 @@ RUN npm install
 
 COPY . .
 RUN npm run build
-ENV PORT=80
+ENV PORT=<%= PORT %>
 CMD ["npm", "run", "start:prod"]

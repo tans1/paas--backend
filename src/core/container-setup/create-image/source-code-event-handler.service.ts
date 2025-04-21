@@ -2,7 +2,6 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EventNames } from 'src/core/events/event.module';
 import { ImageBuildService } from './image-build.service';
-// import { ContainerManagementService } from './container-management.service';
 import { DockerPushService } from './docker-push.service';
 import {
   CreateDeploymentDTO,
@@ -11,12 +10,14 @@ import {
 import { AlsService } from '@/utils/als/als.service';
 import { DockerLogService } from './docker-log.service';
 import { ProjectsRepositoryInterface } from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
+import * as os from 'os';
+import { PORT } from '@/core/frame-works/angular/constants';
+import { branch } from 'isomorphic-git';
 
 @Injectable()
 export class SourceCodeEventHandlerService {
   constructor(
     private imageBuildService: ImageBuildService,
-    // private containerManagementService: ContainerManagementService,
     private dockerPushService: DockerPushService,
     private deploymentRepositoryService: DeploymentRepositoryInterface,
     private alsService: AlsService,
@@ -24,33 +25,25 @@ export class SourceCodeEventHandlerService {
     private projectRepositoryService: ProjectsRepositoryInterface,
   ) {}
 
-  private getSanitizedProjectName(projectName: string): string {
-    const sanitizedProjectName = projectName
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '')
-      .replace(/-{2,}/g, '-');
-
-    return /^[a-z]/.test(sanitizedProjectName)
-      ? sanitizedProjectName
-      : 'a' + sanitizedProjectName;
-  }
-
   @OnEvent(EventNames.SourceCodeReady)
   async handleSourceCodeReady(payload: {
     projectPath: string;
     projectId: number;
-    branch?: string;
     environmentVariables?: any;
     dockerHubRepo: string;
+    PORT?: number;
   }): Promise<void> {
     console.log('SourceCodeReady event received:', payload);
 
+    
     let deployment;
     try {
       const repoId = this.alsService.getrepositoryId();
-      const project = await this.projectRepositoryService.findByRepoId(repoId);
+      const branch = this.alsService.getbranchName(); 
+      const project = await this.projectRepositoryService.findByRepoAndBranch(repoId,branch);
+      const deployments = project.deployments || [];
+      const latestContainerName = this.getLatestContainerName(deployments);  
+      const latestImageName = this.getLatestImageName(deployments);
       const projectId = project.id;
 
       await this.projectRepositoryService.update(projectId, {
@@ -59,7 +52,7 @@ export class SourceCodeEventHandlerService {
       const createDeploymentDTO: CreateDeploymentDTO = {
         projectId: projectId,
         status: 'in-progress',
-        branch: payload.branch || 'main',
+        branch: branch,
         environmentVariables: payload.environmentVariables,
       };
 
@@ -70,15 +63,17 @@ export class SourceCodeEventHandlerService {
         deployment.id,
       );
 
-      const projectName = this.getSanitizedProjectName(
-        this.alsService.getrepositoryName(),
-      );
-      const deployedUrl = `${projectName}.${process.env.DOMAIN_NAME}`;
-      const extendedProjectName = await this.imageBuildService.buildImage(
+      const projectName = this.alsService.getprojectName()
+      const deployedUrl = this.getDeployedUrl(projectName)
+      const [imageName,containerName] = await this.imageBuildService.createDockerComposeFile(
         payload.projectPath,
-        deployment.id,
         projectName,
         deployedUrl,
+        PORT,
+      )
+      await this.imageBuildService.buildImage(
+        payload.projectPath,
+        deployment.id
       );
 
       await this.projectRepositoryService.update(projectId, {
@@ -87,14 +82,22 @@ export class SourceCodeEventHandlerService {
 
       await this.deploymentRepositoryService.update(deployment.id, {
         status: 'deployed',
+        imageName: imageName,
+        containerName: containerName,
       });
 
       this.dockerLogService.logMessage(
         `Project ${projectId} is now running on ${deployedUrl}`,
         deployment.id,
       );
-
-      await this.dockerPushService.pushImage(extendedProjectName);
+      
+      await this.dockerPushService.pushImage(imageName);
+      if (latestContainerName) {
+        await this.imageBuildService.removeContainer(latestContainerName, payload.projectPath);
+      }
+      if (latestImageName) {
+        await this.imageBuildService.removeImage(latestImageName, payload.projectPath);
+      }
     } catch (error) {
       console.error('Error during deployment process:', error);
 
@@ -113,5 +116,37 @@ export class SourceCodeEventHandlerService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  
   }
+
+  getDeployedUrl(projectName: string): string {
+    const deployedUrl = `${projectName}.${process.env.DOMAIN_NAME}`;
+    return deployedUrl;
+  }
+
+  getLatestContainerName(deployments: { createdAt: Date; containerName?: string | null }[]): string | null {
+    if (!deployments || deployments.length === 0) {
+      return null;
+    }
+  
+    const latest = deployments.reduce((latestDeployment, current) => {
+      return new Date(current.createdAt) > new Date(latestDeployment.createdAt) ? current : latestDeployment;
+    });
+  
+    return latest.containerName ?? null;
+  }
+
+  getLatestImageName(deployments: { createdAt: Date; imageName?: string | null }[]): string | null {
+    if (!deployments || deployments.length === 0) {
+      return null;
+    }
+  
+    const latest = deployments.reduce((latestDeployment, current) => {
+      return new Date(current.createdAt) > new Date(latestDeployment.createdAt) ? current : latestDeployment;
+    });
+  
+    return latest.imageName ?? null;
+  }
+  
+
 }

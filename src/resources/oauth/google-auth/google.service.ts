@@ -26,28 +26,26 @@ export class GoogleService {
     try{
 
       user = await this.usersService.findOneBy(email);
+      if (!user) {
+        user = await this.usersService.create({
+          email,
+          name,
+        });
+      }
+  
+      try {
+        const payload = { sub: user.id, email: user.email, role: user.role };
+        const access_token = await this.jwtService.signAsync(payload);
+        return { access_token };
+      } catch (error) {
+        throw new InternalServerErrorException(
+          'Error occurred while generating the JWT token.',
+        );
+      }
     }
     catch(e){
       console.log(e);
     }
-
-    // TODO: Bug when google sign in is peerformed first time we will have a user with no password in our DB  
-
-    if (!user) {
-      user = await this.usersService.create({
-        email,
-        name,
-      });
-    }
-
-    try {
-      const payload = { sub: user.id, email: user.email, role: user.role };
-      const access_token = await this.jwtService.signAsync(payload);
-      return { access_token };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error occurred while generating the JWT token.',
-      );
-    }
+    
   }
 }

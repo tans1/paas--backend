@@ -7,6 +7,8 @@ import {
   Body,
   Query,
   HttpCode,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +17,7 @@ import {
   ApiResponse,
   ApiBody,
   ApiBearerAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 
@@ -24,9 +27,13 @@ import { ListService } from './list/list.service';
 import { OtherException } from '@/utils/exceptions/github.exception';
 import { DeployDto } from './dto/deploy';
 import { Public } from '../auth/public-strategy';
-import { ProjectService } from './project/create-project/project.service';
-import { UsersService } from '../users/users.service';
+import { ProjectService } from '../projects/create-project/project.service';
 import { AuthenticatedRequest } from '../../utils/types/user.types';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { EnvironmentService } from './utils/environment.service';
+import { AlsService } from '@/utils/als/als.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventNames } from '@/core/events/event.module';
 
 @ApiTags('Repositories')
 @Controller('repositories')
@@ -36,7 +43,9 @@ export class RepositoriesController {
     private webHookService: WebhooksService,
     private listService: ListService,
     private projectService: ProjectService,
-    private userService: UsersService,
+    private environmentService: EnvironmentService,
+    private alsService: AlsService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   @ApiOperation({
@@ -112,11 +121,9 @@ export class RepositoriesController {
     @Query('repo') repo: string,
   ) {
     const email = req.user.email;
-    // const user = await this.userService.findOneBy(email);
     return this.listService.getRepoInfo(email, owner, repo);
-  }
-  // TODO: Add a redeploy end point
-  // TODO: Make sure to accept .env file when a project is deployed
+  } 
+  // TODO: Authentication  is failling in the deployed version
   @ApiOperation({
     summary: 'Deploy',
     description:
@@ -133,15 +140,44 @@ export class RepositoriesController {
   @ApiBearerAuth('JWT-auth')
   // @Public()
   @HttpCode(201)
-  @Post('/deploy')
+  @Post('deploy')
+  @UseInterceptors(FileInterceptor('envFile'))
+  @ApiConsumes('multipart/form-data')
   async createWebhook(
     @Req() req: AuthenticatedRequest,
     @Body() body: DeployDto,
+    @UploadedFile() envFile?: Express.Multer.File,
   ) {
-    const { owner, repo } = body;
-    const email = req.user.email;
-    // const user = await this.userService.findOneBy(email);
-    return this.webHookService.createWebhook(owner, repo, email);
+
+    try{
+        const { owner, repo, branch = 'main', envVars } = body;
+        const email = req.user.email;
+
+        const environmentVariables = await this.environmentService.processEnvironment(envVars, envFile);
+
+        const [webhookResponse, repoInfo] = await Promise.all([
+          this.webHookService.createWebhook(owner, repo, email),
+          this.listService.getRepoInfo(email, owner, repo),
+        ]);
+
+        const repository = repoInfo.data;
+        await this.projectService.createProject(repository, branch, environmentVariables);
+
+        const repositoryId = repository.id;
+        const repositoryName = repository.full_name;
+        const payload = { repository, branch, email };
+        this.alsService.runWithrepositoryInfo(repositoryId, repositoryName, () => {
+          this.eventEmitter.emit(EventNames.PROJECT_INITIALIZED, payload);
+        });
+
+        return webhookResponse;
+
+    }
+    catch(error){
+      console.error('Error creating webhook:', error);
+      throw new OtherException('Failed to create webhook: ' + error.message);
+    }
+    
   }
 
   @ApiOperation({
@@ -160,7 +196,7 @@ export class RepositoriesController {
     }
 
     if (event == 'ping') {
-      await this.projectService.createProject(payload);
+      return
     }
     await this.webHookService.handleWebhookEvent(signature, event, payload);
   }

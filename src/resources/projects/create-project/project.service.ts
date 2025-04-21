@@ -3,16 +3,14 @@ import { UsersRepositoryInterface } from '@/infrastructure/database/interfaces/u
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 
-// TODO: move this to projects module
 @Injectable()
 export class ProjectService {
   constructor(private projectRepositoryService: ProjectsRepositoryInterface, 
     private userService : UsersRepositoryInterface
   ) {}
 
-  public async createProject(payload: any){
+  public async createProject(repository: any,branch : string, environmentVariables: any) {
     try{
-      const repository = payload.repository;
       const userName =  repository.owner.login;
       const user = await this.userService.findOneByUserName(userName)
       
@@ -20,11 +18,13 @@ export class ProjectService {
         name: repository?.name,
         url: repository?.html_url || repository?.url,
         linkedByUserId: user?.id,
-        repoId : repository?.id
+        repoId : repository?.id,
+        environmentVariables : environmentVariables,
+        branch : branch,
       };
   
       return await this.projectRepositoryService.create(createProjectDto);
-
+// the only thing I need is the repoId
     }
     catch(error){
       console.error('Error creating project:', error);
@@ -36,5 +36,18 @@ export class ProjectService {
 
     }
    
+  }
+
+  public async findByRepoAndBranch(repoId : number, branch : string){
+    try {
+      return await this.projectRepositoryService.findByRepoAndBranch(repoId, branch);
+    } catch (error) {
+      console.error('Error finding project by repo and branch:', error);
+      throw new HttpException(
+        error.message,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+
   }
 }

@@ -4,11 +4,10 @@ import * as ejs from 'ejs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { PORT } from '../constants';
 
-// TODO: Add docker ignore file as well
-// TODO: Consider updating the nginx server to node server to handle SSR and CSR
 @Injectable()
-export class AngularDockerfileService {
+export class ReactDockerfileService {
   constructor() {}
 
   async createDockerfile(projectConfig: {
@@ -37,9 +36,11 @@ export class AngularDockerfileService {
       dockerfileContent = ejs.render(templateContent, {
         nodeVersion,
         outputDir: defaultBuildLocation,
+        PORT: PORT,
       });
 
-      const dockerfilePath = path.join(projectPath, 'Dockerfile');
+      const dockerFile = `Dockerfile.${process.env.DEPLOYMENT_HASH}`;
+      const dockerfilePath = path.join(projectPath, dockerFile);
       await fs.promises.writeFile(dockerfilePath, dockerfileContent, 'utf-8');
 
     } catch (error) {

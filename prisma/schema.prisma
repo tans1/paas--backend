@@ -42,13 +42,14 @@ model User {
 
 model Project {
   id             Int      @id @default(autoincrement())
-  repoId         Int     @unique @map("repo_id")
+  repoId         Int      @map("repo_id")
+  branch         String   @db.VarChar(100)
   name           String   @db.VarChar(255)
   url            String   @db.VarChar(2083)
   linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
   linkedByUserId Int
   createdAt      DateTime @default(now()) @map("created_at")
-
+  environmentVariables  Json?        @map("environment_variables")
   deployedIp String? @map("deployed_ip")
   deployedPort Int? @map("deployed_port")
   deployedUrl String? @map("deployedUrl")
@@ -60,8 +61,12 @@ model Project {
   zoneId String? @map("zone_id")
   aRecordId String? @map("a_name_record_id")
   cnameRecordId String? @map("cname_record_id")
+
+  @@unique([repoId, branch], name: "repoId_branch")
 }
 
+// imageName
+// containerName
 model Deployment {
   id                    Int          @id @default(autoincrement())
   project                  Project      @relation(fields: [projectId], references: [id])
@@ -72,7 +77,8 @@ model Deployment {
   rollbackTo            Deployment?  @relation("Rollback", fields: [rollbackToId], references: [id])
   rollbackToId          Int?         @map("rollback_to_id")
   rollbackedDeployments Deployment[] @relation("Rollback")
-
+  containerName       String?      @map("container_name")
+  imageName           String?      @map("image_name")
   createdAt DateTime        @default(now()) @map("created_at")
   logs      DeploymentLog[]
 }

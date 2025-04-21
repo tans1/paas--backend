@@ -30,8 +30,8 @@ export class ProjectsController {
     type: ProjectDto,
   })
   @Get('my-project')
-  async getMyProject(@Query('repoId') repoId: number, @Req() req: Request) {
-    return await this.projectsService.getProject(repoId);
+  async getMyProject(@Query('repoId') repoId: number,@Query('branch') branch: string, @Req() req: Request) {
+    return await this.projectsService.getProject(repoId,branch);
   }
   
 }
