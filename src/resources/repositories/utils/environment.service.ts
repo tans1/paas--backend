@@ -10,7 +10,7 @@ export class EnvironmentService {
     envFile?: Express.Multer.File,
   ): Promise<Record<string, string>> {
     let fileEnv: Record<string, string> = {};
-    let parsedEnvVars = JSON.parse(envVars);
+    let parsedEnvVars = envVars ? JSON.parse(envVars) : {};
     if (envFile) {
       try {
         fileEnv = dotenv.parse(envFile.buffer.toString());
