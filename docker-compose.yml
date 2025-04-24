@@ -72,6 +72,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: redispass
+      NODE_ENV: ${NODE_ENV}
     networks:
       # - internal-network
       - traefik-public
