@@ -9,6 +9,11 @@
       "include": "**/*.ejs",
       "watchAssets": true ,
       "outDir": "dist"
+    },
+    {
+      "include": "**/*.dockerignore",
+      "watchAssets": true,
+      "outDir": "dist"
     }
   ]
   }
