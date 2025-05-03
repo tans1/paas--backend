@@ -122,7 +122,7 @@ export class RepositoriesController {
   ) {
     const email = req.user.email;
     return this.listService.getRepoInfo(email, owner, repo);
-  } 
+  }
   // TODO: Authentication  is failling in the deployed version
   @ApiOperation({
     summary: 'Deploy',
@@ -148,36 +148,41 @@ export class RepositoriesController {
     @Body() body: DeployDto,
     @UploadedFile() envFile?: Express.Multer.File,
   ) {
+    try {
+      const { owner, repo, branch = 'main', envVars } = body;
+      const email = req.user.email;
 
-    try{
-        const { owner, repo, branch = 'main', envVars } = body;
-        const email = req.user.email;
+      const environmentVariables =
+        await this.environmentService.processEnvironment(envVars, envFile);
 
-        const environmentVariables = await this.environmentService.processEnvironment(envVars, envFile);
+      const [webhookResponse, repoInfo] = await Promise.all([
+        this.webHookService.createWebhook(owner, repo, email),
+        this.listService.getRepoInfo(email, owner, repo),
+      ]);
 
-        const [webhookResponse, repoInfo] = await Promise.all([
-          this.webHookService.createWebhook(owner, repo, email),
-          this.listService.getRepoInfo(email, owner, repo),
-        ]);
+      const repository = repoInfo.data;
+      const newProject = await this.projectService.createProject(
+        repository,
+        branch,
+        environmentVariables,
+      );
 
-        const repository = repoInfo.data;
-        await this.projectService.createProject(repository, branch, environmentVariables);
-
-        const repositoryId = repository.id;
-        const repositoryName = repository.full_name;
-        const payload = { repository, branch, email };
-        this.alsService.runWithrepositoryInfo(repositoryId, repositoryName, () => {
+      const repositoryId = repository.id;
+      const repositoryName = repository.full_name;
+      const payload = { repository, branch, email };
+      this.alsService.runWithrepositoryInfo(
+        repositoryId,
+        repositoryName,
+        () => {
           this.eventEmitter.emit(EventNames.PROJECT_INITIALIZED, payload);
-        });
+        },
+      );
 
-        return webhookResponse;
-
-    }
-    catch(error){
+      return newProject;
+    } catch (error) {
       console.error('Error creating webhook:', error);
       throw new OtherException('Failed to create webhook: ' + error.message);
     }
-    
   }
 
   @ApiOperation({
@@ -196,7 +201,7 @@ export class RepositoriesController {
     }
 
     if (event == 'ping') {
-      return
+      return;
     }
     await this.webHookService.handleWebhookEvent(signature, event, payload);
   }
