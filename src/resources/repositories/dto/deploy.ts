@@ -37,6 +37,15 @@ export class DeployDto {
   branch?: string;
 
   @ApiProperty({
+    example: 'Angular',
+    description: 'Framework of the project to deploy',
+    required: true,
+  })
+  @IsNotEmpty()
+  @IsString()
+  framework: string;
+
+  @ApiProperty({
     example: { API_KEY: '12345', ENV: 'production' },
     description: 'Environment variables as key-value pairs',
     additionalProperties: { type: 'string' },

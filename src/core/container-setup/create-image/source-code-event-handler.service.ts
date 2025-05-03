@@ -32,6 +32,7 @@ export class SourceCodeEventHandlerService {
     environmentVariables?: any;
     dockerHubRepo: string;
     PORT?: number;
+    dockerFile? : string;
   }): Promise<void> {
     console.log('SourceCodeReady event received:', payload);
 
@@ -70,6 +71,7 @@ export class SourceCodeEventHandlerService {
         projectName,
         deployedUrl,
         PORT,
+        payload.dockerFile
       )
       await this.imageBuildService.buildImage(
         payload.projectPath,

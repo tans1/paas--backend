@@ -9,7 +9,7 @@ export class ProjectService {
     private userService : UsersRepositoryInterface
   ) {}
 
-  public async createProject(repository: any,branch : string, environmentVariables: any) {
+  public async createProject(repository: any,branch : string, environmentVariables: any,framework : string) {
     try{
       const userName =  repository.owner.login;
       const user = await this.userService.findOneByUserName(userName)
@@ -21,6 +21,7 @@ export class ProjectService {
         repoId : repository?.id,
         environmentVariables : environmentVariables,
         branch : branch,
+        framework : framework
       };
   
       return await this.projectRepositoryService.create(createProjectDto);

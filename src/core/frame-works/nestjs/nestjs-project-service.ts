@@ -5,6 +5,7 @@ import { NestJsDockerfileService } from './nestjs-docker-config/nestjs-dockerfil
 import { FrameworkMap } from '../../framework-detector/framework.config';
 import { EventNames } from '@/core/events/event.module';
 import { NestJsDockerIgnoreFileService } from './nestjs-docker-config/nestjs-dockerignorefile.service';
+import {  PORT } from './constants';
 @Injectable()
 export class NestJsProjectService {
   constructor(
@@ -21,6 +22,7 @@ export class NestJsProjectService {
     const projectPath = payload.projectPath;
     this.eventEmitter.emit(EventNames.SourceCodeReady, {
       projectPath,
+      PORT
     });
   }
 }

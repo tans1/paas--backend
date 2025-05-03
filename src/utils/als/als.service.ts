@@ -22,8 +22,15 @@ export class AlsService {
 
     return this.als.getStore()?.get("branchName");
   }
+  getframework(): string | undefined {
+
+    return this.als.getStore()?.get("framework");
+  }
   setbranchName(branchName: string) {
     this.als.getStore()?.set("branchName", branchName);
+  }
+  setframework(framework: string){
+    this.als.getStore()?.set("framework",framework)
   }
 
   private getSanitizedProjectName(projectName : string): string {

@@ -7,6 +7,7 @@ export interface CreateProjectDTO {
   linkedByUserId: number;
   environmentVariables?: Record<string, string>; 
   branch: string;
+  framework : string;
 }
 
 export interface UpdateProjectDTO {

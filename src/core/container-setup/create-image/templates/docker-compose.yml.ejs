@@ -15,7 +15,7 @@ services:
       - 'traefik.http.routers.<%= projectName %>.tls.certresolver=cloudflare'
       - 'traefik.http.routers.<%= projectName %>.tls.domains[0].main=<%= deploymentUrl %>'
       - 'traefik.http.routers.<%= projectName %>.tls.domains[0].sans=www.<%= deploymentUrl %>'
-      #- 'traefik.http.services.<%= projectName %>.loadbalancer.server.port=4173' #TODO: use PORT variable here
+      - 'traefik.http.services.<%= projectName %>.loadbalancer.server.port=PORT' #TODO: use PORT variable here
 
       - 'traefik.http.middlewares.rewrite-host.headers.customRequestHeaders.Host=localhost'
       - 'traefik.http.routers.<%= projectName %>.middlewares=rewrite-host'

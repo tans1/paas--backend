@@ -46,6 +46,7 @@ model Project {
   branch         String   @db.VarChar(100)
   name           String   @db.VarChar(255)
   url            String   @db.VarChar(2083)
+  framework      String   @db.VarChar(100)
   linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
   linkedByUserId Int
   createdAt      DateTime @default(now()) @map("created_at")

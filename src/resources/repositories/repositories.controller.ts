@@ -34,6 +34,8 @@ import { EnvironmentService } from './utils/environment.service';
 import { AlsService } from '@/utils/als/als.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventNames } from '@/core/events/event.module';
+import { FrameworkDetectionService } from '@/core/framework-detector/framework-detection-service/framework-detection.service';
+import { CustomApiResponse } from '@/utils/api-responses/api-response';
 
 @ApiTags('Repositories')
 @Controller('repositories')
@@ -46,6 +48,7 @@ export class RepositoriesController {
     private environmentService: EnvironmentService,
     private alsService: AlsService,
     private eventEmitter: EventEmitter2,
+    private frameworkDetectionService: FrameworkDetectionService
   ) {}
 
   @ApiOperation({
@@ -139,6 +142,8 @@ export class RepositoriesController {
   })
   @ApiBearerAuth('JWT-auth')
   // @Public()
+  // I will have to accept the framework
+  // store it to database
   @HttpCode(201)
   @Post('deploy')
   @UseInterceptors(FileInterceptor('envFile'))
@@ -150,7 +155,7 @@ export class RepositoriesController {
   ) {
 
     try{
-        const { owner, repo, branch = 'main', envVars } = body;
+        const { owner, repo, branch = 'main', envVars,framework} = body;
         const email = req.user.email;
 
         const environmentVariables = await this.environmentService.processEnvironment(envVars, envFile);
@@ -161,12 +166,14 @@ export class RepositoriesController {
         ]);
 
         const repository = repoInfo.data;
-        await this.projectService.createProject(repository, branch, environmentVariables);
+        await this.projectService.createProject(repository, branch, environmentVariables,framework);
 
         const repositoryId = repository.id;
         const repositoryName = repository.full_name;
         const payload = { repository, branch, email };
+        
         this.alsService.runWithrepositoryInfo(repositoryId, repositoryName, () => {
+          this.alsService.setframework(framework);
           this.eventEmitter.emit(EventNames.PROJECT_INITIALIZED, payload);
         });
 
@@ -200,4 +207,58 @@ export class RepositoriesController {
     }
     await this.webHookService.handleWebhookEvent(signature, event, payload);
   }
-}
+
+  @ApiOperation({
+    summary: 'Detect Framework',
+    description: 'Detects the framework used in a GitHub repository',
+  })
+  @ApiQuery({
+    name: 'owner',
+    type: String,
+    required: true,
+    description: 'The owner of the repository',
+  })
+  @ApiQuery({
+    name: 'repo',
+    type: String,
+    required: true,
+    description: 'The name of the repository',
+  })
+  @ApiQuery({
+    name: 'branch',
+    type: String,
+    required: false,
+    description: 'The branch to check (default: main)',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @Get('/detect-framework')
+  async detectFramework(
+    @Req() req: AuthenticatedRequest,
+    @Query('owner') owner: string,
+    @Query('repo') repo: string,
+    @Query('branch') branch = 'main'
+  ) {
+    const email = req.user.email;
+    
+    try {
+
+      const frameworks = await this.frameworkDetectionService.detectFramework({owner,repo,branch,email})
+      return CustomApiResponse.success(frameworks, frameworks.length > 0 
+        ? `${frameworks.length} framework(s) detected` 
+        : 'No supported frameworks detected');
+
+    }
+    catch(error){
+      return CustomApiResponse.error(
+        error.message,
+        error.error_code,
+        error.context
+      );
+    }
+      }
+
+    }
+    
+  
+  
+

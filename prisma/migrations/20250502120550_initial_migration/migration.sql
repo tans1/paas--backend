@@ -19,6 +19,7 @@ CREATE TABLE "Project" (
     "branch" VARCHAR(100) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "url" VARCHAR(2083) NOT NULL,
+    "framework" VARCHAR(100) NOT NULL,
     "linkedByUserId" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "environment_variables" JSONB,

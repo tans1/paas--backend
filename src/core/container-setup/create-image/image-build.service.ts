@@ -38,6 +38,7 @@ export class ImageBuildService {
     projectName: string,
     deploymentUrl: string,
     PORT: number = 80,
+    dockerFile? : string
   ): Promise<[string, string]> {
     const extension = uuidv4();
     const templatePath = path.join(__dirname, 'templates', 'docker-compose.yml.ejs');
@@ -47,7 +48,9 @@ export class ImageBuildService {
     const envFilePath = path.join(projectPath, envFileName); 
 
     const includeEnvFile = fs.existsSync(envFilePath);
-    const dockerFile = `Dockerfile.${process.env.DEPLOYMENT_HASH}`;
+    if (!dockerFile){
+      dockerFile = `Dockerfile.${process.env.DEPLOYMENT_HASH}` ;
+    }
     const extendedProjectName = `${projectName}-${extension}`;
     const imageName = `${process.env.DOCKER_USERNAME}/${projectName}:${extension}`;
     const containerName = `${projectName}-${extension}`;
