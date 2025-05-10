@@ -1,84 +1,85 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LoginService } from './login.service';
-import { UsersService } from 'src/resources/users/users.service';
+import { UsersService } from '../../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 describe('LoginService', () => {
-  let service: LoginService;
-  let usersService: UsersService;
-  let jwtService: JwtService;
+  let loginService: LoginService;
+  let usersService: jest.Mocked<UsersService>;
+  let jwtService: jest.Mocked<JwtService>;
+
+  const mockUsersService = {
+    findOneBy: jest.fn(),
+  };
+
+  const mockJwtService = {
+    signAsync: jest.fn(),
+  };
+
+  const mockUser = {
+    id: '123',
+    email: 'test@example.com',
+    password: 'hashedPassword',
+    role: 'user',
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LoginService,
-        {
-          provide: UsersService,
-          useValue: {
-            findOneBy: jest.fn(),
-          },
-        },
-        {
-          provide: JwtService,
-          useValue: {
-            signAsync: jest.fn(),
-          },
-        },
+        { provide: UsersService, useValue: mockUsersService },
+        { provide: JwtService, useValue: mockJwtService },
       ],
     }).compile();
 
-    service = module.get<LoginService>(LoginService);
-    usersService = module.get<UsersService>(UsersService);
-    jwtService = module.get<JwtService>(JwtService);
+    loginService = module.get<LoginService>(LoginService);
+    usersService = module.get<UsersService>(UsersService) as jest.Mocked<UsersService>;
+    jwtService = module.get<JwtService>(JwtService) as jest.Mocked<JwtService>;
+
+    jest.spyOn(bcrypt, 'compare').mockReset(); // Reset bcrypt mock
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    jest.clearAllMocks(); // Clear all mocks to prevent memory leaks
+    jest.spyOn(bcrypt, 'compare').mockRestore(); // Restore bcrypt to avoid lingering mocks
   });
 
   describe('logIn', () => {
-    it('should return an access token if credentials are valid', async () => {
-      const email = 'test@example.com';
-      const password = 'password';
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = { id: 'user-id', email, password: hashedPassword, role: 'user' };
-      const token = 'jwt-token';
-
-      jest.spyOn(usersService, 'findOneBy').mockResolvedValue(user);
-      jest.spyOn(bcrypt, 'compare').mockImplementation(async () => true); // ✅ Fix here
-      jest.spyOn(jwtService, 'signAsync').mockResolvedValue(token);
-
-      const result = await service.logIn(email, password);
-
-      expect(result).toEqual({ access_token: token });
-      expect(usersService.findOneBy).toHaveBeenCalledWith(email);
-      expect(bcrypt.compare).toHaveBeenCalledWith(password, user.password);
-      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: user.id, email: user.email, role: user.role });
-    });
-
-    it('should throw UnauthorizedException if password is invalid', async () => {
-      const email = 'test@example.com';
-      const password = 'password';
-      const user = { id: 'user-id', email, password: 'hashed-password', role: 'user' };
-
-      jest.spyOn(usersService, 'findOneBy').mockResolvedValue(user);
-      jest.spyOn(bcrypt, 'compare').mockImplementation(async () => false); // ✅ Fix here
-
-      await expect(service.logIn(email, password)).rejects.toThrow(UnauthorizedException);
-      expect(usersService.findOneBy).toHaveBeenCalledWith(email);
-      expect(bcrypt.compare).toHaveBeenCalledWith(password, user.password);
-    });
-
     it('should throw UnauthorizedException if user is not found', async () => {
-      const email = 'test@example.com';
-      const password = 'password';
+      usersService.findOneBy.mockResolvedValue(null);
 
-      jest.spyOn(usersService, 'findOneBy').mockResolvedValue(null);
+      await expect(loginService.logIn('test@example.com', 'password')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(usersService.findOneBy).toHaveBeenCalledWith('test@example.com');
+    });
 
-      await expect(service.logIn(email, password)).rejects.toThrow(UnauthorizedException);
-      expect(usersService.findOneBy).toHaveBeenCalledWith(email);
+    it('should throw UnauthorizedException if password does not match', async () => {
+      usersService.findOneBy.mockResolvedValue(mockUser);
+      jest.spyOn(bcrypt, 'compare').mockImplementation(async () => false);
+
+      await expect(loginService.logIn('test@example.com', 'wrongPassword')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(usersService.findOneBy).toHaveBeenCalledWith('test@example.com');
+      expect(bcrypt.compare).toHaveBeenCalledWith('wrongPassword', mockUser.password);
+    });
+
+    it('should return access token if credentials are valid', async () => {
+      usersService.findOneBy.mockResolvedValue(mockUser);
+      jest.spyOn(bcrypt, 'compare').mockImplementation(async () => true);
+      const payload = { sub: mockUser.id, email: mockUser.email, role: mockUser.role };
+      const accessToken = 'jwt.token.here';
+      jwtService.signAsync.mockResolvedValue(accessToken);
+
+      const result = await loginService.logIn('test@example.com', 'password');
+
+      expect(result).toEqual({ access_token: accessToken });
+      expect(usersService.findOneBy).toHaveBeenCalledWith('test@example.com');
+      expect(bcrypt.compare).toHaveBeenCalledWith('password', mockUser.password);
+      expect(jwtService.signAsync).toHaveBeenCalledWith(payload);
     });
   });
 });

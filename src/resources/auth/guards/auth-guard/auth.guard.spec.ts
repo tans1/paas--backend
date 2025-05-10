@@ -2,32 +2,43 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthGuard } from './auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
-import { UnauthorizedException, ExecutionContext } from '@nestjs/common';
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { jwtConstants } from '../../constants';
 import { IS_PUBLIC_KEY } from '../../public-strategy';
-import { Request } from 'express';
 
 describe('AuthGuard', () => {
   let authGuard: AuthGuard;
   let jwtService: JwtService;
   let reflector: Reflector;
 
+  const mockJwtService = {
+    verifyAsync: jest.fn(),
+  };
+
+  const mockReflector = {
+    getAllAndOverride: jest.fn(),
+  };
+
+  const mockRequest = {
+    headers: {
+      authorization: '',
+    },
+  };
+
+  const mockContext = {
+    switchToHttp: jest.fn(() => ({
+      getRequest: jest.fn(() => mockRequest),
+    })),
+    getHandler: jest.fn(),
+    getClass: jest.fn(),
+  } as unknown as ExecutionContext;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthGuard,
-        {
-          provide: JwtService,
-          useValue: {
-            verifyAsync: jest.fn(),
-          },
-        },
-        {
-          provide: Reflector,
-          useValue: {
-            getAllAndOverride: jest.fn(),
-          },
-        },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: Reflector, useValue: mockReflector },
       ],
     }).compile();
 
@@ -36,101 +47,91 @@ describe('AuthGuard', () => {
     reflector = module.get<Reflector>(Reflector);
   });
 
-  it('should be defined', () => {
-    expect(authGuard).toBeDefined();
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('canActivate', () => {
-    let context: ExecutionContext;
-    let request: Partial<Request>;
+    it('should return true if route is public', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(true);
 
-    beforeEach(() => {
-      request = {
-        headers: {},
-      };
-
-      context = {
-        switchToHttp: jest.fn().mockReturnValue({
-          getRequest: jest.fn().mockReturnValue(request),
-        }),
-        getHandler: jest.fn(),
-        getClass: jest.fn(),
-      } as unknown as ExecutionContext;
-    });
-
-    it('should allow access if route is public', async () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
-
-      const result = await authGuard.canActivate(context);
+      const result = await authGuard.canActivate(mockContext);
 
       expect(result).toBe(true);
       expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
+        mockContext.getHandler(),
+        mockContext.getClass(),
       ]);
+      expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if no token is provided', async () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      mockRequest.headers.authorization = '';
 
-      await expect(authGuard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+      await expect(authGuard.canActivate(mockContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
-    it('should throw UnauthorizedException if token validation fails', async () => {
-      request.headers.authorization = 'Bearer invalid-token';
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
-      jest.spyOn(jwtService, 'verifyAsync').mockRejectedValue(new Error('Invalid token'));
+    it('should throw UnauthorizedException if token type is not Bearer', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      mockRequest.headers.authorization = 'Basic some-token';
 
-      await expect(authGuard.canActivate(context)).rejects.toThrow(UnauthorizedException);
+      await expect(authGuard.canActivate(mockContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
-    it('should allow access and set user if token is valid', async () => {
-      const payload = { sub: 'user-id', email: 'user@example.com' };
-      request.headers.authorization = 'Bearer valid-token';
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
-      jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(payload);
+    it('should throw UnauthorizedException if token verification fails', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      mockRequest.headers.authorization = 'Bearer invalid-token';
+      mockJwtService.verifyAsync.mockRejectedValue(new Error('Invalid token'));
 
-      const result = await authGuard.canActivate(context);
+      await expect(authGuard.canActivate(mockContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', {
+        secret: jwtConstants.secret,
+      });
+    });
+
+    it('should attach user payload to request and return true if token is valid', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      mockRequest.headers.authorization = 'Bearer valid-token';
+      const payload = { sub: '123', username: 'testuser' };
+      mockJwtService.verifyAsync.mockResolvedValue(payload);
+
+      const result = await authGuard.canActivate(mockContext);
 
       expect(result).toBe(true);
-      expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-token', { secret: jwtConstants.secret });
-      expect(request['user']).toEqual(payload);
+      expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('valid-token', {
+        secret: jwtConstants.secret,
+      });
+      expect(mockRequest['user']).toEqual(payload);
     });
   });
 
   describe('extractTokenFromHeader', () => {
-    it('should extract token from authorization header', () => {
-      const request = {
-        headers: {
-          authorization: 'Bearer valid-token',
-        },
-      } as Request;
-
-      const token = authGuard['extractTokenFromHeader'](request);
-
-      expect(token).toBe('valid-token');
-    });
-
     it('should return undefined if authorization header is missing', () => {
-      const request = {
-        headers: {},
-      } as Request;
-
-      const token = authGuard['extractTokenFromHeader'](request);
-
+      const request = { headers: {} };
+      const token = (authGuard as any).extractTokenFromHeader(request);
       expect(token).toBeUndefined();
     });
 
-    it('should return undefined if authorization header is not a Bearer token', () => {
-      const request = {
-        headers: {
-          authorization: 'Basic some-token',
-        },
-      } as Request;
-
-      const token = authGuard['extractTokenFromHeader'](request);
-
+    it('should return undefined if authorization header is malformed', () => {
+      const request = { headers: { authorization: 'Invalid' } };
+      const token = (authGuard as any).extractTokenFromHeader(request);
       expect(token).toBeUndefined();
+    });
+
+    it('should return token if authorization header is valid', () => {
+      const request = { headers: { authorization: 'Bearer some-token' } };
+      const token = (authGuard as any).extractTokenFromHeader(request);
+      expect(token).toBe('some-token');
     });
   });
 });
+
+// Command to run the tests:
+// npm run test auth.guard.spec.ts

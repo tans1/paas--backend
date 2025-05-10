@@ -4,8 +4,13 @@ import { UsersService } from 'src/resources/users/users.service';
 import { CreateUserDto } from 'src/resources/users/dto/create-user.dto';
 
 describe('RegisterService', () => {
-  let service: RegisterService;
+  let registerService: RegisterService;
   let usersService: UsersService;
+
+  // Mock UsersService
+  const mockUsersService = {
+    create: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -13,38 +18,62 @@ describe('RegisterService', () => {
         RegisterService,
         {
           provide: UsersService,
-          useValue: {
-            create: jest.fn(),
-          },
+          useValue: mockUsersService,
         },
       ],
     }).compile();
 
-    service = module.get<RegisterService>(RegisterService);
+    registerService = module.get<RegisterService>(RegisterService);
     usersService = module.get<UsersService>(UsersService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('register', () => {
-    it('should call usersService.create with the correct parameters and return the result', async () => {
-      const createUserDto: CreateUserDto = { email: 'test@example.com', password: 'password', createdAt: new Date() };
-      const user = { id: 'user-id', ...createUserDto };
-      jest.spyOn(usersService, 'create').mockResolvedValue(user);
+    it('should call usersService.create with the provided payload and return the created user', async () => {
+      // Arrange
+      const createUserDto: CreateUserDto = {
+        email: 'test@example.com',
+        password: 'password123',
+        createdAt: undefined
+      };
 
-      expect(await service.register(createUserDto)).toBe(user);
+      const mockUser = {
+        id: 1,
+        username: 'testuser',
+        email: 'test@example.com',
+      };
+
+      mockUsersService.create.mockResolvedValue(mockUser);
+
+      // Act
+      const result = await registerService.register(createUserDto);
+
+      // Assert
       expect(usersService.create).toHaveBeenCalledWith(createUserDto);
+      expect(usersService.create).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockUser);
     });
 
     it('should throw an error if usersService.create fails', async () => {
-      const createUserDto: CreateUserDto = { email: 'test@example.com', password: 'password', createdAt: new Date() };
-      jest.spyOn(usersService, 'create').mockImplementation(() => {
-        throw new Error('User creation failed');
-      });
+      // Arrange
+      const createUserDto: CreateUserDto = {
+        email: 'test@example.com',
+        password: 'password123',
+        createdAt: undefined
+      };
 
-      await expect(service.register(createUserDto)).rejects.toThrow('User creation failed');
+      const errorMessage = 'Failed to create user';
+      mockUsersService.create.mockRejectedValue(new Error(errorMessage));
+
+      // Act & Assert
+      await expect(registerService.register(createUserDto)).rejects.toThrow(
+        errorMessage,
+      );
+      expect(usersService.create).toHaveBeenCalledWith(createUserDto);
+      expect(usersService.create).toHaveBeenCalledTimes(1);
     });
   });
 });
