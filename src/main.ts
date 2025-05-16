@@ -11,11 +11,18 @@ dotenv.config({ path: envFile });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Configure CORS
   app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    origin: process.env.FRONTEND_URL || '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With',
+    exposedHeaders: 'Authorization',
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
+
   const config = new DocumentBuilder()
     .setTitle('pass-final-year-project')
     .setDescription('The pass-final-year-project API description')
@@ -32,7 +39,6 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-
   SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');

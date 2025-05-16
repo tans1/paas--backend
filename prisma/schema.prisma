@@ -40,6 +40,12 @@ model User {
 //   expired      Boolean?
 // }
 
+enum ProjectStatus {
+  STOPPED
+  RUNNING
+  PENDING 
+}
+
 model Project {
   id             Int      @id @default(autoincrement())
   repoId         Int      @map("repo_id")
@@ -62,6 +68,14 @@ model Project {
   zoneId String? @map("zone_id")
   aRecordId String? @map("a_name_record_id")
   cnameRecordId String? @map("cname_record_id")
+  installCommand String?   @db.VarChar(2083)
+  buildCommand String?   @db.VarChar(2083)
+  outputDirectory String?   @db.VarChar(2083)
+  rootDirectory String?   @db.VarChar(2083)
+  projectDescription String? @db.VarChar(2083)
+  lastCommitMessage String  @db.VarChar(2083)
+  status ProjectStatus  @default(PENDING)
+  dockerComposeFile String? @db.VarChar(2083)
 
   @@unique([repoId, branch], name: "repoId_branch")
 }
@@ -70,7 +84,7 @@ model Project {
 // containerName
 model Deployment {
   id                    Int          @id @default(autoincrement())
-  project                  Project      @relation(fields: [projectId], references: [id])
+  project                  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId                Int
   status                String       @db.VarChar(50)
   branch                String       @db.VarChar(100)
@@ -81,16 +95,18 @@ model Deployment {
   containerName       String?      @map("container_name")
   imageName           String?      @map("image_name")
   createdAt DateTime        @default(now()) @map("created_at")
+  lastCommitMessage String @db.VarChar(2083)
   logs      DeploymentLog[]
 }
 
 model DeploymentLog {
   id           Int        @id @default(autoincrement())
-  deployment   Deployment @relation(fields: [deploymentId], references: [id])
+  deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
   deploymentId Int
   logLevel     String     @map("log_level") @db.VarChar(20)
   message      String
   timestamp    DateTime   @default(now()) @map("timestamp")
+  logType   String @map("log_type") @db.VarChar(20)
 }
 
 model Payment {
