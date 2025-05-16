@@ -12,13 +12,13 @@ export class GitHubFileService {
     branch: string;
   };
 
-  constructor(private octokitService : OctokitService){}
+  constructor(private octokitService: OctokitService) {}
   async initialize(email?: string) {
-    this.octokit = await this.octokitService.getOctokit(email)
+    this.octokit = await this.octokitService.getOctokit(email);
     return this;
   }
 
-  setRepositoryContext(owner: string, repo : string,branch?: string,) {
+  setRepositoryContext(owner: string, repo: string, branch?: string) {
     this.repoContext = { owner, repo, branch };
   }
 
@@ -27,7 +27,9 @@ export class GitHubFileService {
     content?: string;
   }> {
     if (!this.octokit || !this.repoContext) {
-      throw new Error('Service not initialized. Call initialize() and setRepositoryContext() first');
+      throw new Error(
+        'Service not initialized. Call initialize() and setRepositoryContext() first',
+      );
     }
 
     try {
@@ -36,7 +38,7 @@ export class GitHubFileService {
         repo: this.repoContext.repo,
         path: filePath,
         ref: this.repoContext.branch,
-        mediaType: { format: 'raw' }
+        mediaType: { format: 'raw' },
       });
       return { exists: true, content: data as unknown as string };
     } catch (error) {
@@ -44,5 +46,4 @@ export class GitHubFileService {
       throw new Error(`Failed to fetch config file: ${error.message}`);
     }
   }
-
 }

@@ -7,17 +7,17 @@ import { DockerfileScannerService } from './dockerfile-scanner/dockerfile-scanne
 export class DockerService {
   constructor(
     private eventEmitter: EventEmitter2,
-    private dockerfileScannerService : DockerfileScannerService
+    private dockerfileScannerService: DockerfileScannerService,
   ) {}
   @OnEvent(`${EventNames.FRAMEWORK_DETECTED}.${FrameworkMap.Docker.name}`)
   async processVueProject(payload: any) {
     const projectConfig = await this.dockerfileScannerService.scan(payload);
     const projectPath = payload.projectPath;
-    const {PORT} = projectConfig 
+    const { PORT } = projectConfig;
     this.eventEmitter.emit(EventNames.SourceCodeReady, {
       projectPath,
       PORT,
-      dockerFile : 'Dockerfile'
+      dockerFile: 'Dockerfile',
     });
   }
 }

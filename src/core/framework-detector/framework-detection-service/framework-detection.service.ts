@@ -25,21 +25,22 @@ export class FrameworkDetectionService {
       return await this.detectFrameworksInParallel();
     } catch (error) {
       console.error('Framework detection failed:', error.message);
-      return []; // Return empty array on error
+      return []; 
     }
   }
 
   private async detectFrameworksInParallel(): Promise<string[]> {
-    const frameworkChecks = Object.entries(FrameworkMap).map(
-      async ([frameworkKey, criteria]) => {
+    const frameworkChecks = Object
+      .entries(FrameworkMap)
+      .sort(([, a], [, b]) => a.sort - b.sort)       
+      .map(async ([frameworkKey, criteria]) => {
         try {
-          const { exists, content } = await this.gitHubFileService.getConfigFile(criteria.file);
+          const { exists, content } =
+            await this.gitHubFileService.getConfigFile(criteria.file);
           if (!exists) return null;
-
+  
           const handler = FileHandlers[criteria.file];
-          const isDetected = handler?.(content, criteria);
-          
-          if (isDetected) {
+          if (handler?.(content, criteria)) {
             console.log('Framework detected:', frameworkKey);
             return frameworkKey;
           }
@@ -48,11 +49,10 @@ export class FrameworkDetectionService {
           console.error(`Error checking ${frameworkKey}:`, error.message);
           return null;
         }
-      },
-    );
-
+      });
+  
     const results = await Promise.all(frameworkChecks);
-    // Use flatMap to filter out null values and ensure string[] type
-    return results.flatMap(framework => framework ? [framework] : []);
+    return results.filter((r): r is string => r !== null);
   }
+  
 }

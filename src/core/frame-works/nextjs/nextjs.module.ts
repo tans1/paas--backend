@@ -10,7 +10,7 @@ import { NextJsDockerIgnoreFileService } from './nextjs-docker-config/nextjs-doc
     NextJsProjectScannerService,
     NextJsProjectService,
     NextJsDockerfileService,
-    NextJsDockerIgnoreFileService
+    NextJsDockerIgnoreFileService,
   ],
   imports: [AlsModule],
 })

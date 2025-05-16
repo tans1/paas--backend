@@ -4,10 +4,7 @@ import { DockerService } from './docker-service';
 import { AlsModule } from '@/utils/als/als.module';
 
 @Module({
-  providers: [
-    DockerService,
-    DockerfileScannerService,
-  ],
+  providers: [DockerService, DockerfileScannerService],
   imports: [AlsModule],
 })
 export class DockerModule {}

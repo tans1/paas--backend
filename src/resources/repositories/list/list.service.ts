@@ -67,4 +67,27 @@ export class ListService {
       throw new Error('Failed to fetch user repositories: ' + error.message);
     }
   }
+
+  async getLastCommitMessage(
+    email: string,
+    owner: string,
+    repo: string,
+    branch: string,
+  ) {
+    const octokit = await this.octokitService.getOctokit(email);
+    const { data: commits } = await octokit.repos.listCommits({
+      owner,
+      repo,
+      sha: branch,     // ← here
+      per_page: 1,
+    });
+  
+    const lastCommitMessage = commits[0]?.commit?.message;
+  
+    return {
+      message: `Successfully fetched last commit message on '${branch}'`,
+      data: lastCommitMessage,
+    };
+  }
+  
 }

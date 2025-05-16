@@ -20,36 +20,29 @@ export class NextJsProjectScannerService {
   }> {
     const { projectPath, configFile = 'package.json' } = payload;
     const packageJsonPath = path.join(projectPath, configFile);
-    
     let packageJson: any;
     let nextConfig: any = {};
     let useAppRouter = false;
     let outputMode: 'standalone' | 'export' | null = null;
 
     try {
-      // Read package.json
-      const packageJsonContent = await fs.promises.readFile(packageJsonPath, 'utf-8');
-      packageJson = JSON.parse(packageJsonContent);
-      
-      // Check for Next.js dependency
-      const nextVersion = packageJson.dependencies?.next || packageJson.devDependencies?.next;
-      if (!nextVersion) {
-        throw new Error('Next.js not found in project dependencies');
-      }
-
       // Read next.config.js
       const nextConfigPath = await this.findNextConfig(projectPath);
       if (nextConfigPath) {
-        const configContent = await fs.promises.readFile(nextConfigPath, 'utf-8');
-        nextConfig = await this.parseNextConfig(configContent, nextConfigPath);
-        outputMode = nextConfig.output || null;
+        const configContent = await fs.promises.readFile(
+          nextConfigPath,
+          'utf-8',
+        );
+        // nextConfig = await this.parseNextConfig(configContent, nextConfigPath);
+        // outputMode = nextConfig.output || null;
       }
 
       // Detect App Router (v13+ feature)
       useAppRouter = await this.detectAppRouter(projectPath);
 
       // Detect server components
-      const hasServerComponents = await this.detectServerComponents(projectPath);
+      const hasServerComponents =
+        await this.detectServerComponents(projectPath);
 
       return {
         projectPath,
@@ -57,10 +50,9 @@ export class NextJsProjectScannerService {
         nextConfig: {
           output: outputMode,
           useAppRouter,
-          hasServerComponents
-        }
+          hasServerComponents,
+        },
       };
-
     } catch (err: any) {
       this.logger.error(`Next.js project scan failed: ${err.message}`);
       throw new Error(`Next.js validation failed: ${err.message}`);
@@ -72,7 +64,7 @@ export class NextJsProjectScannerService {
       'next.config.mjs',
       'next.config.js',
       'next.config.ts',
-      'next.config.cjs'
+      'next.config.cjs',
     ];
 
     for (const name of configNames) {
@@ -82,26 +74,40 @@ export class NextJsProjectScannerService {
     return null;
   }
 
-  private async parseNextConfig(configContent: string, configPath: string): Promise<any> {
-    try {
-      if (configPath.endsWith('.ts')) {
-        // Use TypeScript transpilation if needed
-        return await import(configPath);
-      }
-      
-      // Handle .mjs/.js configs
-      const transpiled = new Function(`return ${configContent.replace(/export default/, 'return')}`)();
-      return transpiled;
-    } catch (err) {
-      this.logger.warn(`Failed to parse next.config.js: ${err.message}`);
-      return {};
-    }
-  }
+  // private async parseNextConfig(
+  //   configContent: string,
+  //   configPath: string,
+  // ): Promise<Record<string, any>> {
+  //   try {
+  //     const isTypeScript = configPath.endsWith('.ts');
+  //     const transpiled = isTypeScript
+  //       ? transpile(configContent, { module: ts.ModuleKind.CommonJS })
+  //       : configContent.replace(/export default/g, 'module.exports =');
+
+  //     const tempFile = `${tmpdir()}/next-config-${Date.now()}.cjs`;
+  //     writeFileSync(tempFile, transpiled);
+
+  //     const url = pathToFileURL(tempFile).href;
+  //     const config = await import(/* @vite-ignore */ url);
+
+  //     // Clean up temp file
+  //     try {
+  //       fs.unlinkSync(tempFile);
+  //     } catch (err) {
+  //       this.logger.warn(`Failed to delete temp file: ${err.message}`);
+  //     }
+
+  //     return isTypeScript ? config.default || config : config;
+  //   } catch (err) {
+  //     this.logger.warn(`Failed to parse next.config.js: ${err.message}`);
+  //     return {};
+  //   }
+  // }
 
   private async detectAppRouter(projectPath: string): Promise<boolean> {
     const appDir = path.join(projectPath, 'app');
     const srcAppDir = path.join(projectPath, 'src', 'app');
-    
+
     return fs.existsSync(appDir) || fs.existsSync(srcAppDir);
   }
 
@@ -109,7 +115,7 @@ export class NextJsProjectScannerService {
     const serverComponentPatterns = [
       path.join(projectPath, '**', 'page.server.tsx'),
       path.join(projectPath, '**', 'layout.server.tsx'),
-      path.join(projectPath, '**', '*.server.tsx')
+      path.join(projectPath, '**', '*.server.tsx'),
     ];
 
     for (const pattern of serverComponentPatterns) {

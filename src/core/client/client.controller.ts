@@ -5,8 +5,14 @@ import { Public } from 'src/resources/auth/public-strategy';
 import { BaseUser } from 'src/resources/users/dto/base-user.dto';
 import { EventNames } from '../events/event.module';
 
+/**
+ * TESTING UTILITY CONTROLLER
+ * This controller is only used for testing the project build and deploy pipeline.
+ * It should not be used in production environments.
+ * @deprecated This controller is for testing purposes only
+ */
 
-// TODO: Consider removing the controller 
+// TODO: Consider removing the controller
 
 // Just here to make testing the project build and deploy pipline easier
 @Controller('client')
@@ -16,7 +22,7 @@ export class ClientController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Get('upload')
-  @ApiOperation({ summary: 'Project Upload' })
+  @ApiOperation({ summary: 'Project Upload - Testing Only' })
   @ApiResponse({
     status: 200,
     description: 'The record found',
@@ -29,6 +35,5 @@ export class ClientController {
     this.eventEmitter.emit(EventNames.PROJECT_UPLOADED, {
       projectPath: projectPath,
     });
-   
   }
 }

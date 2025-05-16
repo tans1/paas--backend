@@ -8,18 +8,29 @@ export class VueProjectScannerService {
 
   constructor() {}
 
-  async scan(payload: any): Promise<{ projectPath: string; nodeVersion: string; defaultBuildLocation: string }> {
+  async scan(payload: any): Promise<{
+    projectPath: string;
+    nodeVersion: string;
+    defaultBuildLocation: string;
+  }> {
     const { projectPath, configFile } = payload;
     // configFile here is assumed to be the package.json file name (e.g. 'package.json')
     const packageJsonPath = path.join(projectPath, configFile);
     let packageJson: any;
 
     try {
-      const packageJsonContent = await fs.promises.readFile(packageJsonPath, 'utf-8');
+      const packageJsonContent = await fs.promises.readFile(
+        packageJsonPath,
+        'utf-8',
+      );
       packageJson = JSON.parse(packageJsonContent);
     } catch (err: any) {
-      this.logger.error(`Error reading package.json at ${packageJsonPath}: ${err.message}`);
-      throw new Error('Failed to read package.json. Please ensure the project path and config file are correct.');
+      this.logger.error(
+        `Error reading package.json at ${packageJsonPath}: ${err.message}`,
+      );
+      throw new Error(
+        'Failed to read package.json. Please ensure the project path and config file are correct.',
+      );
     }
 
     const nodeVersion = packageJson.engines?.node || '18'; // Default to 18 if not specified
@@ -49,16 +60,23 @@ export class VueProjectScannerService {
          */
         const vueConfigModule = require(vueConfigFilePath);
         // Handle the case where the config is a function or a plain object.
-        const vueConfig = typeof vueConfigModule === 'function' ? vueConfigModule() : vueConfigModule;
+        const vueConfig =
+          typeof vueConfigModule === 'function'
+            ? vueConfigModule()
+            : vueConfigModule;
         if (vueConfig && vueConfig.outputDir) {
           defaultBuildLocation = vueConfig.outputDir;
         }
       } catch (err: any) {
-        this.logger.error(`Error loading Vue configuration from ${vueConfigFilePath}: ${err.message}`);
+        this.logger.error(
+          `Error loading Vue configuration from ${vueConfigFilePath}: ${err.message}`,
+        );
         // Continue using the default build location ('dist') if the config cannot be loaded.
       }
     } else {
-      this.logger.warn(`No vue.config.js or vue.config.ts found in ${projectPath}. Using default build location 'dist'.`);
+      this.logger.warn(
+        `No vue.config.js or vue.config.ts found in ${projectPath}. Using default build location 'dist'.`,
+      );
     }
 
     return {

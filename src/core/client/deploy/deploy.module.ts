@@ -5,17 +5,15 @@ import { RepositorySyncService } from './repository-sync/repository-sync.service
 import { AlsModule } from '@/utils/als/als.module';
 import { ProjectInitializedEventListenerService } from './event-listeners/project-initialized-event-listner.service';
 import { UsersModule } from '@/resources/users/users.module';
+import { EnvironmentModule } from '@/utils/environment/environment.module';
 
 @Module({
-  imports: [
-    AlsModule,
-    UsersModule
-  ],
+  imports: [AlsModule, UsersModule, EnvironmentModule],
   providers: [
-    PushEventListenerService, 
-    RepositoryBootstrapService, 
+    PushEventListenerService,
+    RepositoryBootstrapService,
     RepositorySyncService,
-    ProjectInitializedEventListenerService
-  ]
+    ProjectInitializedEventListenerService,
+  ],
 })
 export class DeployModule {}

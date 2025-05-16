@@ -21,18 +21,14 @@ export class NextJsDockerfileService {
       hasServerComponents: boolean;
     };
   }): Promise<void> {
-    const {
-      projectPath,
-      nodeVersion = '18',
-      nextConfig
-    } = projectConfig;
+    const { projectPath, nodeVersion = '18', nextConfig } = projectConfig;
 
     try {
       const templateName = this.determineTemplate(nextConfig);
       const templatePath = path.join(
         __dirname,
         'templates/nextjs',
-        templateName
+        templateName,
       );
 
       const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
@@ -44,17 +40,19 @@ export class NextJsDockerfileService {
         useAppRouter: nextConfig.useAppRouter,
         outputMode: nextConfig.output,
         hasCustomServer,
-        projectPath
+        projectPath,
       });
 
-      const dockerFilePath = path.join(projectPath, `Dockerfile.nextjs.${process.env.DEPLOYMENT_HASH}`);
+      const dockerFilePath = path.join(
+        projectPath,
+        `Dockerfile.nextjs.${process.env.DEPLOYMENT_HASH}`,
+      );
       await fs.promises.writeFile(dockerFilePath, dockerfileContent, 'utf-8');
-
     } catch (error) {
       this.logger.error(`Dockerfile creation failed: ${error.message}`);
       throw new HttpException(
         `Error creating Dockerfile: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -66,7 +64,9 @@ export class NextJsDockerfileService {
     if (nextConfig.output === 'standalone') {
       return 'standalone.Dockerfile.ejs';
     }
-    return nextConfig.hasServerComponents ? 'app-router.Dockerfile.ejs' : 'default.Dockerfile.ejs';
+    return nextConfig.hasServerComponents
+      ? 'app-router.Dockerfile.ejs'
+      : 'default.Dockerfile.ejs';
   }
 
   private async checkCustomServer(projectPath: string): Promise<boolean> {
@@ -75,7 +75,7 @@ export class NextJsDockerfileService {
       'server.mjs',
       'server.ts',
       'src/server.js',
-      'src/server.ts'
+      'src/server.ts',
     ];
 
     for (const file of serverFiles) {

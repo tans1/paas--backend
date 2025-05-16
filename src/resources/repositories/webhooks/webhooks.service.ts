@@ -6,6 +6,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventNames } from 'src/core/events/event.module';
 import { AlsService } from '@/utils/als/als.service';
 import { ProjectService } from '@/resources/projects/create-project/project.service';
+import { ListService } from '../list/list.service';
 
 @Injectable()
 export class WebhooksService {
@@ -14,6 +15,7 @@ export class WebhooksService {
     private eventEmitter: EventEmitter2,
     private alsService: AlsService,
     private projectService: ProjectService,
+    private listService: ListService
   ) {}
 
   async createWebhook(owner: string, repo: string, email: string) {
@@ -31,7 +33,7 @@ export class WebhooksService {
       );
 
       if (hookExists) {
-        return { message: 'Webhook already exists' };
+        return { message: 'Webhookd already exists' };
       }
 
       await octokit.repos.createWebhook({
@@ -75,6 +77,7 @@ export class WebhooksService {
     const repositoryId = payload.repository?.id;
     const repositoryName = payload.repository?.full_name;
     const branch = payload.ref.replace('refs/heads/', '');
+    const owner = payload.repository?.owner?.login;
 
     // if this is an even from an registered repository and branch
     // return
@@ -87,9 +90,22 @@ export class WebhooksService {
       return;
     }
 
+    // let's get the last commit message here and add it to the als service
+
     const user = project.linkedByUser;
     const githubAccessToken = user.githubAccessToken;
+
+    const lastCommitMessage = payload.head_commit.message
+    
+    // update the projects last commit message here
+    await this.projectService.updateProject(project.id,
+      {
+        lastCommitMessage : lastCommitMessage
+
+      });
+
     this.alsService.runWithrepositoryInfo(repositoryId, repositoryName, () => {
+      this.alsService.setLastCommitMessage(lastCommitMessage)
       this.eventEmitter.emit(EventNames.PushEventReceived, {
         repoData: payload,
         githubAccessToken: githubAccessToken,

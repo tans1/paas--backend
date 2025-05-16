@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProjectDTO, ProjectsRepositoryInterface, UpdateProjectDTO,ProjectWithDeploymentsAndUser } from './../../interfaces/projects-repository-interface/projects-repository-interface.interface';
+import {
+  CreateProjectDTO,
+  ProjectsRepositoryInterface,
+  UpdateProjectDTO,
+  ProjectWithDeploymentsAndUser,
+} from './../../interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
 import { Project } from '@prisma/client';
 
@@ -12,7 +17,6 @@ export class ProjectsRepositoryService
     super();
   }
 
-  
   async findByUserId(userId: number): Promise<Project[]> {
     return this.prisma.project.findMany({
       where: {
@@ -38,12 +42,14 @@ export class ProjectsRepositoryService
       },
       update: {
         environmentVariables: payload.environmentVariables,
+        installCommand: payload.installCommand,
+        buildCommand: payload.buildCommand,
+        outputDirectory: payload.outputDirectory,
+        rootDirectory: payload.rootDirectory,
       },
       create: payload,
     });
   }
-  
-  
 
   async findByRepoAndBranch(
     repoId: number,
@@ -57,22 +63,37 @@ export class ProjectsRepositoryService
         },
       },
       include: {
-        deployments: true,
+        deployments: {
+          include: {
+            logs: true,
+          },
+        },
         linkedByUser: true,
       },
     });
   }
-  
-  async findById(id: number): Promise<Project | null> {
+
+  async findById(id: number): Promise<ProjectWithDeploymentsAndUser | null> {
     return await this.prisma.project.findUnique({
       where: { id },
+      include: {
+        deployments: {
+          include: {
+            logs: true,
+          },
+        },
+        linkedByUser: true,
+      },
     });
   }
   update(id: number, payload: UpdateProjectDTO): Promise<Project> {
     return this.prisma.project.update({ where: { id }, data: payload });
   }
-  delete(id: number): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async delete(id: number): Promise<void> {
+    await this.prisma.project.delete({
+      where: { id },
+    });
   }
   list(filters?: Partial<Project>): Promise<Project[]> {
     throw new Error('Method not implemented.');
@@ -80,7 +101,7 @@ export class ProjectsRepositoryService
   addDeployment(projectId: number, deploymentId: number): Promise<void> {
     throw new Error('Method not implemented.');
   }
-  getAllDeployments(projectid:number): Promise<Project> {
+  getAllDeployments(projectid: number): Promise<Project> {
     return this.prisma.project.findUnique({
       where: {
         id: projectid,
@@ -90,4 +111,14 @@ export class ProjectsRepositoryService
       },
     });
   }
+
+  async getAllProjects(): Promise<ProjectWithDeploymentsAndUser[]> {
+    return this.prisma.project.findMany({
+      include: {
+        deployments: true,
+        linkedByUser: true
+      },
+    });
+  }
+  
 }

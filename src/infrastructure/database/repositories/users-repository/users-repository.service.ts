@@ -20,7 +20,7 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
           email: email,
         },
       });
-      
+
       return user;
     } catch (error) {
       console.error('Error fetching user by email:', error);
@@ -40,9 +40,9 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       }
       return await this.prisma.user.upsert({
         where: { email: payload.email },
-        update: {password : payload.password}, 
+        update: { password: payload.password },
         create: payload,
-    });
+      });
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('A user with this email already exists.');
@@ -54,16 +54,17 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
     }
   }
 
-  async findOneByUserName(userName: string)
-  {
+  async findOneByUserName(userName: string) {
     try {
       const user = await this.prisma.user.findUnique({
         where: {
-          githubUsername : userName,
+          githubUsername: userName,
         },
       });
       if (!user) {
-        throw new BadRequestException(`User with userName ${userName} not found.`);
+        throw new BadRequestException(
+          `User with userName ${userName} not found.`,
+        );
       }
       return user;
     } catch (error) {
@@ -73,7 +74,7 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       );
     }
   }
-  
+
   async updateByEmail(email: string, payload: any) {
     try {
       return await this.prisma.user.update({
@@ -89,6 +90,4 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       );
     }
   }
-
-  
 }

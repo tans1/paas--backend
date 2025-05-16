@@ -3,14 +3,18 @@ FROM node:<%= nodeVersion %>-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+#RUN npm install
+RUN <%= installCommand %>
 
 COPY . .
-RUN npm run build
+
+RUN npm install -g @angular/cli
+#RUN npm run build
+RUN <%= buildCommand %>
 
 # Production Stage
 FROM nginx:stable-alpine AS production
-COPY --from=build /app/<%= outputDir %>/browser /usr/share/nginx/html
+COPY --from=build /app/<%= outputDirectory %>/browser /usr/share/nginx/html
 
 EXPOSE <%= PORT %>
 CMD ["nginx", "-g", "daemon off;"]

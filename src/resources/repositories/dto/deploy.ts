@@ -4,7 +4,8 @@ import { IsNotEmpty, IsString, IsObject, IsOptional } from 'class-validator';
 export class DeployDto {
   @ApiProperty({
     example: 'owner',
-    description: 'The owner of the repository (GitHub username or organization)',
+    description:
+      'The owner of the repository (GitHub username or organization)',
   })
   @IsNotEmpty()
   @IsString()
@@ -30,7 +31,7 @@ export class DeployDto {
     example: 'main',
     description: 'Branch name to deploy',
     required: false,
-    default: 'main'
+    default: 'main',
   })
   @IsString()
   @IsOptional()
@@ -50,7 +51,7 @@ export class DeployDto {
     description: 'Environment variables as key-value pairs',
     additionalProperties: { type: 'string' },
     required: false,
-    type: Object
+    type: Object,
   })
   @IsObject()
   @IsOptional()
@@ -60,8 +61,54 @@ export class DeployDto {
     description: 'Environment file (e.g., .env)',
     type: 'string',
     format: 'binary',
-    required: false
+    required: false,
   })
   @IsOptional()
   envFile?: any;
+
+  @ApiProperty({
+    example: '`yarn install`, `pnpm install`, `npm install`, or `bun install`',
+    description: 'Install command',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  installCommand?: string;
+
+  @ApiProperty({
+    example: 'npm run build',
+    description: 'Build command',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  buildCommand?: string;
+
+  @ApiProperty({
+    example: 'build',
+    description: 'Output Directory',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  outputDirectory?: string;
+
+  @ApiProperty({
+    example: '/',
+    description: 'Root Directory',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  rootDirectory?: string;
+
+  @ApiProperty({
+    example: `A responsive web application built with Angular for managing tasks, 
+    featuring real-time updates, user authentication, and a clean UI.',`,
+    description: 'Project Description',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  projectDescription?: string;
 }

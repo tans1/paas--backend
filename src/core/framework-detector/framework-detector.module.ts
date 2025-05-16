@@ -7,9 +7,8 @@ import { AlsModule } from '@/utils/als/als.module';
 import { FrameworkDispatcherService } from './framework-dispatcher.service';
 
 @Module({
-  imports: [EventsModule,OctoktModule,AlsModule],
-  providers: [FrameworkDetectionService,FrameworkDispatcherService],
-  exports:[FrameworkDetectionService]
+  imports: [EventsModule, OctoktModule, AlsModule],
+  providers: [FrameworkDetectionService, FrameworkDispatcherService],
+  exports: [FrameworkDetectionService],
 })
 export class FrameworkDetectorModule {}
-

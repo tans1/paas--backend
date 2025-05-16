@@ -8,7 +8,7 @@ import { AlsService } from '@/utils/als/als.service';
 import { UsersModule } from '@/resources/users/users.module';
 
 @Module({
-  imports: [UploadModule, DeployModule, EventsModule,AlsModule,UsersModule],
+  imports: [UploadModule, DeployModule, EventsModule, AlsModule, UsersModule],
   providers: [AlsService],
   controllers: [ClientController],
 })

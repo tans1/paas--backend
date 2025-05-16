@@ -9,10 +9,10 @@ import { UsersService } from '../users/users.service';
 import { ProjectService } from '../projects/create-project/project.service';
 import { AlsModule } from '@/utils/als/als.module';
 import { ProjectsModule } from '../projects/projects.module';
-import { EnvironmentService } from './utils/environment.service';
 import { GitHubFileService } from '../../utils/octokit/github-services/github-file.service';
 import { OctoktModule } from '@/utils/octokit/octokit.module';
 import { FrameworkDetectorModule } from '@/core/framework-detector/framework-detector.module';
+import { EnvironmentModule } from '@/utils/environment/environment.module';
 
 @Module({
   controllers: [RepositoriesController],
@@ -23,12 +23,16 @@ import { FrameworkDetectorModule } from '@/core/framework-detector/framework-det
     OctokitService,
     UsersService,
     ProjectService,
-    EnvironmentService,
     GitHubFileService,
   ],
-  imports: [InterfacesModule, AlsModule, ProjectsModule,OctoktModule,FrameworkDetectorModule],
+  imports: [
+    InterfacesModule,
+    AlsModule,
+    ProjectsModule,
+    OctoktModule,
+    FrameworkDetectorModule,
+    EnvironmentModule,
+  ],
   exports: [GitHubFileService],
 })
 export class RepositoriesModule {}
-
-

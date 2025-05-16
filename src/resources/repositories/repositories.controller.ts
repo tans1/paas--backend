@@ -30,7 +30,7 @@ import { Public } from '../auth/public-strategy';
 import { ProjectService } from '../projects/create-project/project.service';
 import { AuthenticatedRequest } from '../../utils/types/user.types';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { EnvironmentService } from './utils/environment.service';
+import { EnvironmentService } from '../../utils/environment/environment.service';
 import { AlsService } from '@/utils/als/als.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventNames } from '@/core/events/event.module';
@@ -48,13 +48,13 @@ export class RepositoriesController {
     private environmentService: EnvironmentService,
     private alsService: AlsService,
     private eventEmitter: EventEmitter2,
-    private frameworkDetectionService: FrameworkDetectionService
+    private frameworkDetectionService: FrameworkDetectionService,
   ) {}
 
   @ApiOperation({
     summary: 'Connect the user github account with the app',
     description:
-      "To connect the user github account with the app, incase the user is not connected and didn't registered with github account initially",
+      'To connect the user github account with the app, incase the user is not connected and did not registered with github account initially',
   })
   @Public()
   @Get('/connect/github')
@@ -86,12 +86,9 @@ export class RepositoriesController {
     description: 'Returns a list of user repositories.',
   })
   @ApiBearerAuth('JWT-auth')
-  // @Public()
   @Get('/user')
   async listUserRepositories(@Req() req: AuthenticatedRequest) {
-    // @Req() req: AuthenticatedRequest
     const email = req.user.email;
-    // const user = await this.userService.findOneBy(email);
     return this.listService.getAllUserRepos(email);
   }
 
@@ -125,8 +122,8 @@ export class RepositoriesController {
   ) {
     const email = req.user.email;
     return this.listService.getRepoInfo(email, owner, repo);
-  } 
-  // TODO: Authentication  is failling in the deployed version
+  }
+
   @ApiOperation({
     summary: 'Deploy',
     description:
@@ -141,9 +138,6 @@ export class RepositoriesController {
     description: 'Returns the details of the created webhook.',
   })
   @ApiBearerAuth('JWT-auth')
-  // @Public()
-  // I will have to accept the framework
-  // store it to database
   @HttpCode(201)
   @Post('deploy')
   @UseInterceptors(FileInterceptor('envFile'))
@@ -153,38 +147,78 @@ export class RepositoriesController {
     @Body() body: DeployDto,
     @UploadedFile() envFile?: Express.Multer.File,
   ) {
+    try {
+      const {
+        owner,
+        repo,
+        githubUsername,
+        envVars,
+        framework,
+        installCommand,
+        buildCommand,
+        outputDirectory,
+        rootDirectory,
+        projectDescription
+      } = body;
+      let branch = body.branch
+      const email = req.user.email;
 
-    try{
-        const { owner, repo, branch = 'main', envVars,framework} = body;
-        const email = req.user.email;
+      const environmentVariables =
+        await this.environmentService.processEnvironment(envVars, envFile);
 
-        const environmentVariables = await this.environmentService.processEnvironment(envVars, envFile);
+      const [webhookResponse, repoInfo] = await Promise.all([
+        this.webHookService.createWebhook(owner, repo, email),
+        this.listService.getRepoInfo(email, owner, repo),
+      ]);
+      // Get the last commit here
+      // Project description
+      
+      const repository = repoInfo.data;
+      const defaulBranch = repository.default_branch 
+      branch = branch ? branch : defaulBranch
+      const {data : lastCommitMessage} = await this.listService.getLastCommitMessage(
+        email,
+        owner,
+        repo,
+        branch
+      )
+      const project = await this.projectService.createProject({
+        userName : githubUsername,
+        repository,
+        branch,
+        environmentVariables,
+        framework,
+        installCommand,
+        buildCommand,
+        outputDirectory,
+        rootDirectory,
+        projectDescription,
+        lastCommitMessage
+      });
 
-        const [webhookResponse, repoInfo] = await Promise.all([
-          this.webHookService.createWebhook(owner, repo, email),
-          this.listService.getRepoInfo(email, owner, repo),
-        ]);
+      const repositoryId = repository.id;
+      const repositoryName = repository.full_name;
+      const payload = {
+        repository,
+        branch,
+        email,
+        environmentVariables,
+      };
 
-        const repository = repoInfo.data;
-        await this.projectService.createProject(repository, branch, environmentVariables,framework);
-
-        const repositoryId = repository.id;
-        const repositoryName = repository.full_name;
-        const payload = { repository, branch, email };
-        
-        this.alsService.runWithrepositoryInfo(repositoryId, repositoryName, () => {
+      this.alsService.runWithrepositoryInfo(
+        repositoryId,
+        repositoryName,
+        () => {
           this.alsService.setframework(framework);
           this.eventEmitter.emit(EventNames.PROJECT_INITIALIZED, payload);
-        });
+        },
+      );
 
-        return webhookResponse;
-
-    }
-    catch(error){
+      return CustomApiResponse.success(project,"succefuuly created project");
+    } catch (error) {
       console.error('Error creating webhook:', error);
       throw new OtherException('Failed to create webhook: ' + error.message);
     }
-    
   }
 
   @ApiOperation({
@@ -202,8 +236,8 @@ export class RepositoriesController {
       throw new OtherException('Missing headers or payload');
     }
 
-    if (event == 'ping') {
-      return
+    if (event === 'ping') {
+      return;
     }
     await this.webHookService.handleWebhookEvent(signature, event, payload);
   }
@@ -236,29 +270,98 @@ export class RepositoriesController {
     @Req() req: AuthenticatedRequest,
     @Query('owner') owner: string,
     @Query('repo') repo: string,
-    @Query('branch') branch = 'main'
+    @Query('branch') branch = 'main',
   ) {
     const email = req.user.email;
-    
+
     try {
-
-      const frameworks = await this.frameworkDetectionService.detectFramework({owner,repo,branch,email})
-      return CustomApiResponse.success(frameworks, frameworks.length > 0 
-        ? `${frameworks.length} framework(s) detected` 
-        : 'No supported frameworks detected');
-
-    }
-    catch(error){
+      const frameworks = await this.frameworkDetectionService.detectFramework({
+        owner,
+        repo,
+        branch,
+        email,
+      });
+      return CustomApiResponse.success(
+        frameworks[0],
+        frameworks.length > 0
+          ? `${frameworks.length} framework(s) detected`
+          : 'No supported frameworks detected',
+      );
+    } catch (error) {
       return CustomApiResponse.error(
         error.message,
         error.error_code,
-        error.context
+        error.context,
       );
     }
+  }
+
+  // TODO: Implement rollback functionality
+  /*
+  @ApiOperation({
+    summary: 'Rollback Deployment',
+    description: 'Reverts a deployment to a previous version.',
+  })
+  @ApiQuery({
+    name: 'projectId',
+    type: Number,
+    required: true,
+    description: 'The ID of the project to rollback',
+  })
+  @ApiQuery({
+    name: 'deploymentId',
+    type: Number,
+    required: true,
+    description: 'The ID of the deployment to rollback to',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @Post('rollback')
+  async rollbackDeployment(
+    @Req() req: AuthenticatedRequest,
+    @Query('projectId') projectId: number,
+    @Query('deploymentId') deploymentId: number,
+  ) {
+    try {
+      const email = req.user.email;
+      const project = await this.projectService.findOne(projectId);
+
+      if (!project) {
+        throw new OtherException('Project not found');
       }
 
-    }
-    
-  
-  
+      // Verify user has access to this project
+      if (project.user.email !== email) {
+        throw new OtherException('Unauthorized access to project');
+      }
 
+      const deployment = await this.projectService.getDeployment(deploymentId);
+      if (!deployment) {
+        throw new OtherException('Deployment not found');
+      }
+
+      // Emit rollback event
+      const payload = {
+        project,
+        deployment,
+        email,
+      };
+
+      this.alsService.runWithrepositoryInfo(
+        project.repositoryId,
+        project.repositoryName,
+        () => {
+          this.eventEmitter.emit(EventNames.PROJECT_ROLLBACK, payload);
+        },
+      );
+
+      return CustomApiResponse.success(null, 'Rollback initiated successfully');
+    } catch (error) {
+      return CustomApiResponse.error(
+        error.message,
+        error.error_code,
+        error.context,
+      );
+    }
+  }
+  */
+}
