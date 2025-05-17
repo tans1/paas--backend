@@ -123,7 +123,6 @@ export class RepositoriesController {
     const email = req.user.email;
     return this.listService.getRepoInfo(email, owner, repo);
   }
-
   @ApiOperation({
     summary: 'Deploy',
     description:
