@@ -3,9 +3,12 @@ FROM node:<%= nodeVersion %>-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+#RUN npm install
+RUN <%= installCommand %>
 
 COPY . .
-RUN npm run build
+#RUN npm run build
+RUN <%= buildCommand %>
 ENV PORT=<%= PORT %>
-CMD ["npm", "run", "start:prod"]
+#CMD ["npm", "run", "start:prod"]
+CMD ["<%= runCommand %>", "<%= outputDirectory %>/main"]

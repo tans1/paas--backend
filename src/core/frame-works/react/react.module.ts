@@ -4,6 +4,7 @@ import { ReactProjectService } from './react-project-service';
 import { ReactDockerfileService } from './react-docker-config/react-dockerfile.service';
 import { AlsModule } from '@/utils/als/als.module';
 import { ReactDockerIgnoreFileService } from './react-docker-config/react-dockerignorefile.service';
+import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
 
 @Module({
   providers: [
@@ -12,7 +13,7 @@ import { ReactDockerIgnoreFileService } from './react-docker-config/react-docker
     ReactDockerfileService,
     ReactDockerIgnoreFileService,
   ],
-  imports: [AlsModule],
+  imports: [AlsModule, InterfacesModule],
   exports: [ReactProjectScannerService],
 })
 export class ReactModule {}

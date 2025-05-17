@@ -4,14 +4,15 @@ import { VueProjectService } from './vue-project-service';
 import { VueDockerfileService } from './vue-docker-config/vue-dockerfile.service';
 import { AlsModule } from '@/utils/als/als.module';
 import { VueDockerIgnoreFileService } from './vue-docker-config/vue-dockerignorefile.service';
+import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
 
 @Module({
   providers: [
     VueProjectScannerService,
     VueProjectService,
     VueDockerfileService,
-    VueDockerIgnoreFileService
+    VueDockerIgnoreFileService,
   ],
-  imports: [AlsModule],
+  imports: [AlsModule, InterfacesModule],
 })
 export class VueModule {}

@@ -9,6 +9,7 @@ import { RepositoriesModule } from './repositories/repositories.module';
 import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfaces.module';
 import { ProjectsModule } from './projects/projects.module';
 import { DnsModule } from './dns/dns.module';
+import { EnvironmentModule } from '@/utils/environment/environment.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { DnsModule } from './dns/dns.module';
     InterfacesModule,
     ProjectsModule,
     DnsModule,
+    EnvironmentModule,
   ],
 })
 export class ModulesModule {}

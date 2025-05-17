@@ -13,35 +13,39 @@ export class NestJsDockerfileService {
   async createDockerfile(projectConfig: {
     projectPath: string;
     nodeVersion?: string;
-    defaultBuildLocation?: string;
+    installCommand: string;
+    buildCommand: string;
+    outputDirectory: string;
+    runCommand: string;
   }): Promise<void> {
-
     const {
       projectPath,
-      nodeVersion = '16',
-      defaultBuildLocation
+      nodeVersion,
+      installCommand,
+      buildCommand,
+      outputDirectory,
+      runCommand,
     } = projectConfig;
 
     try {
-      const templatePath = path.join(
-        __dirname,
-        'templates',
-        'Dockerfile.ejs',
-      );
+      const templatePath = path.join(__dirname, 'templates', 'Dockerfile.ejs');
 
       const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
 
       let dockerfileContent = '';
-     
+
       dockerfileContent = ejs.render(templateContent, {
         nodeVersion,
-        PORT : PORT,
+        PORT: PORT,
+        installCommand,
+        buildCommand,
+        outputDirectory,
+        runCommand,
       });
 
       const dockerFile = `Dockerfile.${process.env.DEPLOYMENT_HASH}`;
       const dockerfilePath = path.join(projectPath, dockerFile);
       await fs.promises.writeFile(dockerfilePath, dockerfileContent, 'utf-8');
-
     } catch (error) {
       console.error(`Error creating Dockerfile: ${error.message}`);
       throw new HttpException(

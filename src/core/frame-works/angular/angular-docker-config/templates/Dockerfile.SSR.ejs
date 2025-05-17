@@ -2,15 +2,20 @@
 FROM node:<%= nodeVersion %>-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+#RUN npm install
+RUN <%= installCommand %>
 COPY . .
-RUN npm run build
+RUN npm install -g @angular/cli
+#RUN npm run build
+RUN <%= buildCommand %>
 
 FROM node:<%= nodeVersion %>-alpine
 WORKDIR /app
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/<%= outputDir %>/browser ./browser
-COPY --from=builder /app/<%= outputDir %>/server ./server
+# The outputDirectory should be the path relative to the project root where Angular builds the output
+# Example: 'dist' or 'dist/my-app'
+COPY --from=builder /app/<%= outputDirectory %>/browser/ ./browser/
+COPY --from=builder /app/<%= outputDirectory %>/server/ ./server/
 RUN npm install --production
 ENV PORT=<%= PORT %>
 EXPOSE <%= PORT %>

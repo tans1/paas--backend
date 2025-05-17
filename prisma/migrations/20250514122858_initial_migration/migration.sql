@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "ProjectStatus" AS ENUM ('STOPPED', 'RUNNING', 'PENDING');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
@@ -19,6 +22,7 @@ CREATE TABLE "Project" (
     "branch" VARCHAR(100) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "url" VARCHAR(2083) NOT NULL,
+    "framework" VARCHAR(100) NOT NULL,
     "linkedByUserId" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "environment_variables" JSONB,
@@ -29,6 +33,14 @@ CREATE TABLE "Project" (
     "zone_id" TEXT,
     "a_name_record_id" TEXT,
     "cname_record_id" TEXT,
+    "installCommand" VARCHAR(2083),
+    "buildCommand" VARCHAR(2083),
+    "outputDirectory" VARCHAR(2083),
+    "rootDirectory" VARCHAR(2083),
+    "projectDescription" VARCHAR(2083),
+    "lastCommitMessage" VARCHAR(2083) NOT NULL,
+    "status" "ProjectStatus" NOT NULL DEFAULT 'PENDING',
+    "dockerComposeFile" VARCHAR(2083),
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
 );
@@ -44,6 +56,7 @@ CREATE TABLE "Deployment" (
     "container_name" TEXT,
     "image_name" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastCommitMessage" VARCHAR(2083) NOT NULL,
 
     CONSTRAINT "Deployment_pkey" PRIMARY KEY ("id")
 );
@@ -55,6 +68,7 @@ CREATE TABLE "DeploymentLog" (
     "log_level" VARCHAR(20) NOT NULL,
     "message" TEXT NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "log_type" VARCHAR(20) NOT NULL,
 
     CONSTRAINT "DeploymentLog_pkey" PRIMARY KEY ("id")
 );
@@ -130,13 +144,13 @@ CREATE UNIQUE INDEX "Payment_transaction_id_key" ON "Payment"("transaction_id");
 ALTER TABLE "Project" ADD CONSTRAINT "Project_linkedByUserId_fkey" FOREIGN KEY ("linkedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_rollback_to_id_fkey" FOREIGN KEY ("rollback_to_id") REFERENCES "Deployment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DeploymentLog" ADD CONSTRAINT "DeploymentLog_deploymentId_fkey" FOREIGN KEY ("deploymentId") REFERENCES "Deployment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "DeploymentLog" ADD CONSTRAINT "DeploymentLog_deploymentId_fkey" FOREIGN KEY ("deploymentId") REFERENCES "Deployment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

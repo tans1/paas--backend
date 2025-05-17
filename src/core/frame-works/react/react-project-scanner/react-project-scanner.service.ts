@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
-import { BundlerMap} from '../bundler.constants';
+import { BundlerMap } from '../bundler.constants';
 @Injectable()
 export class ReactProjectScannerService {
   constructor() {}
@@ -34,7 +34,8 @@ export class ReactProjectScannerService {
         }
       }
 
-      let defaultBuildLocation = BundlerMap[projectBundler].defaultBuildLocation;
+      let defaultBuildLocation =
+        BundlerMap[projectBundler].defaultBuildLocation;
       return {
         projectPath,
         nodeVersion,

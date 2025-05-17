@@ -1,48 +1,58 @@
+// src/framework-detection/framework-detection.service.ts
 import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import * as fs from 'fs';
-import * as path from 'path';
-import { EventNames } from 'src/core/events/event.module';
 import { FrameworkMap } from '../framework.config';
+import { FileHandlers } from './file-handler';
+import { GitHubFileService } from '../../../utils/octokit/github-services/github-file.service';
 
 @Injectable()
 export class FrameworkDetectionService {
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly gitHubFileService: GitHubFileService,
+  ) {}
 
-  @OnEvent(EventNames.PROJECT_UPLOADED)
-  async detectFramework(payload: { projectPath: string }) {
-    const { projectPath } = payload;
-
-    for (const [framework, criteria] of Object.entries(FrameworkMap)) {
-      const configFile = criteria.file
-      const filePath = path.join(projectPath, configFile);
-  
-      if (fs.existsSync(filePath)) {
-        const content = fs.readFileSync(filePath, "utf-8");
-  
-        if (configFile.endsWith(".json")) {
-          try {
-            const data = JSON.parse(content);
-            if (
-              data.dependencies &&
-              criteria.dependencies?.some((dep) => dep in data.dependencies)
-            ) {
-              console.log(`Framework detected: ${framework}`);
-              console.log(`${EventNames.FRAMEWORK_DETECTED}.${framework}`)
-            this.eventEmitter.emit(`${EventNames.FRAMEWORK_DETECTED}.${framework}`, {
-              projectPath,
-              framework,
-              configFile,
-            });
-
-            }
-          } catch (error) {
-            console.error("Error parsing JSON:", error);
-          }
-        }
-
-      } 
-      }
+  async detectFramework(payload: {
+    owner: string;
+    repo: string;
+    branch?: string;
+    email: string;
+  }) {
+    try {
+      const { owner, repo, branch, email } = payload;
+      await this.gitHubFileService.initialize(email);
+      this.gitHubFileService.setRepositoryContext(owner, repo, branch);
+      return await this.detectFrameworksInParallel();
+    } catch (error) {
+      console.error('Framework detection failed:', error.message);
+      return []; 
+    }
   }
+
+  private async detectFrameworksInParallel(): Promise<string[]> {
+    const frameworkChecks = Object
+      .entries(FrameworkMap)
+      .sort(([, a], [, b]) => a.sort - b.sort)       
+      .map(async ([frameworkKey, criteria]) => {
+        try {
+          const { exists, content } =
+            await this.gitHubFileService.getConfigFile(criteria.file);
+          if (!exists) return null;
+  
+          const handler = FileHandlers[criteria.file];
+          if (handler?.(content, criteria)) {
+            console.log('Framework detected:', frameworkKey);
+            return frameworkKey;
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error checking ${frameworkKey}:`, error.message);
+          return null;
+        }
+      });
+  
+    const results = await Promise.all(frameworkChecks);
+    return results.filter((r): r is string => r !== null);
+  }
+  
 }

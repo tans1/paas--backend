@@ -1,38 +1,41 @@
 import { Injectable } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { InvalidDataException } from '../../../utils/exceptions/github.exception';
-import { OctokitService } from '../octokit/octokit.service';
+import { OctokitService } from '../../../utils/octokit/octokit.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventNames } from 'src/core/events/event.module';
 import { AlsService } from '@/utils/als/als.service';
 import { ProjectService } from '@/resources/projects/create-project/project.service';
+import { ListService } from '../list/list.service';
 
 @Injectable()
 export class WebhooksService {
-  constructor(private readonly octokitService: OctokitService,
+  constructor(
+    private readonly octokitService: OctokitService,
     private eventEmitter: EventEmitter2,
-    private alsService : AlsService,
-    private projectService : ProjectService,
+    private alsService: AlsService,
+    private projectService: ProjectService,
+    private listService: ListService
   ) {}
 
   async createWebhook(owner: string, repo: string, email: string) {
     try {
       const octokit = await this.octokitService.getOctokit(email);
       const webhookUrl = process.env.DEP_WEBHOOK_URL;
-  
+
       const { data: existingHooks } = await octokit.repos.listWebhooks({
         owner,
         repo,
       });
-  
+
       const hookExists = existingHooks.some(
-        hook => hook.config.url === webhookUrl
+        (hook) => hook.config.url === webhookUrl,
       );
-  
+
       if (hookExists) {
-        return { message: 'Webhook already exists' };
+        return { message: 'Webhookd already exists' };
       }
-  
+
       await octokit.repos.createWebhook({
         owner,
         repo,
@@ -44,14 +47,19 @@ export class WebhooksService {
         events: ['push'],
         active: true,
       });
-  
+
       return { message: 'Webhook created successfully' };
     } catch (error) {
-      if (error.status === 422 && error.response?.data?.message?.includes('already exists')) {
+      if (
+        error.status === 422 &&
+        error.response?.data?.message?.includes('already exists')
+      ) {
         return { message: 'Webhook already exists' };
       }
       console.log('Error creating webhook:', error);
-      throw new InvalidDataException('Failed to create webhook: ' + error.message);
+      throw new InvalidDataException(
+        'Failed to create webhook: ' + error.message,
+      );
     }
   }
   async handleWebhookEvent(signature: string, event: string, payload: any) {
@@ -67,24 +75,44 @@ export class WebhooksService {
     }
 
     const repositoryId = payload.repository?.id;
-    const repositoryName = payload.repository?.full_name; 
+    const repositoryName = payload.repository?.full_name;
     const branch = payload.ref.replace('refs/heads/', '');
+    const owner = payload.repository?.owner?.login;
 
     // if this is an even from an registered repository and branch
     // return
-    const project = await this.projectService.findByRepoAndBranch(repositoryId, branch);
+    const project = await this.projectService.findByRepoAndBranch(
+      repositoryId,
+      branch,
+    );
     if (!project) {
       console.log('Project not found for this repository and branch');
       return;
     }
 
+    // let's get the last commit message here and add it to the als service
+
     const user = project.linkedByUser;
     const githubAccessToken = user.githubAccessToken;
-    this.alsService.runWithrepositoryInfo(repositoryId,repositoryName,() => {
-      this.eventEmitter.emit(EventNames.PushEventReceived, {repoData : payload, githubAccessToken : githubAccessToken});    
+
+    const lastCommitMessage = payload.head_commit.message
+    
+    // update the projects last commit message here
+    await this.projectService.updateProject(project.id,
+      {
+        lastCommitMessage : lastCommitMessage
+
+      });
+
+    this.alsService.runWithrepositoryInfo(repositoryId, repositoryName, () => {
+      this.alsService.setLastCommitMessage(lastCommitMessage)
+      this.eventEmitter.emit(EventNames.PushEventReceived, {
+        repoData: payload,
+        githubAccessToken: githubAccessToken,
+      });
     });
 
     console.log(`Received event: ${event}`);
-    console.log('Payload:', JSON.stringify(payload, null, 2)); 
+    console.log('Payload:', JSON.stringify(payload, null, 2));
   }
 }

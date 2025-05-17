@@ -22,7 +22,7 @@ export class FileService {
       const gitignorePath = path.join(projectPath, '.gitignore');
       const gitignoreContent = fs.readFileSync(gitignorePath, 'utf-8');
       const ig = ignore().add(gitignoreContent);
-      return files.filter(file => !ig.ignores(file));
+      return files.filter((file) => !ig.ignores(file));
     } catch (error) {
       throw new HttpException(
         `Error reading .gitignore file: ${error.message}`,

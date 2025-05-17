@@ -25,11 +25,16 @@ export const EventNames = {
 
   // Dockerfile generation events
   DOCKERFILE_GENERATION_STARTED: 'dockerfile.generation.started',
-  DOCKERFILE_GENERATED: 'dockerfile.generated',
+  DOCKERFILE_GENERATION_COMPLETED: 'dockerfile.generation.completed',
+  DOCKERFILE_GENERATION_FAILED: 'dockerfile.generation.failed',
 
   // Docker image build events
-  IMAGE_BUILD_STARTED: 'image.build.started',
-  IMAGE_BUILT: 'image.built',
+  DOCKER_IMAGE_BUILD_STARTED: 'docker.image.build.started',
+  DOCKER_IMAGE_BUILD_COMPLETED: 'docker.image.build.completed',
+  DOCKER_IMAGE_BUILD_FAILED: 'docker.image.build.failed',
+  DOCKER_IMAGE_PUSH_STARTED: 'docker.image.push.started',
+  DOCKER_IMAGE_PUSH_COMPLETED: 'docker.image.push.completed',
+  DOCKER_IMAGE_PUSH_FAILED: 'docker.image.push.failed',
 
   // Deployment events
   CONTAINER_SETUP_STARTED: 'container.setup.started',
@@ -38,5 +43,8 @@ export const EventNames = {
 
   // Feedback events
   SUCCESS_FEEDBACK_SENT: 'feedback.success.sent',
-  FAILURE_FEEDBACK_SENT: 'feedback.failure.sent',
-};
+  FAILURE_FEEDBACK_SENT: 'failure.feedback.sent',
+
+  // Project rollback event
+  PROJECT_ROLLBACK: 'project.rollback',
+} as const;

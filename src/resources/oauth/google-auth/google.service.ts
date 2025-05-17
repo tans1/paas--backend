@@ -23,8 +23,7 @@ export class GoogleService {
     const { email, firstName: name } = req.user;
     let user;
 
-    try{
-
+    try {
       user = await this.usersService.findOneBy(email);
       if (!user) {
         user = await this.usersService.create({
@@ -32,7 +31,7 @@ export class GoogleService {
           name,
         });
       }
-  
+
       try {
         const payload = { sub: user.id, email: user.email, role: user.role };
         const access_token = await this.jwtService.signAsync(payload);
@@ -42,10 +41,8 @@ export class GoogleService {
           'Error occurred while generating the JWT token.',
         );
       }
-    }
-    catch(e){
+    } catch (e) {
       console.log(e);
     }
-    
   }
 }

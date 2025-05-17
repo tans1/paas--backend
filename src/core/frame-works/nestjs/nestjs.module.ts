@@ -4,6 +4,7 @@ import { NestJsProjectService } from './nestjs-project-service';
 import { NestJsDockerfileService } from './nestjs-docker-config/nestjs-dockerfile.service';
 import { AlsModule } from '@/utils/als/als.module';
 import { NestJsDockerIgnoreFileService } from './nestjs-docker-config/nestjs-dockerignorefile.service';
+import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
 
 @Module({
   providers: [
@@ -12,6 +13,6 @@ import { NestJsDockerIgnoreFileService } from './nestjs-docker-config/nestjs-doc
     NestJsDockerfileService,
     NestJsDockerIgnoreFileService,
   ],
-  imports: [AlsModule],
+  imports: [AlsModule, InterfacesModule],
 })
 export class NestJsModule {}

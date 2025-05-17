@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-
 @Injectable()
 export class AngularDockerIgnoreFileService {
   constructor() {}
@@ -11,10 +10,7 @@ export class AngularDockerIgnoreFileService {
   async addDockerIgnoreFile(projectConfig: {
     projectPath: string;
   }): Promise<void> {
-
-    const {
-      projectPath,
-    } = projectConfig;
+    const { projectPath } = projectConfig;
 
     try {
       const templateDockerIgnoreFilePath = path.join(
@@ -23,17 +19,22 @@ export class AngularDockerIgnoreFileService {
         '.dockerignore',
       );
 
-      const dockerIgnoreFileContent = await fs.promises.readFile(templateDockerIgnoreFilePath, 'utf-8');     
+      const dockerIgnoreFileContent = await fs.promises.readFile(
+        templateDockerIgnoreFilePath,
+        'utf-8',
+      );
       const dockerIgnoreFilePath = path.join(projectPath, '.dockerignore');
-      await fs.promises.writeFile(dockerIgnoreFilePath, dockerIgnoreFileContent, 'utf-8');
-
+      await fs.promises.writeFile(
+        dockerIgnoreFilePath,
+        dockerIgnoreFileContent,
+        'utf-8',
+      );
     } catch (error) {
       console.error(`Error creating dockerignore file: ${error.message}`);
-      throw new HttpException( 
+      throw new HttpException(
         `Error creating dockerignore file: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-
   }
 }

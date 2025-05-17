@@ -10,7 +10,12 @@ import { UsersModule } from '../users/users.module';
 import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(), PassportModule.register({}), UsersModule,InterfacesModule],
+  imports: [
+    ConfigModule.forRoot(),
+    PassportModule.register({}),
+    UsersModule,
+    InterfacesModule,
+  ],
   controllers: [OauthController],
   providers: [GoogleService, GoogleStrategy, GithubService, GithubStrategy],
 })
