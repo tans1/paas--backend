@@ -3,7 +3,7 @@ import { VueProjectScannerService } from './vue-project-scanner/vue-project-scan
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { VueDockerfileService } from './vue-docker-config/vue-dockerfile.service';
 import { FrameworkMap } from '../../framework-detector/framework.config';
-import { EventNames } from '@/core/events/event.module';
+import { EventNames } from '../../events/event.module';
 import { VueDockerIgnoreFileService } from './vue-docker-config/vue-dockerignorefile.service';
 @Injectable()
 export class VueProjectService {

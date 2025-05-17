@@ -7,7 +7,7 @@ import { PassportModule } from '@nestjs/passport';
 import { GithubService } from './github-auth/github.service';
 import { GithubStrategy } from './github-auth/github.strategy';
 import { UsersModule } from '../users/users.module';
-import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
+import { InterfacesModule } from '../../infrastructure/database/interfaces/interfaces.module';
 
 @Module({
   imports: [ConfigModule.forRoot(), PassportModule.register({}), UsersModule,InterfacesModule],

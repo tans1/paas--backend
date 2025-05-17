@@ -3,7 +3,7 @@ import { AngularProjectScannerService } from './angular-project-scanner/angular-
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { AngularDockerfileService } from './angular-docker-config/angular-dockerfile.service';
 import { FrameworkMap } from '../../framework-detector/framework.config';
-import { EventNames } from '@/core/events/event.module';
+import { EventNames } from '../../events/event.module';
 import { PORT } from './constants';
 import { AngularDockerIgnoreFileService } from './angular-docker-config/angular-dockerignorefile.service';
 @Injectable()

@@ -1,17 +1,17 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { EventNames } from 'src/core/events/event.module';
+import { EventNames } from '../../events/event.module';
 import { ImageBuildService } from './image-build.service';
 import { DockerPushService } from './docker-push.service';
 import {
   CreateDeploymentDTO,
   DeploymentRepositoryInterface,
-} from '@/infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
-import { AlsService } from '@/utils/als/als.service';
+} from '../../../infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
+import { AlsService } from '../../../utils/als/als.service';
 import { DockerLogService } from './docker-log.service';
-import { ProjectsRepositoryInterface } from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
+import { ProjectsRepositoryInterface } from '../../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
 import * as os from 'os';
-import { PORT } from '@/core/frame-works/angular/constants';
+import { PORT } from '../../../frame-works/angular/constants';
 import { branch } from 'isomorphic-git';
 
 @Injectable()

@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import * as Docker from 'dockerode';
 import { DockerLogService } from './docker-log.service';
-import { AlsService } from '@/utils/als/als.service';
+import { AlsService } from '../../../utils/als/als.service';
 
 @Injectable()
 export class DockerPushService {

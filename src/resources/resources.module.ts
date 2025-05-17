@@ -6,7 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { OauthModule } from './oauth/oauth.module';
 import { PaymentModule } from './payment/payment.module';
 import { RepositoriesModule } from './repositories/repositories.module';
-import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfaces.module';
+import { InterfacesModule } from '../infrastructure/database/interfaces/interfaces.module';
 import { ProjectsModule } from './projects/projects.module';
 import { DnsModule } from './dns/dns.module';
 

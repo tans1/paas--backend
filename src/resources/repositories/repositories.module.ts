@@ -7,7 +7,7 @@ import { InterfacesModule } from '../../infrastructure/database/interfaces/inter
 import { OctokitService } from './octokit/octokit.service';
 import { UsersService } from '../users/users.service';
 import { ProjectService } from '../projects/create-project/project.service';
-import { AlsModule } from '@/utils/als/als.module';
+import { AlsModule } from '../../utils/als/als.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { EnvironmentService } from './utils/environment.service';
 

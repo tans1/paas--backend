@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { EventNames } from 'src/core/events/event.module';
+import { EventNames } from '../../../events/event.module';
 import { RepositoryBootstrapService } from '../repository-bootstrap/repository-bootstrap.service';
 import { RepositorySyncService } from '../repository-sync/repository-sync.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AlsService } from '@/utils/als/als.service';
-import { UsersService } from '@/resources/users/users.service';
+import { AlsService } from '../../../../utils/als/als.service';
+import { UsersService } from '../../../../resources/users/users.service';
 
 @Injectable()
 export class ProjectInitializedEventListenerService {
@@ -29,6 +29,10 @@ export class ProjectInitializedEventListenerService {
     // const ref = payload.ref; 
     // const branch = ref.replace('refs/heads/', ''); 
     const user = await this.userService.findOneBy(email); 
+    if (!user) {
+      this.logger.error('User not found for email: ' + email);
+      return;
+    }
     const githubAccessToken = user.githubAccessToken;
     this.alsService.setbranchName(branch); 
     if (!repoFullName || !cloneUrl) {

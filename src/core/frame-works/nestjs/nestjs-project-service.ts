@@ -3,7 +3,7 @@ import { NestJsProjectScannerService } from './nestjs-project-scanner/nestjs-pro
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { NestJsDockerfileService } from './nestjs-docker-config/nestjs-dockerfile.service';
 import { FrameworkMap } from '../../framework-detector/framework.config';
-import { EventNames } from '@/core/events/event.module';
+import { EventNames } from '../../events/event.module';
 import { NestJsDockerIgnoreFileService } from './nestjs-docker-config/nestjs-dockerignorefile.service';
 @Injectable()
 export class NestJsProjectService {

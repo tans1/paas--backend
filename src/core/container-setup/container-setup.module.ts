@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 // import { CreateImageService } from './create-image/create-image.service';
 import { ImageBuildGateway } from './Image-build-gateway';
-import { AlsModule } from '@/utils/als/als.module';
+import { AlsModule } from '../../utils/als/als.module';
 import { FileService } from './create-image/file.service';
 import { DockerLogService } from './create-image/docker-log.service';
 import { ImageBuildService } from './create-image/image-build.service';

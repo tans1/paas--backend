@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
   CallBackFailedException,
   TokenNotFoundException,
-} from '@/utils/exceptions/github.exception';
+} from '../../../utils/exceptions/github.exception';
 
 import { UsersService } from '../../users/users.service';
 

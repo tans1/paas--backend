@@ -3,7 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as fs from 'fs';
 import * as path from 'path';
-import { EventNames } from 'src/core/events/event.module';
+import { EventNames } from '../../events/event.module';
 import { FrameworkMap } from '../framework.config';
 
 @Injectable()
