@@ -9,6 +9,7 @@ import {
   HttpCode,
   UploadedFile,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,7 +20,7 @@ import {
   ApiBearerAuth,
   ApiConsumes,
 } from '@nestjs/swagger';
-import { Request, Response } from 'express';
+import { Request,Response } from 'express';
 
 import { ConnectService } from './connect/connect.service';
 import { WebhooksService } from './webhooks/webhooks.service';
@@ -36,6 +37,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventNames } from '@/core/events/event.module';
 import { FrameworkDetectionService } from '@/core/framework-detector/framework-detection-service/framework-detection.service';
 import { CustomApiResponse } from '@/utils/api-responses/api-response';
+import { AuthGuard } from '../auth/guards/auth-guard/auth.guard';
 
 @ApiTags('Repositories')
 @Controller('repositories')
@@ -51,31 +53,39 @@ export class RepositoriesController {
     private frameworkDetectionService: FrameworkDetectionService,
   ) {}
 
-  @ApiOperation({
-    summary: 'Connect the user github account with the app',
-    description:
-      'To connect the user github account with the app, incase the user is not connected and did not registered with github account initially',
-  })
-  @Public()
-  @Get('/connect/github')
-  async redirectToGitHubAuth(@Res() res: Response) {
-    res.redirect(this.connectService.redirectToGitHubAuth());
-  }
+  @ApiBearerAuth('JWT-auth')
+@Get('/connect/github')
+@ApiOperation({
+  summary: 'Connect the user github account with the app',
+  description:
+    'To connect the user github account with the app, in case the user is not connected and did not register with GitHub account initially',
+})
+@ApiResponse({
+  status: 200,
+  description: 'Connects user GitHub repo',
+})
+async redirectToGitHubAuth(
+  @Req() req: AuthenticatedRequest,
+) {
+  
+  const url = this.connectService.redirectToGitHubAuth(req.user)
+  return {url :  url};
+}
 
   @ApiOperation({
     summary: 'a callback endpoint to handle the github connection',
     description:
       "This endpoint is called by github after the user has connected the account with the app, it will handle the callback and save the user's github token",
   })
-  @Public()
-  @Get('/connect/github/callback')
-  async handleGitHubCallback(@Query('code') code: string) {
-    if (!code) {
-      throw new OtherException('No code provided');
-    }
+  // @Public()
+  // @Get('/connect/github/callback')
+  // async handleGitHubCallback(@Query('code') code: string) {
+  //   if (!code) {
+  //     throw new OtherException('No code provided');
+  //   }
 
-    return await this.connectService.handleGitHubCallback(code);
-  }
+  //   return await this.connectService.handleGitHubCallback(code,"state");
+  // }
 
   @ApiOperation({
     summary: 'List User Repositories',

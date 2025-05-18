@@ -26,7 +26,11 @@ export class DeploymentRepositoryService
     return await this.prisma.deployment.create({ data });
   }
   findById(id: number): Promise<Deployment | null> {
-    throw new Error('Method not implemented.');
+    return this.prisma.deployment.findUnique(
+     { where : {
+        id 
+      }}
+    )
   }
   update(id: number, payload: UpdateDeploymentDTO): Promise<Deployment> {
     return this.prisma.deployment.update({

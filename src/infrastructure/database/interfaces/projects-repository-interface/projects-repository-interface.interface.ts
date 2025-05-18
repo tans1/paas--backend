@@ -22,7 +22,7 @@ export interface UpdateProjectDTO {
   deployedIp?: string;
   deployedPort?: number;
   deployedUrl?: string;
-
+  activeDeploymentId?: number;
   localRepoPath?: string;
   zoneId?: string;
   aRecordId?: string;

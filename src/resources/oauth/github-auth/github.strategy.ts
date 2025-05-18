@@ -41,13 +41,13 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
       }
     }
 
-    const user = {
+    const githubUser = {
       username: username ?? 'No Username Provided',
       name: displayName ?? 'Unknown',
       email: email ?? 'No Email Provided', // Include the fetched email
       accessToken: accessToken || 'No Access Token',
       refreshToken: refreshToken || 'No Refresh Token',
     };
-    done(null, user);
+    done(null, githubUser);
   }
 }

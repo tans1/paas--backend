@@ -12,6 +12,7 @@ import { RuntimeLogService } from './create-image/containter-runtime-log.service
 import { DeploymentUtilsService } from './deployment-utils/deployment-utils.service';
 import { ManageContainerService } from './manage-containers/manage-containers.service';
 import { DeploymentEventsGateway } from './gateway/deployment-events.gateway';
+import { DockerHubService } from './create-image/docker-hub.service';
 
 @Module({
   providers: [
@@ -26,6 +27,7 @@ import { DeploymentEventsGateway } from './gateway/deployment-events.gateway';
     RuntimeLogService,
     DeploymentUtilsService,
     ManageContainerService,
+    DockerHubService
   ],
   imports: [AlsModule, InterfacesModule],
   exports: [ManageContainerService, ImageBuildService, DeploymentUtilsService],

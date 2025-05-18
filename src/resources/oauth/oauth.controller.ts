@@ -1,16 +1,18 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { GoogleOAuthGuard } from './google-auth/google-oauth.guard';
 import { GoogleService } from './google-auth/google.service';
 import { Public } from '../auth/public-strategy';
 import { GithubOAuthGuard } from './github-auth/github-oauth.guard';
 import { GithubService } from './github-auth/github.service';
+import { ConnectService } from '../repositories/connect/connect.service';
 
 @Controller('oauth')
 export class OauthController {
   constructor(
     private googleService: GoogleService,
     private githubService: GithubService,
+    private connectService: ConnectService
   ) {}
   @Public()
   @Get('google')
@@ -38,7 +40,15 @@ export class OauthController {
   @Public()
   @Get('github-redirect')
   @UseGuards(GithubOAuthGuard)
-  async githubAuthRedirect(@Req() req, @Res() res: Response) {
+  async githubAuthRedirect(
+    @Req() req, 
+    @Res() res: Response,
+    @Query('state') state: string,
+  ) {
+ 
+    if (state){
+      return await this.connectService.handleGitHubCallback(state,req.user)
+    }
     const payload = await this.githubService.githubLogin(req);
     if (!payload) {
       return res.redirect(`${process.env.FRONT_END_URL}/login-failure`);

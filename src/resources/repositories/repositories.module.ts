@@ -33,6 +33,6 @@ import { EnvironmentModule } from '@/utils/environment/environment.module';
     FrameworkDetectorModule,
     EnvironmentModule,
   ],
-  exports: [GitHubFileService],
+  exports: [GitHubFileService,ConnectService],
 })
 export class RepositoriesModule {}
