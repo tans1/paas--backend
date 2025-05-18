@@ -154,6 +154,38 @@ model OAuthProvider {
   createdAt   DateTime @default(now()) @map("created_at")
 }
 
+
+
+
+model DailyMetric {
+  id             String   @id @default(cuid())
+  containerName  String
+  date           DateTime
+  cpuSeconds     Float
+  memoryBytes    BigInt
+  netRxBytes     BigInt
+  netTxBytes     BigInt
+  
+}
+
+model MonthlyAggregate {
+  id              String   @id @default(cuid())
+  containerName   String
+  periodStart     DateTime
+  periodEnd       DateTime
+  totalCpuSecs    Float
+  totalMemGbHrs   Float
+  totalNetBytes   BigInt
+}
+
+model Invoice {
+  id         String   @id @default(cuid())
+  userId     String
+  amount     Float
+  status     String    
+  dueDate    DateTime
+}
+
 enum NotificationType {
   SYSTEM
   DEPLOYMENT

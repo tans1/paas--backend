@@ -12,6 +12,7 @@ import {
   utilities as nestWinstonModuleUtilities,
   WinstonModule,
 } from 'nest-winston';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   imports: [
@@ -27,13 +28,11 @@ import {
       },
     }),
     RedisModule.forRoot({
-      // Remove the 'config' wrapper
-      type: 'single', // Specify connection type
-      url: 'redis://localhost:6379/0', // Direct URL configuration
-      
-      // OR for cluster:
-      // nodes: [{ host: 'localhost', port: 6379 }],
-      // options: { clusterEnabled: true }
+      config: {
+        host: 'localhost',
+        port: 6379,
+        password: '12345678',
+      },
     }),
     WinstonModule.forRoot({
       transports: [

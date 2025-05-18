@@ -6,6 +6,7 @@ export interface CreateProjectDTO {
   url: string;
   linkedByUserId: number;
   environmentVariables?: Record<string, string>;
+  environmentVariables?: Record<string, string>;
   branch: string;
   framework: string;
   installCommand?: string;
