@@ -8,6 +8,7 @@ import { GithubService } from './github-auth/github.service';
 import { GithubStrategy } from './github-auth/github.strategy';
 import { UsersModule } from '../users/users.module';
 import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
+import { RepositoriesModule } from '../repositories/repositories.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { InterfacesModule } from '@/infrastructure/database/interfaces/interface
     PassportModule.register({}),
     UsersModule,
     InterfacesModule,
+    RepositoriesModule
   ],
   controllers: [OauthController],
   providers: [GoogleService, GoogleStrategy, GithubService, GithubStrategy],

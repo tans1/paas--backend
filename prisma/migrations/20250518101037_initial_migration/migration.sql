@@ -29,6 +29,7 @@ CREATE TABLE "Project" (
     "deployed_ip" TEXT,
     "deployed_port" INTEGER,
     "deployedUrl" TEXT,
+    "active_deployment_id" INTEGER,
     "local_repo_path" TEXT,
     "zone_id" TEXT,
     "a_name_record_id" TEXT,

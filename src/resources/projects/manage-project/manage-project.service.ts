@@ -1,6 +1,7 @@
 import { ImageBuildService } from "@/core/container-setup/create-image/image-build.service";
 import { DeploymentUtilsService } from "@/core/container-setup/deployment-utils/deployment-utils.service";
 import { ManageContainerService } from "@/core/container-setup/manage-containers/manage-containers.service";
+import { DeploymentRepositoryInterface } from "@/infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface";
 import {
   ProjectsRepositoryInterface,
   StatusEnum,
@@ -10,8 +11,9 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { Project } from "@prisma/client";
+import { Deployment, Project } from "@prisma/client";
 import { rm } from 'fs/promises';
+import { ProjectsController } from "../projects.controller";
 
 @Injectable()
 export class ManageProjectService {
@@ -20,6 +22,7 @@ export class ManageProjectService {
     private projectRepositoryService: ProjectsRepositoryInterface,
     private deploymentUtilsService: DeploymentUtilsService,
     private imageBuildService: ImageBuildService,
+    private deploymentRepositoryService : DeploymentRepositoryInterface
   ) {}
 
   /**
@@ -27,9 +30,13 @@ export class ManageProjectService {
    */
   async startProject(projectId: number): Promise<void> {
     const project = await this.getExistingProject(projectId);
-
+    const activeDeployment = await this.getActiveDeployment(project)
     try {
-      await this.manageContainerService.up(project.localRepoPath,project.dockerComposeFile);
+      await this.manageContainerService.start(
+        project.localRepoPath,
+        project.repoId,
+        activeDeployment
+      );
       await this.projectRepositoryService.update(projectId, {
         status: StatusEnum.RUNNING,
       });
@@ -46,9 +53,10 @@ export class ManageProjectService {
    */
   async stopProject(projectId: number): Promise<void> {
     const project = await this.getExistingProject(projectId);
+    const activeDeployment = await this.getActiveDeployment(project)
 
     try {
-      await this.manageContainerService.stop(project.localRepoPath,project.dockerComposeFile);
+      await this.manageContainerService.stop(project.localRepoPath,activeDeployment);
       await this.projectRepositoryService.update(projectId, {
         status: StatusEnum.STOPPED,
       });
@@ -65,20 +73,30 @@ export class ManageProjectService {
    */
   async deleteProject(projectId: number): Promise<void> {
     const project = await this.getExistingProject(projectId);
+    const activeDeployment = await this.getActiveDeployment(project) 
 
+    const containerName = activeDeployment.containerName
+    const imageName = activeDeployment.imageName
+
+    
     try {
-      await this.manageContainerService.down(
-        project.localRepoPath,
-        project.dockerComposeFile,
-        true,
-      );
+      // await this.manageContainerService.down(
+        //   project.localRepoPath,
+        //   activeDeployment,
+        //   true,
+        // );
 
-      const latestImageName = this.deploymentUtilsService.getLatestImageName(
-        project.deployments,
-      );
-      if (latestImageName) {
+      if(containerName){
+        
+        this.manageContainerService.rm(containerName, project.localRepoPath)
+      }
+        
+      // const latestImageName = this.deploymentUtilsService.getLatestImageName(
+      //   project.deployments,
+      // );
+      if (imageName) {
         await this.imageBuildService.removeImage(
-          latestImageName,
+          imageName,
           project.localRepoPath,
         );
       }
@@ -94,6 +112,29 @@ export class ManageProjectService {
     }
   }
 
+  async rollback(projectId: number, deploymentId: number): Promise<void> {
+    const project = await this.getExistingProject(projectId);
+    const activeDeployment = await this.getActiveDeployment(project)
+    const rollbackDeployment = await this.deploymentRepositoryService.findById(deploymentId)
+
+    try {
+      await this.manageContainerService.start(
+        project.localRepoPath,
+        project.repoId,
+        rollbackDeployment
+      );
+
+      await this.projectRepositoryService.update(project.id, {activeDeploymentId : deploymentId})
+      await this.manageContainerService.rm(activeDeployment.containerName,project.localRepoPath);
+      await this.imageBuildService.removeImage(activeDeployment.imageName,project.localRepoPath);
+     
+    } catch (err) {
+      throw new InternalServerErrorException(
+
+        `Failed to rollback project ${projectId} to deployment ${deploymentId}: ${err.message}`,
+      );
+    }
+  }
   /**
    * Helper: fetches project or throws NotFoundException
    */
@@ -116,5 +157,11 @@ export class ManageProjectService {
         `Error retrieving project ${projectId}: ${err.message}`,
       );
     }
+  }
+
+  private async getActiveDeployment(project : Project) : Promise<Deployment> {
+    const activeDeploymentId = project.activeDeploymentId
+    const activeDeployment = this.deploymentRepositoryService.findById(activeDeploymentId)
+    return activeDeployment
   }
 }

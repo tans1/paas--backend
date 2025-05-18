@@ -167,7 +167,10 @@ export class SourceCodeEventHandlerService {
         );
       }
 
-      await this.projectRepositoryService.update(projectId,{status : StatusEnum.RUNNING})
+      await this.projectRepositoryService.update(projectId,{
+        status : StatusEnum.RUNNING,
+        activeDeploymentId : deployment.id
+      })
 
     } catch (error) {
       console.error('Error during deployment process:', error);

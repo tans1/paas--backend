@@ -6,6 +6,7 @@ import { ProjectResponseDto } from './dto/project.response.dto'; // Adjust the i
 import { ProjectDto } from './dto/project.dto';
 import { ManageProjectService } from './manage-project/manage-project.service';
 import { CustomApiResponse } from '@/utils/api-responses/api-response';
+import { ProjectRollbackDto } from './dto/project.rollback.dto';
 
 @Controller('projects')
 export class ProjectsController {
@@ -115,6 +116,33 @@ export class ProjectsController {
     const project = await this.manageProjectService.deleteProject(id);
     return CustomApiResponse.success(project,`Successfully deleted the project`)
   }
+
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Rollback project' })
+  @ApiBody({
+      type: ProjectRollbackDto,
+      description: 'The data required to rollback a project',
+    })
+  @ApiResponse({
+    status: 201,
+    description: 'Returns the project.',
+    type: CustomApiResponse
+  })
+
+  @Post('rollback-project')
+  async rollBackProject(
+    @Body() body: ProjectRollbackDto,
+  ) {
+
+    const {
+      projectId,
+      deploymentId
+    } = body
+
+    const project = await this.manageProjectService.rollback(projectId,deploymentId)
+    return CustomApiResponse.success(project,`Successfully rolled back the project`)
+  }
+
 
 
 }
