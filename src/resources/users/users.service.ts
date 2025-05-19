@@ -12,6 +12,9 @@ export class UsersService {
     return `This action returns all users`;
   }
 
+  async findOneById(id: number) {
+    return await this.usersRepository.findOneById(id);
+  }
   async findOneBy(email: string) {
     return await this.usersRepository.findOneBy(email);
   }

@@ -13,6 +13,22 @@ import * as bcrypt from 'bcrypt';
 export class UsersRepositoryService implements UsersRepositoryInterface {
   constructor(private prisma: PrismaService) {}
 
+  async findOneById(id: number) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: id,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      console.error('Error fetching user by id:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch user. Please try again later.',
+      );
+    }
+  }
   async findOneBy(email: string) {
     try {
       const user = await this.prisma.user.findUnique({

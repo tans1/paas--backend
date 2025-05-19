@@ -70,10 +70,7 @@ export class ConnectService {
 
       // 6) Return a friendly response
       return {
-        message: 'Successfully connected to GitHub',
-        data: {
-          username: userName,
-        },
+        success : true,
       };
 
     }

@@ -25,8 +25,8 @@ export class ProjectsController {
   @Get('my-projects')
   async getMyProjects(@Req() req: Request) {
     // JwtAuthGuard should attach the decoded user payload to req.user
-    const user = req.user as { id: number };
-    return await this.projectsService.getProjects(user.id);
+    const user = req.user as { sub: number };
+    return await this.projectsService.getProjects(user.sub);
   }
 
   @ApiBearerAuth('JWT-auth')
