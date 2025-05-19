@@ -20,7 +20,7 @@ import {
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.forRoot({
       connection: {
-        host: 'redis',
+        host: 'localhost',
         port: 6379,
       },
     }),

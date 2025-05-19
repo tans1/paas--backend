@@ -53,9 +53,9 @@ export class GithubService {
       // }
 
       const payload = { sub: user.id, email: user.email, role: user.role };
-      const jwt_token = await this.jwtService.signAsync(payload);
+      const access_token = await this.jwtService.signAsync(payload);
 
-      return { jwt_token, username };
+      return { access_token};
     } catch (e) {
       throw new InternalServerErrorException(
         'Error occurred while generating the JWT token.',
