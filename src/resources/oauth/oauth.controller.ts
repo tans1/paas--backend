@@ -30,11 +30,10 @@ export class OauthController {
 
       const payload = await this.googleService.googleLogin(req);
       if (!payload) {
-        return RedirectStrategyService.redirectToSuccess(res, payload);
+        return RedirectStrategyService.redirectToFailure(res);
       }
-      return res.redirect(
-        `${process.env.FRONT_END_URL}/login-success?token=${payload.access_token}`,
-      );
+      return RedirectStrategyService.redirectToSuccess(res,payload);
+
     }
     catch(error){
       this.logger.error('Authentication Error:', error);
