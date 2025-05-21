@@ -16,6 +16,10 @@ import { RepositoriesModule } from '../repositories/repositories.module';
 // import { GithubRepositoryService } from '../repositories/github-repository/github-repository.service';
 import { DeploymentRepositoryInterface } from './deployment-repository-interface/deployment-repository-interface.interface';
 import { DeploymentRepositoryService } from '../repositories/deployment-repository/deployment-repository.service';
+import { NotificationPreferencesRepositoryInterface } from '@/infrastructure/database/interfaces/notification-preferences-repository-interface/notification-preferences-repository-interface.interface';
+import { NotificationRepositoryInterface } from '@/infrastructure/database/interfaces/notification-repository-interface/notification-repository-interface.interface';
+import { NotificationPreferencesRepositoryService } from '../repositories/notification-preferences-repository/notification-preferences-repository.service';
+import { NotificationRepositoryService } from '../repositories/notification-repository/notification-repository.service';
 
 @Module({
   imports: [RepositoriesModule, PrismaModule],
@@ -45,6 +49,14 @@ import { DeploymentRepositoryService } from '../repositories/deployment-reposito
       provide: DeploymentRepositoryInterface,
       useClass: DeploymentRepositoryService,
     },
+    {
+      provide: NotificationPreferencesRepositoryInterface,
+      useClass: NotificationPreferencesRepositoryService,
+    },
+    {
+      provide: NotificationRepositoryInterface,
+      useClass: NotificationRepositoryService,
+    },
   ],
   exports: [
     AdminRepositoryInterface,
@@ -54,6 +66,9 @@ import { DeploymentRepositoryService } from '../repositories/deployment-reposito
     UsersRepositoryInterface,
     // GithubRepositoryInterface,
     DeploymentRepositoryInterface,
+    NotificationPreferencesRepositoryInterface,
+    NotificationRepositoryInterface
+
   ],
 })
 export class InterfacesModule {}

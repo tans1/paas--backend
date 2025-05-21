@@ -8,6 +8,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 
 // import { GithubRepositoryService } from './github-repository/github-repository.service';
 import { DeploymentRepositoryService } from './deployment-repository/deployment-repository.service';
+import { NotificationRepositoryService } from './notification-repository/notification-repository.service';
+import { NotificationPreferencesRepositoryService } from './notification-preferences-repository/notification-preferences-repository.service';
 
 @Module({
   providers: [
@@ -18,6 +20,8 @@ import { DeploymentRepositoryService } from './deployment-repository/deployment-
     UsersRepositoryService,
     // GithubRepositoryService,
     DeploymentRepositoryService,
+    NotificationRepositoryService,
+    NotificationPreferencesRepositoryService
   ],
   imports: [PrismaModule],
 })

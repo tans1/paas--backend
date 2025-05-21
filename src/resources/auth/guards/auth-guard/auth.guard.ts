@@ -28,7 +28,7 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractTokenFromHeaderOrQuery(request); // Updated method name
 
     if (!token) {
       throw new UnauthorizedException('No token provided');
@@ -47,22 +47,25 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    // Check for Authorization header
+  private extractTokenFromHeaderOrQuery(request: Request): string | undefined {
+    // 1. Check Authorization header first
     const authHeader = request.headers.authorization;
-    if (!authHeader) {
-      return undefined;
+    if (authHeader) {
+      const [type, token] = authHeader.split(' ');
+      if (type === 'Bearer' || token) {
+        return token;
+      }
     }
-
-    // Handle both Bearer token and direct token
-    const [type, token] = authHeader.split(' ');
-    if (type === 'Bearer') {
-      return token;
-    } else if (token) {
-      // If no type is specified but there's a token, assume it's a Bearer token
-      return token;
+  
+    const queryToken = request.query?.token;
+    if (queryToken) {
+      if (Array.isArray(queryToken)) {
+        // Return first element if it's an array
+        return typeof queryToken[0] === 'string' ? queryToken[0] : undefined;
+      }
+      return typeof queryToken === 'string' ? queryToken : undefined;
     }
-
+  
     return undefined;
   }
 }

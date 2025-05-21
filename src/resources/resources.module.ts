@@ -10,6 +10,7 @@ import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfa
 import { ProjectsModule } from './projects/projects.module';
 import { DnsModule } from './dns/dns.module';
 import { EnvironmentModule } from '@/utils/environment/environment.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EnvironmentModule } from '@/utils/environment/environment.module';
     ProjectsModule,
     DnsModule,
     EnvironmentModule,
+    NotificationModule
   ],
 })
 export class ModulesModule {}

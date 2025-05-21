@@ -1,6 +1,12 @@
 -- CreateEnum
 CREATE TYPE "ProjectStatus" AS ENUM ('STOPPED', 'RUNNING', 'PENDING');
 
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('SYSTEM', 'DEPLOYMENT', 'SECURITY', 'UPDATE');
+
+-- CreateEnum
+CREATE TYPE "NotificationPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
@@ -129,6 +135,39 @@ CREATE TABLE "OAuthProvider" (
     CONSTRAINT "OAuthProvider_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "type" "NotificationType" NOT NULL DEFAULT 'SYSTEM',
+    "priority" "NotificationPriority" NOT NULL DEFAULT 'MEDIUM',
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "userId" INTEGER,
+    "metadata" JSONB,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "read_at" TIMESTAMP(3),
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "NotificationPreferences" (
+    "id" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "enabledTypes" JSONB NOT NULL,
+    "emailNotifications" BOOLEAN NOT NULL DEFAULT true,
+    "pushNotifications" BOOLEAN NOT NULL DEFAULT true,
+    "inAppNotifications" BOOLEAN NOT NULL DEFAULT true,
+    "minimumPriority" "NotificationPriority" NOT NULL DEFAULT 'MEDIUM',
+    "notifyOnDeployment" BOOLEAN NOT NULL DEFAULT true,
+    "notifyOnSecurity" BOOLEAN NOT NULL DEFAULT true,
+    "notifyOnSystem" BOOLEAN NOT NULL DEFAULT true,
+    "notifyOnUpdate" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "NotificationPreferences_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -140,6 +179,9 @@ CREATE UNIQUE INDEX "Project_repo_id_branch_key" ON "Project"("repo_id", "branch
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Payment_transaction_id_key" ON "Payment"("transaction_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NotificationPreferences_userId_key" ON "NotificationPreferences"("userId");
 
 -- AddForeignKey
 ALTER TABLE "Project" ADD CONSTRAINT "Project_linkedByUserId_fkey" FOREIGN KEY ("linkedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -161,3 +203,9 @@ ALTER TABLE "UserAlert" ADD CONSTRAINT "UserAlert_userId_fkey" FOREIGN KEY ("use
 
 -- AddForeignKey
 ALTER TABLE "OAuthProvider" ADD CONSTRAINT "OAuthProvider_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NotificationPreferences" ADD CONSTRAINT "NotificationPreferences_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

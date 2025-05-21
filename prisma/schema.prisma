@@ -28,6 +28,8 @@ model User {
   payments       Payment[]
   userAlerts     UserAlert[]
   oauthProviders OAuthProvider[]
+  notifications  Notification[]
+  notificationPreferences NotificationPreferences?
 }
 
 // model GithubAuth {
@@ -150,4 +152,46 @@ model OAuthProvider {
   provider    String?  @db.VarChar(50)
   accessToken String   @map("access_token") @db.VarChar(255)
   createdAt   DateTime @default(now()) @map("created_at")
+}
+
+enum NotificationType {
+  SYSTEM
+  DEPLOYMENT
+  SECURITY
+  UPDATE
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String   @db.Text
+  type      NotificationType @default(SYSTEM)
+  priority  NotificationPriority @default(MEDIUM)
+  isRead    Boolean  @default(false)
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  readAt    DateTime? @map("read_at")
+}
+
+model NotificationPreferences {
+  id                String   @id @default(uuid())
+  user              User     @relation(fields: [userId], references: [id])
+  userId            Int      @unique
+  enabledTypes      Json     // Stores { SYSTEM: boolean, DEPLOYMENT: boolean, etc. }
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  inAppNotifications Boolean @default(true)
+  minimumPriority   NotificationPriority @default(MEDIUM)
+  notifyOnDeployment Boolean  @default(true)
+  notifyOnSecurity  Boolean  @default(true)
+  notifyOnSystem    Boolean  @default(true)
+  notifyOnUpdate    Boolean  @default(true)
 }
