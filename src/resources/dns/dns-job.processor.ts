@@ -93,7 +93,7 @@ export class DnsJobProcessor extends WorkerHost {
 
       console.log('Propagation complete');
       console.log('going to run the docker compose');
-      await this.dnsService.runDockerCompose(domain, projectId);
+      // await this.dnsService.runDockerCompose(domain, projectId);
       console.group('after running the docker compose');
       console.log('going to create the domain redirection');
       // await this.dnsService.createDomainRedirection(domain, projectId);

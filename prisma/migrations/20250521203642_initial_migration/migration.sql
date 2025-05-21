@@ -34,7 +34,7 @@ CREATE TABLE "Project" (
     "environment_variables" JSONB,
     "deployed_ip" TEXT,
     "deployed_port" INTEGER,
-    "deployedUrl" TEXT,
+    "deployedUrl" TEXT[],
     "active_deployment_id" INTEGER,
     "local_repo_path" TEXT,
     "zone_id" TEXT,
@@ -48,6 +48,7 @@ CREATE TABLE "Project" (
     "lastCommitMessage" VARCHAR(2083) NOT NULL,
     "status" "ProjectStatus" NOT NULL DEFAULT 'PENDING',
     "dockerComposeFile" VARCHAR(2083),
+    "PORT" INTEGER,
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
 );

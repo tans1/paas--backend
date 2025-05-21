@@ -45,9 +45,11 @@ export class AlsService {
 
   private getSanitizedProjectName(projectName: string): string {
     const sanitizedProjectName = projectName
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, '-')
-      .replace(/^[^a-z]+/, 'a');
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '-') 
+    .replace(/^[^a-z]+/, 'a')     
+    .replace(/-+/g, '-')          
+    .replace(/-+$/, '');  
 
     return sanitizedProjectName;
   }

@@ -21,7 +21,7 @@ export interface UpdateProjectDTO {
   url?: string;
   deployedIp?: string;
   deployedPort?: number;
-  deployedUrl?: string;
+  deployedUrl?: string[];
   activeDeploymentId?: number;
   localRepoPath?: string;
   zoneId?: string;
@@ -29,7 +29,8 @@ export interface UpdateProjectDTO {
   cnameRecordId?: string;
   lastCommitMessage?: string;
   status?: ProjectStatus;
-  dockerComposeFile?: string
+  dockerComposeFile?: string;
+  PORT? : number;
 
 }
 

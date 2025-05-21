@@ -146,45 +146,84 @@ export class DnsService {
       console.error('Error updating SSL setting:', error);
     }
   }
-  async createDockerComposeFile(
+  // async createDockerComposeFile(
+  //   domain: string,
+  //   projectId: number,
+  // ): Promise<void> {
+  //   const projectPath = (
+  //     await this.projectsRepositoryService.findById(projectId)
+  //   ).localRepoPath;
+  //   const rootDomain = this.getRootDomain(domain);
+  //   const templatePath = path.join(
+  //     __dirname,
+  //     '..',
+  //     '..',
+  //     'core',
+  //     'container-setup',
+  //     'create-image',
+  //     'templates',
+  //     'docker-compose.yml.ejs',
+  //   );
+  //   const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
+  //   const projectName = rootDomain
+  //     .toLowerCase()
+  //     .replace(/[^a-z0-9-]/g, '-')
+  //     .replace(/^-+/, '')
+  //     .replace(/-+$/, '')
+  //     .replace(/-{2,}/g, '-');
+  //   const dockerComposeContent = ejs.render(templateContent, {
+  //     projectName,
+  //     deploymentUrl: rootDomain,
+  //     includeEnvFile: false,
+  //   });
+  //   const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
+  //   const dockerComposePath = path.join(projectPath, dockerComposeFileName);
+  //   await fs.promises.writeFile(
+  //     dockerComposePath,
+  //     dockerComposeContent,
+  //     'utf-8',
+  //   );
+  // }
+
+  async addTraeficConfigFile(
     domain: string,
     projectId: number,
   ): Promise<void> {
-    const projectPath = (
+    const {
+      name : projectName,
+      PORT,
+    } = 
       await this.projectsRepositoryService.findById(projectId)
-    ).localRepoPath;
     const rootDomain = this.getRootDomain(domain);
-    const templatePath = path.join(
+    const traefikDynamicPath = path.join(
       __dirname,
       '..',
       '..',
-      'core',
-      'container-setup',
-      'create-image',
-      'templates',
-      'docker-compose.yml.ejs',
+      '..',
+      'traefik-dynamic',
     );
+
+    const templatePath = path.join(traefikDynamicPath,'template', 'domain.config.ejs');
     const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
-    const projectName = rootDomain
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '')
-      .replace(/-{2,}/g, '-');
-    const dockerComposeContent = ejs.render(templateContent, {
+    // const projectName = rootDomain
+    //   .toLowerCase()
+    //   .replace(/[^a-z0-9-]/g, '-')
+    //   .replace(/^-+/, '')
+    //   .replace(/-+$/, '')
+    //   .replace(/-{2,}/g, '-');
+    const domainConfigContent = ejs.render(templateContent, {
       projectName,
-      deploymentUrl: rootDomain,
-      includeEnvFile: false,
+      rootDomain,
+      PORT
     });
-    const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
-    const dockerComposePath = path.join(projectPath, dockerComposeFileName);
+    const domainConfigFileName = `domain-config.${rootDomain}.yml`;
+    const domainConfigFilePath = path.join(traefikDynamicPath, domainConfigFileName);
     await fs.promises.writeFile(
-      dockerComposePath,
-      dockerComposeContent,
+      domainConfigFilePath,
+      domainConfigContent,
       'utf-8',
     );
   }
-
   async checkPropagation(
     domain: string,
     expectedIP: string,
@@ -275,25 +314,25 @@ export class DnsService {
     return false;
   }
 
-  async runDockerCompose(domain: string, projectId: number): Promise<void> {
-    const rootDomain = this.getRootDomain(domain);
+  // async runDockerCompose(domain: string, projectId: number): Promise<void> {
+  //   const rootDomain = this.getRootDomain(domain);
 
-    const projectName = rootDomain.replace(/\./g, '-');
-    const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
-    // const command = `docker compose -f ${dockerComposeFileName} up -d --build`;
-    const command = `docker compose -p ${projectName} -f ${dockerComposeFileName} up -d --build --remove-orphans`;
+  //   const projectName = rootDomain.replace(/\./g, '-');
+  //   const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
+  //   // const command = `docker compose -f ${dockerComposeFileName} up -d --build`;
+  //   const command = `docker compose -p ${projectName} -f ${dockerComposeFileName} up -d --build --remove-orphans`;
 
-    const projectPath = (
-      await this.projectsRepositoryService.findById(projectId)
-    ).localRepoPath;
-    const { stdout, stderr } = await execAsync(command, { cwd: projectPath });
-    if (stdout) {
-      this.logger.log(`stdout: ${stdout}`);
-    }
-    if (stderr) {
-      this.logger.error(`stderr: ${stderr}`);
-    }
-  }
+  //   const projectPath = (
+  //     await this.projectsRepositoryService.findById(projectId)
+  //   ).localRepoPath;
+  //   const { stdout, stderr } = await execAsync(command, { cwd: projectPath });
+  //   if (stdout) {
+  //     this.logger.log(`stdout: ${stdout}`);
+  //   }
+  //   if (stderr) {
+  //     this.logger.error(`stderr: ${stderr}`);
+  //   }
+  // }
 
   async notifyUser(
     domain: string,

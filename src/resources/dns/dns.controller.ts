@@ -10,12 +10,14 @@ import {
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
+import { ProjectsRepositoryInterface } from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
 
 @ApiTags('DNS')
 @Controller('dns')
 export class DnsController {
   constructor(
     private readonly dnsService: DnsService,
+    private projectRepositoryService : ProjectsRepositoryInterface,
     @InjectQueue('dns-propagation') private readonly dnsQueue: Queue,
   ) {}
 
@@ -24,7 +26,11 @@ export class DnsController {
   @ApiOperation({
     summary: 'Create DNS records and configuration',
     description:
-      'This endpoint creates a new DNS zone for the given domain, generates DNS records (A and CNAME), updates the SSL settings, creates a Docker Compose file, and triggers a DNS propagation check. The client is expected to update their domain registrar with the provided nameservers.',
+      `This endpoint creates a new DNS zone for the given domain, 
+      generates DNS records (A and CNAME), 
+      updates the SSL settings, creates a Docker Compose file, 
+      and triggers a DNS propagation check. 
+      The client is expected to update their domain registrar with the provided nameservers.`,
   })
   @ApiBody({ type: DNSDto })
   @ApiResponse({
@@ -56,7 +62,11 @@ export class DnsController {
         domain,
       );
       await this.dnsService.updateSSLSetting(zone.id);
-      await this.dnsService.createDockerComposeFile(domain, projectId);
+      await this.dnsService.addTraeficConfigFile(domain,projectId);
+      // await this.dnsService.createDockerComposeFile(domain, projectId);
+      const project = await this.projectRepositoryService.findById(projectId);
+      await this.projectRepositoryService.update(projectId,{deployedUrl: [...(project.deployedUrl ?? []),domain]}
+    )
       await this.dnsQueue.add('check-propagation', {
         userId: 1,
         domain,

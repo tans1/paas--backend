@@ -61,7 +61,7 @@ model Project {
   environmentVariables  Json?        @map("environment_variables")
   deployedIp String? @map("deployed_ip")
   deployedPort Int? @map("deployed_port")
-  deployedUrl String? @map("deployedUrl")
+  deployedUrl String[] @map("deployedUrl")
 
   deployments Deployment[]
   activeDeploymentId Int? @map("active_deployment_id")
@@ -78,6 +78,7 @@ model Project {
   lastCommitMessage String  @db.VarChar(2083)
   status ProjectStatus  @default(PENDING)
   dockerComposeFile String? @db.VarChar(2083)
+  PORT Int?
 
   @@unique([repoId, branch], name: "repoId_branch")
 }
