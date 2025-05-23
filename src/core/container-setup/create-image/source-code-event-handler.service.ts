@@ -120,7 +120,7 @@ export class SourceCodeEventHandlerService {
       // projectName is the service name and it santized right.
       // PORT 
       await this.projectRepositoryService.update(projectId, {
-        deployedUrl: [...(project.deployedUrl ?? []),deployedUrl],
+        deployedUrl: deployedUrl,
         dockerComposeFile : dockerComposeFile,
         name : projectName,
         PORT : PORT

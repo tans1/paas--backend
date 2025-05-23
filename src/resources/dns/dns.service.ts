@@ -18,6 +18,11 @@ import * as https from 'https';
 import fetch, { RequestInit } from 'node-fetch';
 import { ProjectsRepositoryInterface } from '../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import {
+  CreateDNSRecordsFaildException,
+  UpdateSSLSettingException,
+} from '@/utils/exceptions/github.exception';
+import { NotificationQueueService } from '../notification/notification-queue.service';
 
 const execAsync = promisify(exec);
 @Injectable()
@@ -27,6 +32,7 @@ export class DnsService {
     private readonly projectsRepositoryService: ProjectsRepositoryInterface,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: LoggerService,
+    private readonly notificationQueueService: NotificationQueueService,
   ) {
     this.cloudflareApi = new Cloudflare({
       apiEmail: process.env['CLOUDFLARE_EMAIL'],
@@ -129,7 +135,7 @@ export class DnsService {
       this.logger.error(
         `Error creating DNS records for domain ${domain}: ${error.message}`,
       );
-      throw error;
+      throw new CreateDNSRecordsFaildException();
     }
   }
 
@@ -143,6 +149,7 @@ export class DnsService {
       );
       console.log('SSL setting updated:', response);
     } catch (error) {
+      throw new UpdateSSLSettingException();
       console.error('Error updating SSL setting:', error);
     }
   }
@@ -185,15 +192,9 @@ export class DnsService {
   //   );
   // }
 
-  async addTraeficConfigFile(
-    domain: string,
-    projectId: number,
-  ): Promise<void> {
-    const {
-      name : projectName,
-      PORT,
-    } = 
-      await this.projectsRepositoryService.findById(projectId)
+  async addTraeficConfigFile(domain: string, projectId: number): Promise<void> {
+    const { name: projectName, PORT } =
+      await this.projectsRepositoryService.findById(projectId);
     const rootDomain = this.getRootDomain(domain);
     const traefikDynamicPath = path.join(
       __dirname,
@@ -203,7 +204,11 @@ export class DnsService {
       'traefik-dynamic',
     );
 
-    const templatePath = path.join(traefikDynamicPath,'template', 'domain.config.ejs');
+    const templatePath = path.join(
+      traefikDynamicPath,
+      'template',
+      'domain.config.ejs',
+    );
     const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
     // const projectName = rootDomain
     //   .toLowerCase()
@@ -214,10 +219,13 @@ export class DnsService {
     const domainConfigContent = ejs.render(templateContent, {
       projectName,
       rootDomain,
-      PORT
+      PORT,
     });
     const domainConfigFileName = `domain-config.${rootDomain}.yml`;
-    const domainConfigFilePath = path.join(traefikDynamicPath, domainConfigFileName);
+    const domainConfigFilePath = path.join(
+      traefikDynamicPath,
+      domainConfigFileName,
+    );
     await fs.promises.writeFile(
       domainConfigFilePath,
       domainConfigContent,
@@ -348,6 +356,17 @@ export class DnsService {
       aRecordId,
       cnameRecordId,
     });
+    // Send notification
+    if (userId) {
+      await this.notificationQueueService.enqueueNotification({
+        title: 'Domain Propagation',
+        message: message || `Your domain ${domain} is now live!`,
+        type: 'SYSTEM',
+        priority: 'HIGH',
+        userId: Number(userId),
+        metadata: { domain, projectId, zoneId, aRecordId, cnameRecordId },
+      });
+    }
     console.log(
       `user : ${userId} , the domain names is resolved and you can access it now using ${domain}`,
     );

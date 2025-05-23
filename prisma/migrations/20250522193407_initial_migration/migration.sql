@@ -34,7 +34,7 @@ CREATE TABLE "Project" (
     "environment_variables" JSONB,
     "deployed_ip" TEXT,
     "deployed_port" INTEGER,
-    "deployedUrl" TEXT[],
+    "deployedUrl" TEXT,
     "active_deployment_id" INTEGER,
     "local_repo_path" TEXT,
     "zone_id" TEXT,
@@ -51,6 +51,17 @@ CREATE TABLE "Project" (
     "PORT" INTEGER,
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CustomDomain" (
+    "id" SERIAL NOT NULL,
+    "domain" TEXT NOT NULL,
+    "live" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "projectId" INTEGER NOT NULL,
+
+    CONSTRAINT "CustomDomain_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -179,6 +190,9 @@ CREATE UNIQUE INDEX "User_githubUsername_key" ON "User"("githubUsername");
 CREATE UNIQUE INDEX "Project_repo_id_branch_key" ON "Project"("repo_id", "branch");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "CustomDomain_domain_key" ON "CustomDomain"("domain");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Payment_transaction_id_key" ON "Payment"("transaction_id");
 
 -- CreateIndex
@@ -186,6 +200,9 @@ CREATE UNIQUE INDEX "NotificationPreferences_userId_key" ON "NotificationPrefere
 
 -- AddForeignKey
 ALTER TABLE "Project" ADD CONSTRAINT "Project_linkedByUserId_fkey" FOREIGN KEY ("linkedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomDomain" ADD CONSTRAINT "CustomDomain_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;

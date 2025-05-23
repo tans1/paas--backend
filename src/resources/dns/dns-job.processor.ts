@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { DnsService } from './dns.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { ProjectsRepositoryInterface } from '../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
 
 @Processor('dns-propagation', {
   concurrency: 5,
@@ -14,6 +15,7 @@ export class DnsJobProcessor extends WorkerHost {
   constructor(
     private readonly dnsService: DnsService,
     @InjectQueue('dns-propagation') private readonly dnsQueue: Queue,
+    private readonly projectsRepositoryService: ProjectsRepositoryInterface,
   ) {
     super();
   }
@@ -100,6 +102,18 @@ export class DnsJobProcessor extends WorkerHost {
       console.log('going to delete the old dns records');
 
       // await this.dnsService.deleteOldDNSRecords(projectId);
+      // Update the custom domain status to live
+      const customDomain =
+        await this.projectsRepositoryService.findCustomDomainByDomainAndProjectId(
+          domain,
+          projectId,
+        );
+      if (customDomain) {
+        await this.projectsRepositoryService.updateCustomDomain(
+          customDomain.id,
+          { live: true },
+        );
+      }
       await this.dnsService.notifyUser(
         domain,
         userId,

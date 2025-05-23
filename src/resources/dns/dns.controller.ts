@@ -17,7 +17,7 @@ import { ProjectsRepositoryInterface } from '@/infrastructure/database/interface
 export class DnsController {
   constructor(
     private readonly dnsService: DnsService,
-    private projectRepositoryService : ProjectsRepositoryInterface,
+    private projectRepositoryService: ProjectsRepositoryInterface,
     @InjectQueue('dns-propagation') private readonly dnsQueue: Queue,
   ) {}
 
@@ -25,8 +25,7 @@ export class DnsController {
   @Post()
   @ApiOperation({
     summary: 'Create DNS records and configuration',
-    description:
-      `This endpoint creates a new DNS zone for the given domain, 
+    description: `This endpoint creates a new DNS zone for the given domain, 
       generates DNS records (A and CNAME), 
       updates the SSL settings, creates a Docker Compose file, 
       and triggers a DNS propagation check. 
@@ -62,11 +61,14 @@ export class DnsController {
         domain,
       );
       await this.dnsService.updateSSLSetting(zone.id);
-      await this.dnsService.addTraeficConfigFile(domain,projectId);
+      await this.dnsService.addTraeficConfigFile(domain, projectId);
       // await this.dnsService.createDockerComposeFile(domain, projectId);
       const project = await this.projectRepositoryService.findById(projectId);
-      await this.projectRepositoryService.update(projectId,{deployedUrl: [...(project.deployedUrl ?? []),domain]}
-    )
+  
+      await this.projectRepositoryService.createCustomDomain({
+        domain,
+        projectId,
+      });
       await this.dnsQueue.add('check-propagation', {
         userId: 1,
         domain,
@@ -90,7 +92,7 @@ export class DnsController {
       };
     } catch (error) {
       console.error('Error creating DNS:', error);
-      return error;
+      throw error;
     }
   }
 }

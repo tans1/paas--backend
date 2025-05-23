@@ -12,6 +12,6 @@ import { NotificationQueueService } from './notification-queue.service';
   ],
   imports:[InterfacesModule],
 
-  exports: [NotificationService],
+  exports: [NotificationService,NotificationQueueService],
 })
 export class NotificationModule {}
