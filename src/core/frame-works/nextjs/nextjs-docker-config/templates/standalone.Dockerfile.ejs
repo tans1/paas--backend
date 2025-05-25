@@ -1,23 +1,25 @@
-# Next.js Standalone Dockerfile
-FROM node:<%= nodeVersion %>-alpine AS builder
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build && \
-    npm prune --production
+# templates/nextjs/standalone.Dockerfile.ejs
 
 FROM node:<%= nodeVersion %>-alpine
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV PORT <%= port %>
+ENV PORT=<%= port %>
 
-COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY package*.json ./
+# Install dependencies
+RUN <%= installCommand %>
 
+# Copy source and build the app
+COPY . .
+RUN <%= buildCommand %>
+
+# Merge public and static into the standalone bundle folder
+RUN mkdir -p <%= outputDirectory %>/<%= output %>/public \
+    && mkdir -p <%= outputDirectory %>/<%= output %>/.next/static \
+    && cp -R public/* <%= outputDirectory %>/<%= output %>/public/ \
+    && cp -R .next/static/* <%= outputDirectory %>/<%= output %>/.next/static/
+
+# Expose port and start
 EXPOSE <%= port %>
+WORKDIR /app/<%= outputDirectory %>/<%= output %>
 CMD ["node", "server.js"]
