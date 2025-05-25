@@ -13,14 +13,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(255)
-  email     String   @unique @db.VarChar(255)
-  password  String?  @db.VarChar(255)
-  role      String?  @db.VarChar(50)
-  githubUsername String? @unique @db.VarChar(255)
-  githubAccessToken String?   @map("access_token") @db.VarChar(255)
+  id                Int     @id @default(autoincrement())
+  name              String  @db.VarChar(255)
+  email             String  @unique @db.VarChar(255)
+  password          String? @db.VarChar(255)
+  role              String? @db.VarChar(50)
+  githubUsername    String? @unique @db.VarChar(255)
+  githubAccessToken String? @map("access_token") @db.VarChar(255)
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -28,6 +34,10 @@ model User {
   payments       Payment[]
   userAlerts     UserAlert[]
   oauthProviders OAuthProvider[]
+
+  Invoice Invoice[]
+  status     UserStatus   @default(ACTIVE)
+  suspendedAt DateTime?
   notifications  Notification[]
   notificationPreferences NotificationPreferences?
 }
@@ -45,39 +55,40 @@ model User {
 enum ProjectStatus {
   STOPPED
   RUNNING
-  PENDING 
+  PENDING
 }
 
 model Project {
-  id             Int      @id @default(autoincrement())
-  repoId         Int      @map("repo_id")
-  branch         String   @db.VarChar(100)
-  name           String   @db.VarChar(255)
-  url            String   @db.VarChar(2083)
-  framework      String   @db.VarChar(100)
-  linkedByUser   User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
-  linkedByUserId Int
-  createdAt      DateTime @default(now()) @map("created_at")
-  environmentVariables  Json?        @map("environment_variables")
-  deployedIp String? @map("deployed_ip")
-  deployedPort Int? @map("deployed_port")
-  deployedUrl String? @map("deployedUrl")
+  id                   Int      @id @default(autoincrement())
+  repoId               Int      @map("repo_id")
+  branch               String   @db.VarChar(100)
+  name                 String   @db.VarChar(255)
+  url                  String   @db.VarChar(2083)
+  framework            String   @db.VarChar(100)
+  linkedByUser         User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
+  linkedByUserId       Int
+  createdAt            DateTime @default(now()) @map("created_at")
+  environmentVariables Json?    @map("environment_variables")
+  deployedIp           String?  @map("deployed_ip")
+  deployedPort         Int?     @map("deployed_port")
+  deployedUrl          String?  @map("deployedUrl")
 
   deployments Deployment[]
   activeDeploymentId Int? @map("active_deployment_id")
 
   localRepoPath String? @map("local_repo_path")
-  zoneId String? @map("zone_id")
-  aRecordId String? @map("a_name_record_id")
-  cnameRecordId String? @map("cname_record_id")
-  installCommand String?   @db.VarChar(2083)
-  buildCommand String?   @db.VarChar(2083)
-  outputDirectory String?   @db.VarChar(2083)
-  rootDirectory String?   @db.VarChar(2083)
-  projectDescription String? @db.VarChar(2083)
-  lastCommitMessage String  @db.VarChar(2083)
-  status ProjectStatus  @default(PENDING)
-  dockerComposeFile String? @db.VarChar(2083)
+
+  zoneId             String?       @map("zone_id")
+  aRecordId          String?       @map("a_name_record_id")
+  cnameRecordId      String?       @map("cname_record_id")
+  installCommand     String?       @db.VarChar(2083)
+  buildCommand       String?       @db.VarChar(2083)
+  outputDirectory    String?       @db.VarChar(2083)
+  rootDirectory      String?       @db.VarChar(2083)
+  projectDescription String?       @db.VarChar(2083)
+  lastCommitMessage  String        @db.VarChar(2083)
+  status             ProjectStatus @default(PENDING)
+  dockerComposeFile  String?       @db.VarChar(2083)
 
   @@unique([repoId, branch], name: "repoId_branch")
 }
@@ -85,20 +96,20 @@ model Project {
 // imageName
 // containerName
 model Deployment {
-  id                    Int          @id @default(autoincrement())
-  project                  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId                Int
-  status                String       @db.VarChar(50)
-  branch                String       @db.VarChar(100)
-  environmentVariables  Json?        @map("environment_variables")
-  rollbackTo            Deployment?  @relation("Rollback", fields: [rollbackToId], references: [id])
-  rollbackToId          Int?         @map("rollback_to_id")
-  rollbackedDeployments Deployment[] @relation("Rollback")
-  containerName       String?      @map("container_name")
-  imageName           String?      @map("image_name")
-  createdAt DateTime        @default(now()) @map("created_at")
-  lastCommitMessage String @db.VarChar(2083)
-  logs      DeploymentLog[]
+  id                    Int             @id @default(autoincrement())
+  project               Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId             Int
+  status                String          @db.VarChar(50)
+  branch                String          @db.VarChar(100)
+  environmentVariables  Json?           @map("environment_variables")
+  rollbackTo            Deployment?     @relation("Rollback", fields: [rollbackToId], references: [id])
+  rollbackToId          Int?            @map("rollback_to_id")
+  rollbackedDeployments Deployment[]    @relation("Rollback")
+  containerName         String?         @map("container_name")
+  imageName             String?         @map("image_name")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  lastCommitMessage     String          @db.VarChar(2083)
+  logs                  DeploymentLog[]
 }
 
 model DeploymentLog {
@@ -108,19 +119,9 @@ model DeploymentLog {
   logLevel     String     @map("log_level") @db.VarChar(20)
   message      String
   timestamp    DateTime   @default(now()) @map("timestamp")
-  logType   String @map("log_type") @db.VarChar(20)
+  logType      String     @map("log_type") @db.VarChar(20)
 }
 
-model Payment {
-  id            Int      @id @default(autoincrement())
-  user          User     @relation(fields: [userId], references: [id])
-  userId        Int
-  amount        Decimal  @db.Decimal(10, 2)
-  method        String   @db.VarChar(50)
-  status        String   @db.VarChar(50)
-  transactionId String   @unique @map("transaction_id") @db.VarChar(255)
-  createdAt     DateTime @default(now()) @map("created_at")
-}
 
 model Server {
   id                 Int      @id @default(autoincrement())
@@ -154,76 +155,54 @@ model OAuthProvider {
   createdAt   DateTime @default(now()) @map("created_at")
 }
 
-
-
-
 model DailyMetric {
-  id             String   @id @default(cuid())
-  containerName  String
-  date           DateTime
-  cpuSeconds     Float
-  memoryBytes    BigInt
-  netRxBytes     BigInt
-  netTxBytes     BigInt
-  
+  id            String   @id @default(cuid())
+  containerName String
+  date          DateTime
+  cpuSeconds    Float
+  memoryBytes   BigInt
+  netRxBytes    BigInt
+  netTxBytes    BigInt
 }
 
 model MonthlyAggregate {
-  id              String   @id @default(cuid())
-  containerName   String
-  periodStart     DateTime
-  periodEnd       DateTime
-  totalCpuSecs    Float
-  totalMemGbHrs   Float
-  totalNetBytes   BigInt
+  id            String   @id @default(cuid())
+  containerName String
+  periodStart   DateTime
+  periodEnd     DateTime
+  totalCpuSecs  Float
+  totalMemGbHrs Float
+  totalNetBytes BigInt
 }
 
 model Invoice {
-  id         String   @id @default(cuid())
-  userId     String
-  amount     Float
-  status     String    
-  dueDate    DateTime
+  id      String   @id @default(cuid())
+  user    User     @relation(fields: [userId], references: [id])
+  userId  Int 
+
+  amount  Float
+  status  String
+  dueDate DateTime
+  updatedAt DateTime @updatedAt  
+  paymentLink String?
+  TxRef String?
+
+  @@index([userId])
 }
 
-enum NotificationType {
-  SYSTEM
-  DEPLOYMENT
-  SECURITY
-  UPDATE
+enum PaymentTypes {
+  PAID
+  PENDING
 }
 
-enum NotificationPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
+model Payment {
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        Int
 
-model Notification {
-  id        String   @id @default(uuid())
-  title     String
-  message   String   @db.Text
-  type      NotificationType @default(SYSTEM)
-  priority  NotificationPriority @default(MEDIUM)
-  isRead    Boolean  @default(false)
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    Int?
-  metadata  Json?
-  createdAt DateTime @default(now()) @map("created_at")
-  readAt    DateTime? @map("read_at")
-}
+  amount        Float  
+  status        PaymentTypes
 
-model NotificationPreferences {
-  id                String   @id @default(uuid())
-  user              User     @relation(fields: [userId], references: [id])
-  userId            Int      @unique
-  enabledTypes      Json     // Stores { SYSTEM: boolean, DEPLOYMENT: boolean, etc. }
-  emailNotifications Boolean  @default(true)
-  pushNotifications  Boolean  @default(true)
-  inAppNotifications Boolean @default(true)
-  minimumPriority   NotificationPriority @default(MEDIUM)
-  notifyOnDeployment Boolean  @default(true)
-  notifyOnSecurity  Boolean  @default(true)
-  notifyOnSystem    Boolean  @default(true)
-  notifyOnUpdate    Boolean  @default(true)
+  recentPaidAmount Float @default(0.0)
+  updatedAt DateTime @updatedAt  
 }

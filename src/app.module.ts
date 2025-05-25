@@ -12,26 +12,19 @@ import {
   utilities as nestWinstonModuleUtilities,
   WinstonModule,
 } from 'nest-winston';
-import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     InfrastructureModule,
+    ScheduleModule.forRoot(),
     CoreModule,
     ModulesModule,
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.forRoot({
       connection: {
-        host: 'localhost',
-        port: 6379,
-        db:1
-      },
-    }),
-    RedisModule.forRoot({
-      config: {
-        host: 'localhost',
-        port: 6379,
-        password: '12345678',
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
       },
     }),
     WinstonModule.forRoot({

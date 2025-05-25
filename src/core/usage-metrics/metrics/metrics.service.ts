@@ -1,42 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { PrismaClient } from '@prisma/client';
-import Redis from 'ioredis';
-
-interface ContainerMetric {
-  id: string;
-  spec: {
-    labels: Record<string, string>;
-  };
-  aliases: string[];
-  stats: {
-    timestamp: string;
-    cpu: {
-      usage: {
-        total: number;
-      };
-    };
-    memory: {
-      usage: number;
-    };
-    network: {
-      interfaces: {
-        rx_bytes: number;
-        tx_bytes: number;
-      }[];
-    };
-  }[];
-}
-
-interface MonthlyAggregate {
-  containerName: string;
-  periodStart: Date;
-  periodEnd: Date;
-  totalCpuSecs: number;
-  totalMemGbHrs: number;
-  totalNetBytes: number;
-}
+import { Redis } from 'ioredis';
+import {
+  ContainerMetric,
+  MonthlyAggregate,
+  UsedResourceMetrics,
+} from '../types';
 
 @Injectable()
 export class MetricsService {
@@ -45,11 +16,24 @@ export class MetricsService {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly redisClient: Redis,
-  ) {}
+    @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
+  ) {
+    this.redisClient.on('connect', () => this.logger.log('Redis connected'));
 
-  @Cron('*/1 * * * *')
-  async scrapeAllContainers() {
+    this.redisClient.on('error', (err) =>
+      this.logger.error('Redis error', err),
+    );
+
+    this.redisClient.on('ready', () => this.logger.log('Redis ready'));
+
+    this.redisClient.on('end', () =>
+      this.logger.log('Redis connection closed'),
+    );
+  }
+
+  // @Cron('0 */10 * * * *') // every 10min on production
+  @Cron('0 */1 * * * *') // every 1min on dev
+  async scrapeAllContainersMetrics() {
     try {
       const containers = await this.fetchContainerMetrics();
       for (const container of containers) {
@@ -68,8 +52,8 @@ export class MetricsService {
   }
 
   private async storeContainerMetrics(container: ContainerMetric) {
-    const containerName =
-      container.aliases?.[0]?.replace('/', '') || container.id;
+    if (!container.aliases) return;
+    const containerName = container.aliases[0] || container.id;
     const latestStats = container.stats.slice(-1)[0];
     if (!latestStats) return;
 
@@ -87,7 +71,8 @@ export class MetricsService {
     );
   }
 
-  @Cron('0 0 * * *')
+  // @Cron('0 0 0 * * *') // runs once every day on production
+  @Cron('0 */3 * * * *') // every 3min on dev
   async aggregateDaily() {
     try {
       const keys = await this.getAllRedisStreamKeys('metrics:*');
@@ -127,7 +112,7 @@ export class MetricsService {
     await this.prisma.dailyMetric.create({
       data: {
         containerName,
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(new Date().toISOString()),
         cpuSeconds: (last.cpu - first.cpu) / 1e9,
         memoryBytes: last.mem,
         netRxBytes: last.rx - first.rx,
@@ -135,19 +120,49 @@ export class MetricsService {
       },
     });
 
+    const userId = await this.getUserIdByContainerName(containerName);
+    if (!userId) return;
+    console.log('in the metrics+++++++', userId);
+    const currPayment = await this.prisma.payment.findFirst({
+      where: {
+        userId,
+        status: 'PENDING',
+      },
+    });
+
+    const mostRecentInvoice = await this.prisma.invoice.findFirst({
+      where: { userId, status: 'PAID' },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const todaysAmount = this.calculateUsageCost({
+      totalCpuSecs: (last.cpu - first.cpu) / 1e9,
+      totalMemGbHrs: last.mem,
+      totalNetBytes: last.rx - first.rx + last.tx - first.tx,
+    });
+
+    if (currPayment) {
+      await this.prisma.payment.update({
+        where: { id: currPayment.id },
+        data: {
+          amount: todaysAmount + currPayment.amount,
+        },
+      });
+    } else {
+      await this.prisma.payment.create({
+        data: {
+          userId,
+          amount: todaysAmount,
+          status: 'PENDING',
+          recentPaidAmount: mostRecentInvoice ? mostRecentInvoice.amount : 0.0,
+        },
+      });
+    }
     await this.redisClient.del(streamKey);
   }
 
-  private parseStreamEntry(entry: [string, string[]]) {
-    const [, values] = entry;
-    const metric = {} as Record<string, number>;
-    for (let i = 0; i < values.length; i += 2) {
-      metric[values[i]] = Number(values[i + 1]);
-    }
-    return metric;
-  }
-
-  @Cron('0 0 1 * *')
+  // @Cron('0 0 0 1 * *') // At second 0, minute 0, hour 0, on day 1 of every month: on the production
+  @Cron('0 */10 * * * *') // every 10min on dev
   async aggregateMonthly() {
     try {
       const { firstDay, lastDay, hoursInMonth } = this.getPreviousMonthRange();
@@ -185,45 +200,15 @@ export class MetricsService {
       this.logger.error('Failed to aggregate monthly metrics', error.stack);
     }
   }
-
-  private getPreviousMonthRange() {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
-    return {
-      firstDay,
-      lastDay,
-      hoursInMonth: lastDay.getDate() * 24,
-    };
-  }
-
-  @Cron('5 0 1 * *')
+  // @Cron('0 10 0 1 * *') // At second 0, minute 10, hour 0, on day 1 of every month, shortly after the monthly aggregation on production
+  @Cron('0 */11 * * * *') // every 11min on dev
   async createInvoicesFromContainerAggregates() {
     const { firstDay, lastDay } = this.getPreviousMonthRange();
-
     const aggregates = await this.prisma.monthlyAggregate.findMany({
       where: {
-        periodStart: { gte: firstDay },
-        periodEnd: { lte: lastDay },
+        periodStart: { gte: new Date(firstDay.getTime() - 5 * 60 * 1000) },
+        periodEnd: { lte: new Date(lastDay.getTime() + 5 * 60 * 1000) },
       },
-    });
-
-    const deployments = await this.prisma.deployment.findMany({
-      where: {
-        containerName: {
-          in: aggregates.map((a) => a.containerName),
-        },
-      },
-      include: {
-        project: { select: { linkedByUserId: true } },
-      },
-    });
-
-    const containerToUserMap = new Map<string, number>();
-    deployments.forEach((dep) => {
-      if (dep.containerName) {
-        containerToUserMap.set(dep.containerName, dep.project.linkedByUserId);
-      }
     });
 
     const userUsage = new Map<
@@ -232,8 +217,8 @@ export class MetricsService {
     >();
 
     for (const agg of aggregates) {
-      const userId = containerToUserMap.get(agg.containerName);
-      if (!userId) continue;
+      const userId = await this.getUserIdByContainerName(agg.containerName);
+      if (userId === null) continue;
 
       const existing = userUsage.get(userId) ?? {
         periodStart: agg.periodStart,
@@ -251,24 +236,90 @@ export class MetricsService {
     }
 
     for (const [userId, usage] of userUsage.entries()) {
-      await this.prisma.invoice.create({
-        data: {
-          userId: userId.toString(),
-          amount: this.calculateUsageCost(usage),
-          status: 'PENDING',
-          dueDate: new Date(usage.periodEnd.getTime() + 3 * 86400 * 1000),
+      const existingInvoice = await this.prisma.invoice.findFirst({
+        where: {
+          userId,
+          status: {
+            in: ['PENDING', 'GENERATED'],
+          },
         },
       });
+
+      const amount = this.calculateUsageCost(usage);
+      const dueDate = new Date(usage.periodEnd.getTime() + 3 * 86400 * 1000);
+
+      if (existingInvoice) {
+        await this.prisma.invoice.update({
+          where: { id: existingInvoice.id },
+          data: {
+            amount,
+            // dueDate,
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        await this.prisma.invoice.create({
+          data: {
+            userId,
+            amount,
+            status: 'PENDING',
+            dueDate,
+          },
+        });
+      }
     }
-    // TODO: Send the notications and payment thigns
   }
 
-  private calculateUsageCost(
-    metric: Omit<MonthlyAggregate, 'containerName'>,
-  ): number {
-    const cpuCost = metric.totalCpuSecs * 0.00002;
-    const memoryCost = metric.totalMemGbHrs * 0.0015;
-    const networkCost = metric.totalNetBytes * 0.0000001;
+  private calculateUsageCost(metric: UsedResourceMetrics): number {
+    const cpuCost = metric.totalCpuSecs * 2;
+    const memoryCost = metric.totalMemGbHrs * 1;
+    const networkCost = metric.totalNetBytes * 5;
     return cpuCost + memoryCost + networkCost;
+  }
+
+  private async getUserIdByContainerName(
+    containerName: string,
+  ): Promise<number | null> {
+    const deployment = await this.prisma.deployment.findFirst({
+      where: { containerName },
+      select: { project: { select: { linkedByUserId: true } } },
+    });
+
+    return deployment?.project.linkedByUserId ?? null;
+  }
+
+  private parseStreamEntry(entry: [string, string[]]) {
+    const [, values] = entry;
+    const metric = {} as Record<string, number>;
+    for (let i = 0; i < values.length; i += 2) {
+      metric[values[i]] = Number(values[i + 1]);
+    }
+    return metric;
+  }
+
+  // private getPreviousMonthRange() {
+  //   const now = new Date();
+  //   const firstDay = new Date(
+  //     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+  //   );
+  //   const lastDay = new Date(
+  //     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0),
+  //   );
+  //   return {
+  //     firstDay,
+  //     lastDay,
+  //     hoursInMonth: lastDay.getDate() * 24,
+  //   };
+  // }
+
+  private getPreviousMonthRange() {
+    const now = new Date();
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
+    return {
+      firstDay: new Date(tenMinutesAgo.toISOString()),
+      lastDay: new Date(now.toISOString()),
+      hoursInMonth: 30 / 60,
+    };
   }
 }

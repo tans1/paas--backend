@@ -6,15 +6,14 @@ export interface CreateProjectDTO {
   url: string;
   linkedByUserId: number;
   environmentVariables?: Record<string, string>;
-  environmentVariables?: Record<string, string>;
   branch: string;
   framework: string;
   installCommand?: string;
   buildCommand?: string;
   outputDirectory?: string;
   rootDirectory?: string;
-  projectDescription?: string,
-  lastCommitMessage: string
+  projectDescription?: string;
+  lastCommitMessage: string;
 }
 
 export interface UpdateProjectDTO {
@@ -30,8 +29,7 @@ export interface UpdateProjectDTO {
   cnameRecordId?: string;
   lastCommitMessage?: string;
   status?: ProjectStatus;
-  dockerComposeFile?: string
-
+  dockerComposeFile?: string;
 }
 
 export type ProjectWithDeploymentsAndUser = Prisma.ProjectGetPayload<{
@@ -61,5 +59,5 @@ export abstract class ProjectsRepositoryInterface {
     deploymentId: number,
   ): Promise<void>;
   abstract getAllDeployments(projectid: number): Promise<Project>;
-  abstract getAllProjects() : Promise<ProjectWithDeploymentsAndUser[]>;
+  abstract getAllProjects(): Promise<ProjectWithDeploymentsAndUser[]>;
 }

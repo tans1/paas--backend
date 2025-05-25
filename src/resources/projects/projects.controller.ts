@@ -1,7 +1,20 @@
-import { Controller, Get, Post,UseGuards, Req, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Req,
+  Body,
+  Query,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { ProjectsService } from './projects.service';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+} from '@nestjs/swagger';
 import { ProjectResponseDto } from './dto/project.response.dto'; // Adjust the import path and DTO name as needed
 import { ProjectDto } from './dto/project.dto';
 import { ManageProjectService } from './manage-project/manage-project.service';
@@ -12,7 +25,7 @@ import { ProjectRollbackDto } from './dto/project.rollback.dto';
 export class ProjectsController {
   constructor(
     private projectsService: ProjectsService,
-    private manageProjectService : ManageProjectService
+    private manageProjectService: ManageProjectService,
   ) {}
 
   @ApiBearerAuth('JWT-auth')
@@ -48,73 +61,67 @@ export class ProjectsController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Start project' })
   @ApiBody({
-      type: ProjectDto,
-      description: 'The data required to start a project',
-    })
+    type: ProjectDto,
+    description: 'The data required to start a project',
+  })
   @ApiResponse({
     status: 200,
     description: 'Project started succesfully',
     type: CustomApiResponse,
   })
   @Post('start-project')
-  async startProject(
-    @Body() body: ProjectDto,
-  ) {
-
-    const {
-      id
-    } = body
+  async startProject(@Body() body: ProjectDto) {
+    const { id } = body;
 
     const project = await this.manageProjectService.startProject(id);
-    return CustomApiResponse.success(project,`Successfully started the project`)
+    return CustomApiResponse.success(
+      project,
+      `Successfully started the project`,
+    );
   }
 
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Stop project' })
   @ApiBody({
-      type: ProjectDto,
-      description: 'The data required to stop a project',
-    })
+    type: ProjectDto,
+    description: 'The data required to stop a project',
+  })
   @ApiResponse({
     status: 200,
     description: 'Project stopped succesfully',
     type: CustomApiResponse,
   })
   @Post('stop-project')
-  async stopProject(
-    @Body() body: ProjectDto,
-  ) {
-
-    const {
-      id
-    } = body
+  async stopProject(@Body() body: ProjectDto) {
+    const { id } = body;
 
     const project = await this.manageProjectService.stopProject(id);
-    return CustomApiResponse.success(project,`Successfully stopped the project`)
+    return CustomApiResponse.success(
+      project,
+      `Successfully stopped the project`,
+    );
   }
 
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete project' })
   @ApiBody({
-      type: ProjectDto,
-      description: 'The data required to delete a project',
-    })
+    type: ProjectDto,
+    description: 'The data required to delete a project',
+  })
   @ApiResponse({
     status: 201,
     description: 'Returns the deleted project.',
-    type: CustomApiResponse
+    type: CustomApiResponse,
   })
   @Post('delete-project')
-  async deleteProject(
-    @Body() body: ProjectDto,
-  ) {
-
-    const {
-      id
-    } = body
+  async deleteProject(@Body() body: ProjectDto) {
+    const { id } = body;
 
     const project = await this.manageProjectService.deleteProject(id);
-    return CustomApiResponse.success(project,`Successfully deleted the project`)
+    return CustomApiResponse.success(
+      project,
+      `Successfully deleted the project`,
+    );
   }
 
   @ApiBearerAuth('JWT-auth')

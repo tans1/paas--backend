@@ -19,24 +19,24 @@ export class ManageContainerService {
     projectPath: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const proc = spawn("docker", args, {
+      const proc = spawn('docker', args, {
         cwd: projectPath,
-        stdio: "inherit",
+        stdio: 'inherit',
         env: process.env,
       });
 
-      proc.on("error", (err) => {
+      proc.on('error', (err) => {
         reject(new Error(`Failed to execute docker command: ${err.message}`));
       });
 
-      proc.on("exit", (code) => {
+      proc.on('exit', (code) => {
         if (code === 0) {
           resolve();
         } else {
           reject(
             new Error(
-              `docker command "${args.join(" ")}" exited with code ${code}`
-            )
+              `docker command "${args.join(' ')}" exited with code ${code}`,
+            ),
           );
         }
       });
@@ -72,10 +72,10 @@ export class ManageContainerService {
     await this.execDockerCommand(["stop", containerName], projectPath);
   }
 
-//   async rm(projectPath: string, force = true): Promise<void> {
-//     const args = ["compose", "rm", force ? "-f" : ""].filter(Boolean) as string[];
-//     await this.execDockerCommand(args, projectPath);
-//   }
+  //   async rm(projectPath: string, force = true): Promise<void> {
+  //     const args = ["compose", "rm", force ? "-f" : ""].filter(Boolean) as string[];
+  //     await this.execDockerCommand(args, projectPath);
+  //   }
 
   // async down(projectPath: string, dockerComposeFile: string,removeVolumes = false): Promise<void> {
   //   const args = ["compose","-f", dockerComposeFile, "down", "--remove-orphans", removeVolumes ? "--volumes" : ""].filter(
