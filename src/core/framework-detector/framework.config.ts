@@ -3,14 +3,16 @@ export type FrameworkKey =
   | 'Vue'
   | 'Angular'
   | 'NestJS'
-  | 'FastAPI'
+  // | 'FastAPI'
   | 'Docker'
   | 'NextJs'
   | 'CreateReactApp'
-  | 'Vite';
+  | 'Vite'
+  // | 'Flask'
+  | 'Python';
 
 export interface FrameworkDefinition {
-  file: string;
+  file: string | string[];
   name: string;
   dependencies?: string[];
   sort: number;
@@ -129,11 +131,11 @@ export const FrameworkMap: Record<FrameworkKey, FrameworkDefinition> = {
       },
       buildCommand: {
         placeholder: '`npm run build` or `next build`',
-        value: 'next build',
+        value: 'npx next build',
       },
       runCommand: {
-        placeholder: 'next dev --port $PORT',
-        value: 'next dev --port $PORT',
+        placeholder: 'next start --port $PORT',
+        value: 'npx next start',
       },
       outputDirectory: {
         placeholder: 'Next.js default',
@@ -217,28 +219,83 @@ export const FrameworkMap: Record<FrameworkKey, FrameworkDefinition> = {
     },
   },
 
-  FastAPI: {
-    name: 'FastAPI',
-    file: 'requirements.txt',
+  Python: {
+    name: 'Python',
+    file: [
+      'requirements.txt', 
+      'pyproject.toml',
+      'Pipfile',
+      'setup.py',
+      'environment.yml'
+    ],
     sort: 8,
-    dependencies: ['fastapi'],
+    dependencies: ['flask', 'fastapi', 'django', 'gunicorn', 'uvicorn'],
     settings: {
       installCommand: {
-        placeholder: '`pip install -r requirements.txt`',
-        value: 'pip install -r requirements.txt',
+        placeholder: '`poetry install` or `pip install -r requirements.txt`',
+        value: 'if [ -f pyproject.toml ] && grep -q "tool.poetry" pyproject.toml; then poetry install; else pip install -r requirements.txt || pip install . ; fi',
       },
       buildCommand: {
-        placeholder: '`(no build step required)`',
+        placeholder: '`(optional) python setup.py build`',
         value: '',
       },
       runCommand: {
-        placeholder: '`uvicorn main:app --reload --port $PORT`',
-        value: 'uvicorn main:app --reload --port $PORT',
+        placeholder: 'Framework-specific (e.g. `uvicorn app.main:app`, `flask run`, `gunicorn`, `manage.py`)',
+        value: '', // Empty to require user input
       },
       outputDirectory: {
-        placeholder: '`(no output directory)`',
-        value: '',
+        placeholder: '`(static assets only) ./static/`',
+        value: 'static',
       },
     },
   },
+
+  // FastAPI: {
+  //   name: 'FastAPI',
+  //   file: ['requirements.txt', 'pyproject.toml'],
+  //   sort: 9,
+  //   dependencies: ['fastapi'],
+  //   settings: {
+  //     installCommand: {
+  //       placeholder: '`pip install -r requirements.txt` or `pip install .`',
+  //       value: 'pip install -r requirements.txt || pip install .',
+  //     },
+  //     buildCommand: {
+  //       placeholder: '`(no build step required)`',
+  //       value: '',
+  //     },
+  //     runCommand: {
+  //       placeholder: '`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`',
+  //       value: '`uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`',
+  //     },
+  //     outputDirectory: {
+  //       placeholder: '`(no output directory)`',
+  //       value: '',
+  //     },
+  //   },
+  // },
+  // Flask: {
+  //   name: 'Flask',
+  //   file: ['requirements.txt', 'pyproject.toml'],
+  //   sort: 10,
+  //   dependencies: ['flask'],
+  //   settings: {
+  //     installCommand: {
+  //       placeholder: '`pip install -r requirements.txt` or `pip install .`',
+  //       value: 'pip install -r requirements.txt || pip install .',
+  //     },
+  //     buildCommand: {
+  //       placeholder: '`(no build step required)`',
+  //       value: '',
+  //     },
+  //     runCommand: {
+  //       placeholder: '`flask run --port $PORT`',
+  //       value: 'flask run --port $PORT',
+  //     },
+  //     outputDirectory: {
+  //       placeholder: '`(no output directory)`',
+  //       value: '',
+  //     },
+  //   },
+  // },
 };
