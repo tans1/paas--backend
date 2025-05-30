@@ -4,6 +4,7 @@ import { NextJsProjectService } from './nextjs-project-service';
 import { NextJsDockerfileService } from './nextjs-docker-config/nextjs-dockerfile.service';
 import { AlsModule } from '@/utils/als/als.module';
 import { NextJsDockerIgnoreFileService } from './nextjs-docker-config/nextjs-dockerignorefile.service';
+import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
 
 @Module({
   providers: [
@@ -12,6 +13,6 @@ import { NextJsDockerIgnoreFileService } from './nextjs-docker-config/nextjs-doc
     NextJsDockerfileService,
     NextJsDockerIgnoreFileService,
   ],
-  imports: [AlsModule],
+  imports: [AlsModule,InterfacesModule],
 })
 export class NextJsModule {}

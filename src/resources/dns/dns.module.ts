@@ -4,6 +4,7 @@ import { DnsService } from './dns.service';
 import { BullModule } from '@nestjs/bullmq';
 import { DnsJobProcessor } from './dns-job.processor';
 import { InterfacesModule } from '../../infrastructure/database/interfaces/interfaces.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { InterfacesModule } from '../../infrastructure/database/interfaces/inter
       name: 'dns-propagation',
     }),
     InterfacesModule,
+    NotificationModule
   ],
   controllers: [DnsController],
   providers: [DnsService, DnsJobProcessor],

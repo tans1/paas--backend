@@ -12,8 +12,8 @@ export interface CreateProjectDTO {
   buildCommand?: string;
   outputDirectory?: string;
   rootDirectory?: string;
-  projectDescription?: string,
-  lastCommitMessage: string
+  projectDescription?: string;
+  lastCommitMessage: string;
 }
 
 export interface UpdateProjectDTO {
@@ -29,8 +29,8 @@ export interface UpdateProjectDTO {
   cnameRecordId?: string;
   lastCommitMessage?: string;
   status?: ProjectStatus;
-  dockerComposeFile?: string
-
+  dockerComposeFile?: string;
+  PORT?: number;
 }
 
 export type ProjectWithDeploymentsAndUser = Prisma.ProjectGetPayload<{
@@ -39,6 +39,15 @@ export type ProjectWithDeploymentsAndUser = Prisma.ProjectGetPayload<{
     linkedByUser: true;
   };
 }>;
+
+export interface CreateCustomDomain {
+  domain: string;
+  projectId: number;
+}
+
+export interface UpdateCustomDomain {
+  live: boolean;
+}
 
 export const StatusEnum = ProjectStatus;
 // export type StatusEnum = keyof typeof statusValues;
@@ -60,5 +69,14 @@ export abstract class ProjectsRepositoryInterface {
     deploymentId: number,
   ): Promise<void>;
   abstract getAllDeployments(projectid: number): Promise<Project>;
-  abstract getAllProjects() : Promise<ProjectWithDeploymentsAndUser[]>;
+  abstract getAllProjects(): Promise<ProjectWithDeploymentsAndUser[]>;
+  abstract createCustomDomain(payload: CreateCustomDomain): Promise<void>;
+  abstract updateCustomDomain(
+    domainId: number,
+    payload: UpdateCustomDomain,
+  ): Promise<void>;
+  abstract findCustomDomainByDomainAndProjectId(
+    domain: string,
+    projectId: number,
+  ): Promise<any | null>;
 }

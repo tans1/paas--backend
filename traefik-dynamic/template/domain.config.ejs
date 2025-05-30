@@ -1,0 +1,26 @@
+http:
+  routers:
+    <%= projectName %>-router:
+      rule: "Host(`<%= rootDomain %>`) || Host(`www.<%= rootDomain %>`)"
+      entryPoints:
+        - websecure
+      service: <%= projectName %>
+      middlewares:
+        - rewrite-host
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: <%= rootDomain %>
+            sans: "www.<%= rootDomain %>"
+
+  services:
+    <%= projectName %>:
+      loadBalancer:
+        servers:
+          - url: "http://<%= projectName %>:<%= PORT %>"
+
+  middlewares:
+    rewrite-host:
+      headers:
+        customRequestHeaders:
+          Host: "localhost"
