@@ -7,6 +7,7 @@ import { DockerModule } from './Docker/docker.module';
 import { NextJsModule } from './nextjs/nextjs.module';
 import { CRAModule } from './create-react-app/react.module';
 import { ViteModule } from './vite/vite.module';
+import { PythonModule } from './python/python.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ViteModule } from './vite/vite.module';
     NextJsModule,
     CRAModule,
     ViteModule,
+    PythonModule
   ],
 })
 export class FrameWorksModule {}
