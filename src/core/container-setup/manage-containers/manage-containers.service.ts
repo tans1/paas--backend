@@ -51,7 +51,6 @@ export class ManageContainerService {
   async start(projectPath: string, repoId : number, activeDeployment: Deployment): Promise<void> {
     const { containerName, imageName,branch,id } = activeDeployment;
     
-    // Force remove any existing container first
     await this.rm(containerName, projectPath);
     
     await this.execDockerCommand(
@@ -86,9 +85,7 @@ export class ManageContainerService {
   //   await this.execDockerCommand(args, projectPath);
   // }
 
-  // shoudl I move this to compose service it doesnt't have to 
-  // I can keep it here but i would bring in the composeServie
-  // 
+ 
   async rollback(
     projectPath : string, 
     projectName : string,
@@ -135,7 +132,7 @@ export class ManageContainerService {
   }
 
   async cleanup(projectPath: string) {
-    // Target only project-specific resources
+  
     await this.execDockerCommand(
       ["network", "prune", "-f", "--filter", "name=project_network"],
       projectPath
