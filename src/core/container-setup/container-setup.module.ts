@@ -13,6 +13,9 @@ import { DeploymentUtilsService } from './deployment-utils/deployment-utils.serv
 import { ManageContainerService } from './manage-containers/manage-containers.service';
 import { DeploymentEventsGateway } from './gateway/deployment-events.gateway';
 import { DockerHubService } from './create-image/docker-hub.service';
+import { EnvironmentModule } from '@/utils/environment/environment.module';
+import { DockerComposeFileService } from './docker-compose/dockerComposeFile.service';
+import { DockerComposeService } from './docker-compose/dockerCompose.service';
 
 @Module({
   providers: [
@@ -27,9 +30,11 @@ import { DockerHubService } from './create-image/docker-hub.service';
     RuntimeLogService,
     DeploymentUtilsService,
     ManageContainerService,
-    DockerHubService
+    DockerHubService,
+    DockerComposeFileService,
+    DockerComposeService
   ],
-  imports: [AlsModule, InterfacesModule],
+  imports: [AlsModule, InterfacesModule, EnvironmentModule],
   exports: [ManageContainerService, ImageBuildService, DeploymentUtilsService],
 })
 export class ContainerSetupModule {}

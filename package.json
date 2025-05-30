@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/bullmq": "^11.0.2",
     "@nestjs/cli": "^10.0.0",
@@ -40,6 +41,7 @@
     "@prisma/client": "^6.1.0",
     "@types/axios": "^0.9.36",
     "@types/glob": "^8.1.0",
+    "@types/iarna__toml": "^2.0.5",
     "@types/passport-jwt": "^4.0.1",
     "async_hooks": "^1.0.0",
     "axios": "^1.7.9",

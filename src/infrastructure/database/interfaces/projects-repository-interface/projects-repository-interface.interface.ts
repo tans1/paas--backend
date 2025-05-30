@@ -10,6 +10,7 @@ export interface CreateProjectDTO {
   framework: string;
   installCommand?: string;
   buildCommand?: string;
+  runCommand? : string;
   outputDirectory?: string;
   rootDirectory?: string;
   projectDescription?: string;
@@ -31,6 +32,7 @@ export interface UpdateProjectDTO {
   status?: ProjectStatus;
   dockerComposeFile?: string;
   PORT?: number;
+  environmentVariables?: Record<string, string>;
 }
 
 export type ProjectWithDeploymentsAndUser = Prisma.ProjectGetPayload<{

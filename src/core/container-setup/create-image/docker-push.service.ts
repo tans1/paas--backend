@@ -5,6 +5,7 @@ import { AlsService } from '@/utils/als/als.service';
 import { branch } from 'isomorphic-git';
 import { LogType } from '../enums/log-type.enum';
 
+// TODO: I think I can remove this it's a duplicated service
 @Injectable()
 export class DockerPushService {
   private docker: Docker;

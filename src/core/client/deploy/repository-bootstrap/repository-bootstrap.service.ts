@@ -14,9 +14,8 @@ export class RepositoryBootstrapService {
     githubAccessToken: string,
   ) {
     try {
-      if (!fs.existsSync(localRepoPath)) {
-        fs.mkdirSync(localRepoPath, { recursive: true });
-      }
+      fs.rmSync(localRepoPath, { recursive: true, force: true });
+      fs.mkdirSync(localRepoPath, { recursive: true });
 
       await git.clone({
         fs,

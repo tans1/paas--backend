@@ -111,7 +111,7 @@ export class DockerLogService {
     };
 
     if (deploymentId) {
-      this.deploymentRepositoryService.addLog(createDeploymentLogDTO);
+      await this.deploymentRepositoryService.addLog(createDeploymentLogDTO);
     }
   }
 }

@@ -42,6 +42,7 @@ CREATE TABLE "Project" (
     "cname_record_id" TEXT,
     "installCommand" VARCHAR(2083),
     "buildCommand" VARCHAR(2083),
+    "runCommand" VARCHAR(2083),
     "outputDirectory" VARCHAR(2083),
     "rootDirectory" VARCHAR(2083),
     "projectDescription" VARCHAR(2083),
@@ -76,6 +77,7 @@ CREATE TABLE "Deployment" (
     "image_name" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastCommitMessage" VARCHAR(2083) NOT NULL,
+    "extension" VARCHAR(2083) NOT NULL,
 
     CONSTRAINT "Deployment_pkey" PRIMARY KEY ("id")
 );

@@ -1,12 +1,8 @@
 version: "3.8"
-
 services:
   <%=projectName %>:
-    image: <%=imageName %>
-    build:
-      context: .
-      dockerfile: <%=dockerFile %>
-    container_name: <%=containerName %>
+    image: <%=imageName %>:${EXTENSION}
+    container_name: <%=containerName %>-${EXTENSION}
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.<%= projectName %>.rule=(Host(`<%= deploymentUrl %>`) || Host(`www.<%= deploymentUrl %>`))'
@@ -15,21 +11,21 @@ services:
       - 'traefik.http.routers.<%= projectName %>.tls.certresolver=cloudflare'
       - 'traefik.http.routers.<%= projectName %>.tls.domains[0].main=<%= deploymentUrl %>'
       - 'traefik.http.routers.<%= projectName %>.tls.domains[0].sans=www.<%= deploymentUrl %>'
-      - 'traefik.http.services.<%= projectName %>.loadbalancer.server.port=PORT' #TODO: use PORT variable here
+      - 'traefik.http.services.<%= projectName %>.loadbalancer.server.port=<%= PORT %>' 
 
       - 'traefik.http.middlewares.rewrite-host.headers.customRequestHeaders.Host=localhost'
       - 'traefik.http.routers.<%= projectName %>.middlewares=rewrite-host'
-
 
     volumes:
       - node_modules:/usr/src/app/node_modules
     networks:
       - traefik-public
+    ports:
+      - "3001:<%= PORT %>"  # Replace PORT with the actual port your application listens on
 <% if (includeEnvFile) { %>
     env_file:
-      - <%= envFileName %>
+      - <%= projectName %>.${EXTENSION}.env
 <% } %>
-
 
 volumes:
   node_modules:
@@ -37,5 +33,3 @@ volumes:
 networks:
   traefik-public:
     external: true
-
-

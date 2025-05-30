@@ -75,6 +75,7 @@ model Project {
   cnameRecordId String? @map("cname_record_id")
   installCommand String?   @db.VarChar(2083)
   buildCommand String?   @db.VarChar(2083)
+  runCommand String?   @db.VarChar(2083)
   outputDirectory String?   @db.VarChar(2083)
   rootDirectory String?   @db.VarChar(2083)
   projectDescription String? @db.VarChar(2083)
@@ -83,7 +84,6 @@ model Project {
   dockerComposeFile String? @db.VarChar(2083)
   PORT Int?
   customDomains CustomDomain[]
-
   @@unique([repoId, branch], name: "repoId_branch")
 }
 
@@ -115,6 +115,7 @@ model Deployment {
   createdAt DateTime        @default(now()) @map("created_at")
   lastCommitMessage String @db.VarChar(2083)
   logs      DeploymentLog[]
+  extension String @db.VarChar(2083)
 }
 
 model DeploymentLog {

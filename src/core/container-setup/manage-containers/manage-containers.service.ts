@@ -3,6 +3,7 @@ import { Deployment } from "@prisma/client";
 import { spawn } from "child_process";
 import { DockerHubService } from "../create-image/docker-hub.service";
 import { RuntimeLogService } from "../create-image/containter-runtime-log.service";
+import { DockerComposeService } from "../docker-compose/dockerCompose.service";
 
 @Injectable()
 export class ManageContainerService {
@@ -11,6 +12,7 @@ export class ManageContainerService {
   constructor(
     private dockerHubService: DockerHubService,
     private runtimeLogService: RuntimeLogService,
+    private dockerComposeService: DockerComposeService
   ){
 
   }
@@ -84,16 +86,22 @@ export class ManageContainerService {
   //   await this.execDockerCommand(args, projectPath);
   // }
 
+  // shoudl I move this to compose service it doesnt't have to 
+  // I can keep it here but i would bring in the composeServie
+  // 
   async rollback(
     projectPath : string, 
+    projectName : string,
     repoId : number,
+    dockerComposeFile: string,
     rollbackDeployment: Deployment
   ) {
     const { 
       imageName, 
       containerName, 
       branch, 
-      id 
+      id ,
+      extension
     } = rollbackDeployment;
   
     try {
@@ -104,17 +112,13 @@ export class ManageContainerService {
         branch,
         id
       );
-  
-      // Force remove existing container
-      try {
-        await this.rm(containerName, projectPath);
-      } catch (error) {
-        this.logger.warn(`Container removal warning: ${error.message}`);
-      }
-  
-      // Start container with the rolled-back image
-      const runArgs = ['run', '-d', '--name', containerName, imageName];
-      await this.execDockerCommand(runArgs, projectPath);
+
+      await this.dockerComposeService.up(
+        projectPath,
+        dockerComposeFile,
+        extension,
+        projectName
+      )
   
       // Stream logs through the logging service
       await this.runtimeLogService.streamContainerLogs(
