@@ -103,14 +103,16 @@ export class WebhooksService {
         lastCommitMessage : lastCommitMessage
 
       });
-
-    this.alsService.runWithrepositoryInfo(repositoryId, repositoryName, () => {
+      this.alsService.initContext();
+      this.alsService.setRepositoryId(repositoryId);
+      this.alsService.setProjectName(repositoryName)
       this.alsService.setLastCommitMessage(lastCommitMessage)
+      this.alsService.setExtension()
       this.eventEmitter.emit(EventNames.PushEventReceived, {
         repoData: payload,
         githubAccessToken: githubAccessToken,
       });
-    });
+
 
     console.log(`Received event: ${event}`);
     console.log('Payload:', JSON.stringify(payload, null, 2));

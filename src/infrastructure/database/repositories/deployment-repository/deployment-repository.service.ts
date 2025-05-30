@@ -8,7 +8,6 @@ import {
 import { Deployment, DeploymentLog } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
 
-// TODO: can not access resources in the deployed version
 @Injectable()
 export class DeploymentRepositoryService
   implements DeploymentRepositoryInterface

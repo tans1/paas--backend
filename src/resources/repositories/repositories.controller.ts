@@ -165,6 +165,7 @@ async redirectToGitHubAuth(
         framework,
         installCommand,
         buildCommand,
+        runCommand,
         outputDirectory,
         rootDirectory,
         projectDescription
@@ -199,6 +200,7 @@ async redirectToGitHubAuth(
         framework,
         installCommand,
         buildCommand,
+        runCommand,
         outputDirectory,
         rootDirectory,
         projectDescription,
@@ -213,15 +215,13 @@ async redirectToGitHubAuth(
         email,
         environmentVariables,
       };
+      this.alsService.initContext();
+      this.alsService.setRepositoryId(repositoryId);
+      this.alsService.setProjectName(repositoryName);
+      this.alsService.setframework(framework);
+      this.alsService.setExtension();
+      this.eventEmitter.emit(EventNames.PROJECT_INITIALIZED, payload);
 
-      this.alsService.runWithrepositoryInfo(
-        repositoryId,
-        repositoryName,
-        () => {
-          this.alsService.setframework(framework);
-          this.eventEmitter.emit(EventNames.PROJECT_INITIALIZED, payload);
-        },
-      );
 
       return CustomApiResponse.success(project,"succefuuly created project");
     } catch (error) {
@@ -305,7 +305,7 @@ async redirectToGitHubAuth(
     }
   }
 
-  // TODO: Implement rollback functionality
+
   /*
   @ApiOperation({
     summary: 'Rollback Deployment',

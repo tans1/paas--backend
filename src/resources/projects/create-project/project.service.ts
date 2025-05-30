@@ -21,6 +21,7 @@ export class ProjectService {
     framework,
     installCommand,
     buildCommand,
+    runCommand,
     outputDirectory,
     rootDirectory,
     projectDescription,
@@ -33,6 +34,7 @@ export class ProjectService {
     framework: string;
     installCommand: string;
     buildCommand: string;
+    runCommand: string;
     outputDirectory: string;
     rootDirectory: string;
     projectDescription: string,
@@ -52,6 +54,7 @@ export class ProjectService {
         framework: framework,
         installCommand: installCommand,
         buildCommand: buildCommand,
+        runCommand: runCommand,
         outputDirectory: outputDirectory,
         rootDirectory: rootDirectory,
         projectDescription,

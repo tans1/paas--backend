@@ -5,6 +5,8 @@ import { InterfacesModule } from '@/infrastructure/database/interfaces/interface
 import { ContainerSetupModule } from '@/core/container-setup/container-setup.module';
 import { ManageContainerService } from '@/core/container-setup/manage-containers/manage-containers.service';
 import { ManageProjectService } from './manage-project/manage-project.service';
+import { AlsModule } from '@/utils/als/als.module';
+import { EnvironmentModule } from '@/utils/environment/environment.module';
 
 @Module({
   controllers: [ProjectsController],
@@ -14,7 +16,9 @@ import { ManageProjectService } from './manage-project/manage-project.service';
   ],
   imports: [
     InterfacesModule,
-    ContainerSetupModule
+    ContainerSetupModule,
+    AlsModule,
+    EnvironmentModule
   ],
   exports: [
     ProjectsService,
