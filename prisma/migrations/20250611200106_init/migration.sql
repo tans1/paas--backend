@@ -5,7 +5,7 @@ CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'DELETED');
 CREATE TYPE "ProjectStatus" AS ENUM ('STOPPED', 'RUNNING', 'PENDING');
 
 -- CreateEnum
-CREATE TYPE "PaymentTypes" AS ENUM ('PAID', 'PENDING');
+CREATE TYPE "BillingTypes" AS ENUM ('PAID', 'PENDING', 'FAILED');
 
 -- CreateEnum
 CREATE TYPE "NotificationType" AS ENUM ('SYSTEM', 'DEPLOYMENT', 'SECURITY', 'UPDATE');
@@ -50,14 +50,27 @@ CREATE TABLE "Project" (
     "cname_record_id" TEXT,
     "installCommand" VARCHAR(2083),
     "buildCommand" VARCHAR(2083),
+    "runCommand" VARCHAR(2083),
     "outputDirectory" VARCHAR(2083),
     "rootDirectory" VARCHAR(2083),
     "projectDescription" VARCHAR(2083),
     "lastCommitMessage" VARCHAR(2083) NOT NULL,
     "status" "ProjectStatus" NOT NULL DEFAULT 'PENDING',
     "dockerComposeFile" VARCHAR(2083),
+    "PORT" INTEGER,
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CustomDomain" (
+    "id" SERIAL NOT NULL,
+    "domain" TEXT NOT NULL,
+    "live" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "projectId" INTEGER NOT NULL,
+
+    CONSTRAINT "CustomDomain_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -72,6 +85,7 @@ CREATE TABLE "Deployment" (
     "image_name" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastCommitMessage" VARCHAR(2083) NOT NULL,
+    "extension" VARCHAR(2083) NOT NULL,
 
     CONSTRAINT "Deployment_pkey" PRIMARY KEY ("id")
 );
@@ -133,27 +147,16 @@ CREATE TABLE "OAuthProvider" (
 -- CreateTable
 CREATE TABLE "DailyMetric" (
     "id" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
     "containerName" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
     "cpuSeconds" DOUBLE PRECISION NOT NULL,
     "memoryBytes" BIGINT NOT NULL,
     "netRxBytes" BIGINT NOT NULL,
     "netTxBytes" BIGINT NOT NULL,
 
     CONSTRAINT "DailyMetric_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "MonthlyAggregate" (
-    "id" TEXT NOT NULL,
-    "containerName" TEXT NOT NULL,
-    "periodStart" TIMESTAMP(3) NOT NULL,
-    "periodEnd" TIMESTAMP(3) NOT NULL,
-    "totalCpuSecs" DOUBLE PRECISION NOT NULL,
-    "totalMemGbHrs" DOUBLE PRECISION NOT NULL,
-    "totalNetBytes" BIGINT NOT NULL,
-
-    CONSTRAINT "MonthlyAggregate_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -171,15 +174,14 @@ CREATE TABLE "Invoice" (
 );
 
 -- CreateTable
-CREATE TABLE "Payment" (
+CREATE TABLE "BillingRecord" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
-    "status" "PaymentTypes" NOT NULL,
-    "recentPaidAmount" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "status" "BillingTypes" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "BillingRecord_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -225,6 +227,9 @@ CREATE UNIQUE INDEX "User_githubUsername_key" ON "User"("githubUsername");
 CREATE UNIQUE INDEX "Project_repo_id_branch_key" ON "Project"("repo_id", "branch");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "CustomDomain_domain_key" ON "CustomDomain"("domain");
+
+-- CreateIndex
 CREATE INDEX "Invoice_userId_idx" ON "Invoice"("userId");
 
 -- CreateIndex
@@ -232,6 +237,9 @@ CREATE UNIQUE INDEX "NotificationPreferences_userId_key" ON "NotificationPrefere
 
 -- AddForeignKey
 ALTER TABLE "Project" ADD CONSTRAINT "Project_linkedByUserId_fkey" FOREIGN KEY ("linkedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CustomDomain" ADD CONSTRAINT "CustomDomain_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Deployment" ADD CONSTRAINT "Deployment_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -249,10 +257,13 @@ ALTER TABLE "UserAlert" ADD CONSTRAINT "UserAlert_userId_fkey" FOREIGN KEY ("use
 ALTER TABLE "OAuthProvider" ADD CONSTRAINT "OAuthProvider_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "DailyMetric" ADD CONSTRAINT "DailyMetric_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Payment" ADD CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "BillingRecord" ADD CONSTRAINT "BillingRecord_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -1,9 +1,9 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { Deployment } from "@prisma/client";
-import { spawn } from "child_process";
-import { DockerHubService } from "../create-image/docker-hub.service";
-import { RuntimeLogService } from "../create-image/containter-runtime-log.service";
-import { DockerComposeService } from "../docker-compose/dockerCompose.service";
+import { Injectable, Logger } from '@nestjs/common';
+import { Deployment } from '@prisma/client';
+import { spawn } from 'child_process';
+import { DockerHubService } from '../create-image/docker-hub.service';
+import { RuntimeLogService } from '../create-image/containter-runtime-log.service';
+import { DockerComposeService } from '../docker-compose/dockerCompose.service';
 
 @Injectable()
 export class ManageContainerService {
@@ -11,10 +11,8 @@ export class ManageContainerService {
   constructor(
     private dockerHubService: DockerHubService,
     private runtimeLogService: RuntimeLogService,
-    private dockerComposeService: DockerComposeService
-  ){
-
-  }
+    private dockerComposeService: DockerComposeService,
+  ) {}
   private execDockerCommand(
     args: string[],
     projectPath: string,
@@ -100,38 +98,27 @@ export class ManageContainerService {
   //   await this.execDockerCommand(args, projectPath);
   // }
 
- 
   async rollback(
-    projectPath : string, 
-    projectName : string,
-    repoId : number,
+    projectPath: string,
+    projectName: string,
+    repoId: number,
     dockerComposeFile: string,
-    rollbackDeployment: Deployment
+    rollbackDeployment: Deployment,
   ) {
-    const { 
-      imageName, 
-      containerName, 
-      branch, 
-      id ,
-      extension
-    } = rollbackDeployment;
-  
+    const { imageName, containerName, branch, id, extension } =
+      rollbackDeployment;
+
     try {
       // Pull the rollback image using DockerHubService
-      await this.dockerHubService.pullImage(
-        imageName,
-        repoId,
-        branch,
-        id
-      );
+      await this.dockerHubService.pullImage(imageName, repoId, branch, id);
 
       await this.dockerComposeService.up(
         projectPath,
         dockerComposeFile,
         extension,
-        projectName
-      )
-  
+        projectName,
+      );
+
       // Stream logs through the logging service
       await this.runtimeLogService.streamContainerLogs(
         containerName,
@@ -146,7 +133,6 @@ export class ManageContainerService {
   }
 
   async cleanup(projectPath: string) {
-  
     await this.execDockerCommand(
       ['network', 'prune', '-f', '--filter', 'name=project_network'],
       projectPath,
