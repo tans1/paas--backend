@@ -9,6 +9,7 @@ import { FileSystemModule } from './file-system/file-system.module';
 import { ClientModule } from './client/client.module';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 // import { EventsModule } from './events/event.module';
+import { UsageMetricsModule } from './usage-metrics/usage-metrics.module';
 @Module({
   imports: [
     FrameWorksModule,
@@ -20,6 +21,7 @@ import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
     FileSystemModule,
     ClientModule,
     EventEmitterModule.forRoot(),
+    UsageMetricsModule,
   ],
   exports: [],
 })
