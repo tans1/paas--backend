@@ -65,7 +65,7 @@ export class DnsJobProcessor extends WorkerHost {
             zoneId,
             aRecordId,
             cnameRecordId,
-            'failed',
+            'custome domain configuration failed',
           );
           return;
         }
@@ -121,7 +121,7 @@ export class DnsJobProcessor extends WorkerHost {
         zoneId,
         aRecordId,
         cnameRecordId,
-        'success',
+        `Success : Your domain ${domain} is now live!`,
       );
     } catch (error) {
       console.log('error happend during job processing', error);
@@ -132,7 +132,7 @@ export class DnsJobProcessor extends WorkerHost {
         zoneId,
         aRecordId,
         cnameRecordId,
-        'error',
+        'error: custom domain deployment failed',
       );
     }
   }

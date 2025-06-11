@@ -21,15 +21,15 @@ import {
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.forRoot({
       connection: {
-        host: 'localhost',
-        port: 6379,
+        host: process.env.REDIS_HOST,
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
         db:1
       },
     }),
     RedisModule.forRoot({
       // Remove the 'config' wrapper
       type: 'single', // Specify connection type
-      url: 'redis://localhost:6379/0', // Direct URL configuration
+      url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}/0`, // Direct URL configuration
       
       // OR for cluster:
       // nodes: [{ host: 'localhost', port: 6379 }],

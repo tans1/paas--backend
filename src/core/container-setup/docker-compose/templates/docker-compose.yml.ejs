@@ -20,8 +20,6 @@ services:
       - node_modules:/usr/src/app/node_modules
     networks:
       - traefik-public
-    ports:
-      - "3001:<%= PORT %>"  # Replace PORT with the actual port your application listens on
 <% if (includeEnvFile) { %>
     env_file:
       - <%= projectName %>.${EXTENSION}.env
