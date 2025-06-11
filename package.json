@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@liaoliaots/nestjs-redis": "^10.0.0",
+    "@iarna/toml": "^2.2.5",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/bullmq": "^11.0.2",
@@ -43,6 +44,7 @@
     "@prisma/client": "^6.8.2",
     "@types/axios": "^0.9.36",
     "@types/glob": "^8.1.0",
+    "@types/iarna__toml": "^2.0.5",
     "@types/passport-jwt": "^4.0.1",
     "async_hooks": "^1.0.0",
     "axios": "^1.9.0",
@@ -59,6 +61,7 @@
     "ignore": "^7.0.3",
     "isomorphic-git": "^1.29.0",
     "nest-winston": "^1.10.2",
+    "next": "^14.1.0",
     "nodemon": "^3.1.10",
     "passport": "^0.7.0",
     "passport-github": "^1.1.0",

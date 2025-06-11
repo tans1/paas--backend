@@ -61,6 +61,9 @@ enum ProjectStatus {
   PENDING
 }
 
+// add a new schema custom domains
+// it needs to reference the project and it needs to have a boolean property 
+// live true or false 
 model Project {
   id                   Int      @id @default(autoincrement())
   repoId               Int      @map("repo_id")
@@ -80,39 +83,52 @@ model Project {
   activeDeploymentId Int?         @map("active_deployment_id")
 
   localRepoPath String? @map("local_repo_path")
-
-  zoneId             String?       @map("zone_id")
-  aRecordId          String?       @map("a_name_record_id")
-  cnameRecordId      String?       @map("cname_record_id")
-  installCommand     String?       @db.VarChar(2083)
-  buildCommand       String?       @db.VarChar(2083)
-  outputDirectory    String?       @db.VarChar(2083)
-  rootDirectory      String?       @db.VarChar(2083)
-  projectDescription String?       @db.VarChar(2083)
-  lastCommitMessage  String        @db.VarChar(2083)
-  status             ProjectStatus @default(PENDING)
-  dockerComposeFile  String?       @db.VarChar(2083)
-
+  zoneId String? @map("zone_id")
+  aRecordId String? @map("a_name_record_id")
+  cnameRecordId String? @map("cname_record_id")
+  installCommand String?   @db.VarChar(2083)
+  buildCommand String?   @db.VarChar(2083)
+  runCommand String?   @db.VarChar(2083)
+  outputDirectory String?   @db.VarChar(2083)
+  rootDirectory String?   @db.VarChar(2083)
+  projectDescription String? @db.VarChar(2083)
+  lastCommitMessage String  @db.VarChar(2083)
+  status ProjectStatus  @default(PENDING)
+  dockerComposeFile String? @db.VarChar(2083)
+  PORT Int?
+  customDomains CustomDomain[]
   @@unique([repoId, branch], name: "repoId_branch")
 }
+
+model CustomDomain {
+  id         Int      @id @default(autoincrement())
+  domain     String   @unique
+  live       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  project    Project  @relation(fields: [projectId], references: [id])
+  projectId  Int
+}
+
 
 // imageName
 // containerName
 model Deployment {
-  id                    Int             @id @default(autoincrement())
-  project               Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId             Int
-  status                String          @db.VarChar(50)
-  branch                String          @db.VarChar(100)
-  environmentVariables  Json?           @map("environment_variables")
-  rollbackTo            Deployment?     @relation("Rollback", fields: [rollbackToId], references: [id])
-  rollbackToId          Int?            @map("rollback_to_id")
-  rollbackedDeployments Deployment[]    @relation("Rollback")
-  containerName         String?         @map("container_name")
-  imageName             String?         @map("image_name")
-  createdAt             DateTime        @default(now()) @map("created_at")
-  lastCommitMessage     String          @db.VarChar(2083)
-  logs                  DeploymentLog[]
+  id                    Int          @id @default(autoincrement())
+  project                  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId                Int
+  status                String       @db.VarChar(50)
+  branch                String       @db.VarChar(100)
+  environmentVariables  Json?        @map("environment_variables")
+  rollbackTo            Deployment?  @relation("Rollback", fields: [rollbackToId], references: [id])
+  rollbackToId          Int?         @map("rollback_to_id")
+  rollbackedDeployments Deployment[] @relation("Rollback")
+  containerName       String?      @map("container_name")
+  imageName           String?      @map("image_name")
+  createdAt DateTime        @default(now()) @map("created_at")
+  lastCommitMessage String @db.VarChar(2083)
+  logs      DeploymentLog[]
+  extension String @db.VarChar(2083)
 }
 
 model DeploymentLog {

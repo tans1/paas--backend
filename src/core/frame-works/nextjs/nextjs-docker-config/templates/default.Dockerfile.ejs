@@ -1,22 +1,15 @@
-# Next.js Default Dockerfile
-FROM node:<%= nodeVersion %>-alpine AS builder
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
+# templates/nextjs/default.Dockerfile.ejs
 FROM node:<%= nodeVersion %>-alpine
 WORKDIR /app
 
-ENV NODE_ENV production
 ENV PORT <%= port %>
 
-COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
+RUN <%= installCommand %>
+
+COPY . .
+RUN <%= buildCommand %>
 
 EXPOSE <%= port %>
-CMD ["npm", "start"]
+
+CMD <%= runCommand  %> -p <%= port %>

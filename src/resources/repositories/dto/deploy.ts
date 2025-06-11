@@ -85,6 +85,15 @@ export class DeployDto {
   buildCommand?: string;
 
   @ApiProperty({
+    example: 'npm run start',
+    description: 'Run command',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  runCommand?: string;
+
+  @ApiProperty({
     example: 'build',
     description: 'Output Directory',
     required: false,

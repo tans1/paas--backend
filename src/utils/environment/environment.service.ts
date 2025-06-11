@@ -33,7 +33,8 @@ export class EnvironmentService {
     projectPath: string;
   }) {
     const projectName = this.alsService.getprojectName();
-    const envFileName = `${projectName}.${process.env.DEPLOYMENT_HASH}.env`;
+    const extenstion = this.alsService.getExtension();
+    const envFileName = `${projectName}.${extenstion}.env`;
     const envFilePath = path.join(projectPath, envFileName);
     const content = Object.entries(environmentVariables)
       .map(([key, value]) => `${key}=${value}`)

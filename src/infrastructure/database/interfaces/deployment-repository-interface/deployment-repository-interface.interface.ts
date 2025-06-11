@@ -7,6 +7,7 @@ export interface CreateDeploymentDTO {
   environmentVariables?: any;
   rollbackToId?: number;
   lastCommitMessage: string;
+  extension: string;
 }
 
 export interface UpdateDeploymentDTO {

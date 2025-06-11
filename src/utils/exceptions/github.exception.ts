@@ -44,3 +44,21 @@ export class InvalidDataException extends HttpException {
     super(message, status);
   }
 }
+
+export class CreateDNSRecordsFaildException extends HttpException {
+  constructor(
+    message: string = 'Creating DNS Record Faild',
+    status: number = HttpStatus.BAD_REQUEST,
+  ) {
+    super(message, status);
+  }
+}
+
+export class UpdateSSLSettingException extends HttpException {
+  constructor(
+    message: string = 'Updating SSL setting Faild',
+    status: number = HttpStatus.BAD_REQUEST,
+  ) {
+    super(message, status);
+  }
+}

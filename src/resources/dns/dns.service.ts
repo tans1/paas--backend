@@ -18,6 +18,11 @@ import * as https from 'https';
 import fetch, { RequestInit } from 'node-fetch';
 import { ProjectsRepositoryInterface } from '../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import {
+  CreateDNSRecordsFaildException,
+  UpdateSSLSettingException,
+} from '@/utils/exceptions/github.exception';
+import { NotificationQueueService } from '../notification/notification-queue.service';
 
 const execAsync = promisify(exec);
 @Injectable()
@@ -27,6 +32,7 @@ export class DnsService {
     private readonly projectsRepositoryService: ProjectsRepositoryInterface,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: LoggerService,
+    private readonly notificationQueueService: NotificationQueueService,
   ) {
     this.cloudflareApi = new Cloudflare({
       apiEmail: process.env['CLOUDFLARE_EMAIL'],
@@ -129,7 +135,7 @@ export class DnsService {
       this.logger.error(
         `Error creating DNS records for domain ${domain}: ${error.message}`,
       );
-      throw error;
+      throw new CreateDNSRecordsFaildException();
     }
   }
 
@@ -143,48 +149,89 @@ export class DnsService {
       );
       console.log('SSL setting updated:', response);
     } catch (error) {
+      throw new UpdateSSLSettingException();
       console.error('Error updating SSL setting:', error);
     }
   }
-  async createDockerComposeFile(
-    domain: string,
-    projectId: number,
-  ): Promise<void> {
-    const projectPath = (
-      await this.projectsRepositoryService.findById(projectId)
-    ).localRepoPath;
+  // async createDockerComposeFile(
+  //   domain: string,
+  //   projectId: number,
+  // ): Promise<void> {
+  //   const projectPath = (
+  //     await this.projectsRepositoryService.findById(projectId)
+  //   ).localRepoPath;
+  //   const rootDomain = this.getRootDomain(domain);
+  //   const templatePath = path.join(
+  //     __dirname,
+  //     '..',
+  //     '..',
+  //     'core',
+  //     'container-setup',
+  //     'create-image',
+  //     'templates',
+  //     'docker-compose.yml.ejs',
+  //   );
+  //   const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
+  //   const projectName = rootDomain
+  //     .toLowerCase()
+  //     .replace(/[^a-z0-9-]/g, '-')
+  //     .replace(/^-+/, '')
+  //     .replace(/-+$/, '')
+  //     .replace(/-{2,}/g, '-');
+  //   const dockerComposeContent = ejs.render(templateContent, {
+  //     projectName,
+  //     deploymentUrl: rootDomain,
+  //     includeEnvFile: false,
+  //   });
+  //   const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
+  //   const dockerComposePath = path.join(projectPath, dockerComposeFileName);
+  //   await fs.promises.writeFile(
+  //     dockerComposePath,
+  //     dockerComposeContent,
+  //     'utf-8',
+  //   );
+  // }
+
+  async addTraeficConfigFile(domain: string, projectId: number): Promise<void> {
+    const { name: projectName, PORT } =
+      await this.projectsRepositoryService.findById(projectId);
     const rootDomain = this.getRootDomain(domain);
-    const templatePath = path.join(
+    const traefikDynamicPath = path.join(
       __dirname,
       '..',
       '..',
-      'core',
-      'container-setup',
-      'create-image',
-      'templates',
-      'docker-compose.yml.ejs',
+      '..',
+      'traefik-dynamic',
+    );
+
+    const templatePath = path.join(
+      traefikDynamicPath,
+      'template',
+      'domain.config.ejs',
     );
     const templateContent = await fs.promises.readFile(templatePath, 'utf-8');
-    const projectName = rootDomain
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '')
-      .replace(/-{2,}/g, '-');
-    const dockerComposeContent = ejs.render(templateContent, {
+    // const projectName = rootDomain
+    //   .toLowerCase()
+    //   .replace(/[^a-z0-9-]/g, '-')
+    //   .replace(/^-+/, '')
+    //   .replace(/-+$/, '')
+    //   .replace(/-{2,}/g, '-');
+    const domainConfigContent = ejs.render(templateContent, {
       projectName,
-      deploymentUrl: rootDomain,
-      includeEnvFile: false,
+      rootDomain,
+      PORT,
     });
-    const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
-    const dockerComposePath = path.join(projectPath, dockerComposeFileName);
+    const domainConfigFileName = `domain-config.${rootDomain}.yml`;
+    const domainConfigFilePath = path.join(
+      traefikDynamicPath,
+      domainConfigFileName,
+    );
     await fs.promises.writeFile(
-      dockerComposePath,
-      dockerComposeContent,
+      domainConfigFilePath,
+      domainConfigContent,
       'utf-8',
     );
   }
-
   async checkPropagation(
     domain: string,
     expectedIP: string,
@@ -275,25 +322,25 @@ export class DnsService {
     return false;
   }
 
-  async runDockerCompose(domain: string, projectId: number): Promise<void> {
-    const rootDomain = this.getRootDomain(domain);
+  // async runDockerCompose(domain: string, projectId: number): Promise<void> {
+  //   const rootDomain = this.getRootDomain(domain);
 
-    const projectName = rootDomain.replace(/\./g, '-');
-    const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
-    // const command = `docker compose -f ${dockerComposeFileName} up -d --build`;
-    const command = `docker compose -p ${projectName} -f ${dockerComposeFileName} up -d --build --remove-orphans`;
+  //   const projectName = rootDomain.replace(/\./g, '-');
+  //   const dockerComposeFileName = `docker-compose.${rootDomain}.yml`;
+  //   // const command = `docker compose -f ${dockerComposeFileName} up -d --build`;
+  //   const command = `docker compose -p ${projectName} -f ${dockerComposeFileName} up -d --build --remove-orphans`;
 
-    const projectPath = (
-      await this.projectsRepositoryService.findById(projectId)
-    ).localRepoPath;
-    const { stdout, stderr } = await execAsync(command, { cwd: projectPath });
-    if (stdout) {
-      this.logger.log(`stdout: ${stdout}`);
-    }
-    if (stderr) {
-      this.logger.error(`stderr: ${stderr}`);
-    }
-  }
+  //   const projectPath = (
+  //     await this.projectsRepositoryService.findById(projectId)
+  //   ).localRepoPath;
+  //   const { stdout, stderr } = await execAsync(command, { cwd: projectPath });
+  //   if (stdout) {
+  //     this.logger.log(`stdout: ${stdout}`);
+  //   }
+  //   if (stderr) {
+  //     this.logger.error(`stderr: ${stderr}`);
+  //   }
+  // }
 
   async notifyUser(
     domain: string,
@@ -309,6 +356,17 @@ export class DnsService {
       aRecordId,
       cnameRecordId,
     });
+    // Send notification
+    if (userId) {
+      await this.notificationQueueService.enqueueNotification({
+        title: 'Domain Propagation',
+        message: message || `Your domain ${domain} is now live!`,
+        type: 'SYSTEM',
+        priority: 'HIGH',
+        userId: Number(userId),
+        metadata: { domain, projectId, zoneId, aRecordId, cnameRecordId },
+      });
+    }
     console.log(
       `user : ${userId} , the domain names is resolved and you can access it now using ${domain}`,
     );

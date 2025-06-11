@@ -9,6 +9,6 @@ import { NotificationQueueService } from './notification-queue.service';
   providers: [NotificationService, NotificationQueueService],
   imports: [InterfacesModule],
 
-  exports: [NotificationService],
+  exports: [NotificationService,NotificationQueueService],
 })
 export class NotificationModule {}

@@ -25,24 +25,29 @@ export class FrameworkDetectionService {
       return await this.detectFrameworksInParallel();
     } catch (error) {
       console.error('Framework detection failed:', error.message);
-      return []; 
+      return [];
     }
   }
 
   private async detectFrameworksInParallel(): Promise<string[]> {
-    const frameworkChecks = Object
-      .entries(FrameworkMap)
-      .sort(([, a], [, b]) => a.sort - b.sort)       
+    const frameworkChecks = Object.entries(FrameworkMap)
+      .sort(([, a], [, b]) => a.sort - b.sort)
       .map(async ([frameworkKey, criteria]) => {
         try {
-          const { exists, content } =
-            await this.gitHubFileService.getConfigFile(criteria.file);
-          if (!exists) return null;
-  
-          const handler = FileHandlers[criteria.file];
-          if (handler?.(content, criteria)) {
-            console.log('Framework detected:', frameworkKey);
-            return frameworkKey;
+          const files = Array.isArray(criteria.file)
+            ? criteria.file
+            : [criteria.file];
+
+          for (const file of files) {
+            const { exists, content } =
+              await this.gitHubFileService.getConfigFile(file);
+            if (!exists) continue;
+
+            const handler = FileHandlers[file];
+            if (handler?.(content, criteria)) {
+              console.log('Framework detected:', frameworkKey);
+              return frameworkKey;
+            }
           }
           return null;
         } catch (error) {
@@ -50,9 +55,8 @@ export class FrameworkDetectionService {
           return null;
         }
       });
-  
+
     const results = await Promise.all(frameworkChecks);
     return results.filter((r): r is string => r !== null);
   }
-  
 }

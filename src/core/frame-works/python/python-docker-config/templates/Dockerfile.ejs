@@ -1,0 +1,47 @@
+# dockerfile.ejs
+
+FROM python:<%= pythonVersion %>-slim
+
+WORKDIR /app
+
+<%# If using Poetry, disable its venv creation so everything lands on PATH %>
+<% if (depsType === 'poetry') { %>
+ENV POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
+RUN pip install --no-cache-dir poetry==1.7.0
+<% } else if (depsType === 'pipenv') { %>
+RUN pip install --no-cache-dir pipenv==2023.10.3
+<% } %>
+
+<%# Copy dependency files %>
+<% if (depsType === 'poetry') { %>
+COPY pyproject.toml poetry.lock* ./
+<% } else if (depsType === 'pipenv') { %>
+COPY Pipfile Pipfile.lock* ./
+<% } else { %>
+COPY requirements*.txt ./
+<% } %>
+
+<%# Install dependencies %>
+<% if (depsType === 'poetry') { %>
+RUN poetry install --no-ansi <%= installFlags %> <%= hasLockFile ? '' : '--no-root' %>
+<% } else if (depsType === 'pipenv') { %>
+RUN pipenv install --deploy <%= hasLockFile ? '' : '--skip-lock' %>
+<% } else { %>
+RUN pip install --no-cache-dir -r requirements.txt
+<% } %>
+
+<%# Copy application code %>
+COPY . .
+
+<%# Remove the installer tool to slim down the image %>
+<% if (depsType === 'poetry') { %>
+RUN pip uninstall -y poetry
+<% } else if (depsType === 'pipenv') { %>
+RUN pip uninstall -y pipenv
+<% } %>
+
+EXPOSE <%= PORT %>
+
+<%# Use whatever command you supply in runCommand, e.g. ["uvicorn","main:app",…] %>
+CMD <%- runCommand %>

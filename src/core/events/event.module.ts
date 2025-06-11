@@ -23,6 +23,9 @@ export const EventNames = {
   FRAMEWORK_DETECTED: 'framework.detected',
   FRAMEWORK_INFORMATION_RETRIEVED: 'framework.information.retrieved',
 
+
+  // Environment variable events
+  ENVIRONMENT_VARIABLES_UPDATED: 'environment.variables.updated',
   // Dockerfile generation events
   DOCKERFILE_GENERATION_STARTED: 'dockerfile.generation.started',
   DOCKERFILE_GENERATION_COMPLETED: 'dockerfile.generation.completed',

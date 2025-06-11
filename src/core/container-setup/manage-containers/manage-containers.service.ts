@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Deployment } from '@prisma/client';
-import { spawn } from 'child_process';
-import { DockerHubService } from '../create-image/docker-hub.service';
-import { RuntimeLogService } from '../create-image/containter-runtime-log.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { Deployment } from "@prisma/client";
+import { spawn } from "child_process";
+import { DockerHubService } from "../create-image/docker-hub.service";
+import { RuntimeLogService } from "../create-image/containter-runtime-log.service";
+import { DockerComposeService } from "../docker-compose/dockerCompose.service";
 
 @Injectable()
 export class ManageContainerService {
@@ -10,7 +11,10 @@ export class ManageContainerService {
   constructor(
     private dockerHubService: DockerHubService,
     private runtimeLogService: RuntimeLogService,
-  ) {}
+    private dockerComposeService: DockerComposeService
+  ){
+
+  }
   private execDockerCommand(
     args: string[],
     projectPath: string,
@@ -96,28 +100,38 @@ export class ManageContainerService {
   //   await this.execDockerCommand(args, projectPath);
   // }
 
+ 
   async rollback(
-    projectPath: string,
-    repoId: number,
-    rollbackDeployment: Deployment,
+    projectPath : string, 
+    projectName : string,
+    repoId : number,
+    dockerComposeFile: string,
+    rollbackDeployment: Deployment
   ) {
-    const { imageName, containerName, branch, id } = rollbackDeployment;
-
+    const { 
+      imageName, 
+      containerName, 
+      branch, 
+      id ,
+      extension
+    } = rollbackDeployment;
+  
     try {
       // Pull the rollback image using DockerHubService
-      await this.dockerHubService.pullImage(imageName, repoId, branch, id);
+      await this.dockerHubService.pullImage(
+        imageName,
+        repoId,
+        branch,
+        id
+      );
 
-      // Force remove existing container
-      try {
-        await this.rm(containerName, projectPath);
-      } catch (error) {
-        this.logger.warn(`Container removal warning: ${error.message}`);
-      }
-
-      // Start container with the rolled-back image
-      const runArgs = ['run', '-d', '--name', containerName, imageName];
-      await this.execDockerCommand(runArgs, projectPath);
-
+      await this.dockerComposeService.up(
+        projectPath,
+        dockerComposeFile,
+        extension,
+        projectName
+      )
+  
       // Stream logs through the logging service
       await this.runtimeLogService.streamContainerLogs(
         containerName,
@@ -132,7 +146,7 @@ export class ManageContainerService {
   }
 
   async cleanup(projectPath: string) {
-    // Target only project-specific resources
+  
     await this.execDockerCommand(
       ['network', 'prune', '-f', '--filter', 'name=project_network'],
       projectPath,

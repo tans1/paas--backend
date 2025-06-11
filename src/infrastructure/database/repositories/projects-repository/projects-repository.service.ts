@@ -4,6 +4,8 @@ import {
   ProjectsRepositoryInterface,
   UpdateProjectDTO,
   ProjectWithDeploymentsAndUser,
+  CreateCustomDomain,
+  UpdateCustomDomain,
 } from './../../interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
 import { Project } from '@prisma/client';
@@ -33,6 +35,7 @@ export class ProjectsRepositoryService
   }
 
   async create(payload: CreateProjectDTO): Promise<Project> {
+    // const { linkedByUserId, ...rest } = payload;
     return await this.prisma.project.upsert({
       where: {
         repoId_branch: {
@@ -55,7 +58,7 @@ export class ProjectsRepositoryService
     repoId: number,
     branch: string,
   ): Promise<ProjectWithDeploymentsAndUser | null> {
-    return await this.prisma.project.findUnique({
+    const project = await this.prisma.project.findUnique({
       where: {
         repoId_branch: {
           repoId,
@@ -71,10 +74,17 @@ export class ProjectsRepositoryService
         linkedByUser: true,
       },
     });
+    if (project) {
+      const liveDomains = await this.prisma.customDomain.findMany({
+        where: { projectId: project.id, live: true },
+      });
+      (project as any).customDomains = liveDomains;
+    }
+    return project;
   }
 
   async findById(id: number): Promise<ProjectWithDeploymentsAndUser | null> {
-    return await this.prisma.project.findUnique({
+    const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
         deployments: {
@@ -85,6 +95,13 @@ export class ProjectsRepositoryService
         linkedByUser: true,
       },
     });
+    if (project) {
+      const liveDomains = await this.prisma.customDomain.findMany({
+        where: { projectId: project.id, live: true },
+      });
+      (project as any).customDomains = liveDomains;
+    }
+    return project;
   }
   update(id: number, payload: UpdateProjectDTO): Promise<Project> {
     return this.prisma.project.update({ where: { id }, data: payload });
@@ -116,9 +133,37 @@ export class ProjectsRepositoryService
     return this.prisma.project.findMany({
       include: {
         deployments: true,
-        linkedByUser: true
+        linkedByUser: true,
       },
     });
   }
-  
+
+  async createCustomDomain(payload: CreateCustomDomain): Promise<void> {
+    await this.prisma.customDomain.create({
+      data: {
+        domain: payload.domain,
+        projectId: payload.projectId,
+      },
+    });
+  }
+
+  async updateCustomDomain(
+    domainId: number,
+    payload: UpdateCustomDomain,
+  ): Promise<void> {
+    await this.prisma.customDomain.update({
+      where: { id: domainId },
+      data: { live: payload.live },
+    });
+  }
+
+  async findCustomDomainByDomainAndProjectId(
+    domain: string,
+    projectId: number,
+  ): Promise<any | null> {
+    const result = await this.prisma.customDomain.findFirst({
+      where: { domain, projectId },
+    });
+    return result;
+  }
 }
