@@ -97,7 +97,24 @@ services:
       - 'traefik.http.middlewares.rewrite-host.headers.customRequestHeaders.Host=localhost'
       - 'traefik.http.routers.app.middlewares=rewrite-host'
       - traefik.docker.network=web
-
+  cadvisor:
+    image: gcr.io/google-containers/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+      - '8081:8080'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - traefik-public
+    # labels:
+    #   - 'traefik.enable=true'
+    #   - 'traefik.http.routers.cadvisor.rule=Host(`metrics.paas-service.me`)'
+    #   - 'traefik.http.services.cadvisor.loadbalancer.server.port=8080'
   redis:
     image: redis:latest
     container_name: redis
@@ -105,7 +122,8 @@ services:
     environment:
       - REDIS_PASSWORD=redispass
     ports:
-      - '6379:6379'
+      # - '6379:6379'
+      - '6380:6379'
     volumes:
       - redis_data:/data
     networks:

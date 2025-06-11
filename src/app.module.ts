@@ -12,10 +12,12 @@ import {
   utilities as nestWinstonModuleUtilities,
   WinstonModule,
 } from 'nest-winston';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     InfrastructureModule,
+    ScheduleModule.forRoot(),
     CoreModule,
     ModulesModule,
     ConfigModule.forRoot({ isGlobal: true }),
@@ -27,7 +29,6 @@ import {
       },
     }),
     RedisModule.forRoot({
-      // Remove the 'config' wrapper
       type: 'single', // Specify connection type
       url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}/0`, // Direct URL configuration
       

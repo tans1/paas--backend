@@ -168,9 +168,9 @@ async redirectToGitHubAuth(
         runCommand,
         outputDirectory,
         rootDirectory,
-        projectDescription
+        projectDescription,
       } = body;
-      let branch = body.branch
+      let branch = body.branch;
       const email = req.user.email;
 
       const environmentVariables =
@@ -182,18 +182,14 @@ async redirectToGitHubAuth(
       ]);
       // Get the last commit here
       // Project description
-      
+
       const repository = repoInfo.data;
-      const defaulBranch = repository.default_branch 
-      branch = branch ? branch : defaulBranch
-      const {data : lastCommitMessage} = await this.listService.getLastCommitMessage(
-        email,
-        owner,
-        repo,
-        branch
-      )
+      const defaulBranch = repository.default_branch;
+      branch = branch ? branch : defaulBranch;
+      const { data: lastCommitMessage } =
+        await this.listService.getLastCommitMessage(email, owner, repo, branch);
       const project = await this.projectService.createProject({
-        userName : githubUsername,
+        userName: githubUsername,
         repository,
         branch,
         environmentVariables,
@@ -204,7 +200,7 @@ async redirectToGitHubAuth(
         outputDirectory,
         rootDirectory,
         projectDescription,
-        lastCommitMessage
+        lastCommitMessage,
       });
 
       const repositoryId = repository.id;
@@ -223,7 +219,7 @@ async redirectToGitHubAuth(
       this.eventEmitter.emit(EventNames.PROJECT_INITIALIZED, payload);
 
 
-      return CustomApiResponse.success(project,"succefuuly created project");
+      return CustomApiResponse.success(project, 'succefuuly created project');
     } catch (error) {
       console.error('Error creating webhook:', error);
       throw new OtherException('Failed to create webhook: ' + error.message);

@@ -18,7 +18,7 @@ export class NotificationQueueService implements OnModuleInit {
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly notificationService: NotificationService,
-    private readonly notificationPreferencesRepository: NotificationPreferencesRepositoryInterface
+    private readonly notificationPreferencesRepository: NotificationPreferencesRepositoryInterface,
   ) {}
 
   async onModuleInit() {
@@ -68,10 +68,16 @@ export class NotificationQueueService implements OnModuleInit {
         console.log(`Rate limited user ${notification.userId}`);
         return;
       }
-      
-      const preferences = await this.notificationPreferencesRepository.findByUserId(notification.userId);
 
-      if (preferences && !this.isNotificationAllowed(notification, preferences)) {
+      const preferences =
+        await this.notificationPreferencesRepository.findByUserId(
+          notification.userId,
+        );
+
+      if (
+        preferences &&
+        !this.isNotificationAllowed(notification, preferences)
+      ) {
         return;
       }
     }
@@ -92,7 +98,7 @@ export class NotificationQueueService implements OnModuleInit {
 
   private isNotificationAllowed(
     notification: any,
-    preferences: NotificationPreferences
+    preferences: NotificationPreferences,
   ): boolean {
     return (
       preferences.enabledTypes[notification.type] &&
