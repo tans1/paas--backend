@@ -23,7 +23,11 @@ import {
   UpdateSSLSettingException,
 } from '@/utils/exceptions/github.exception';
 import { NotificationQueueService } from '../notification/notification-queue.service';
-
+import {
+  Notification,
+  NotificationPriority,
+  NotificationType
+} from '@prisma/client';
 const execAsync = promisify(exec);
 @Injectable()
 export class DnsService {
@@ -81,12 +85,12 @@ export class DnsService {
         jump_start: true,
       });
 
-      if (!response?.result?.id) {
+      if (!response?.id) {
         throw new Error('Zone creation failed: No ID returned from Cloudflare');
       }
 
       this.logger.log(`Successfully created new zone for ${rootDomain}`);
-      return response.result;
+      return response;
     } catch (error: any) {
       this.logger.error(
         `Zone operation failed for ${domain}: ${error.message}`,
@@ -139,18 +143,19 @@ export class DnsService {
     }
   }
 
-  async updateSSLSetting(zoneId, mode = 'strict') {
+  async updateSSLSetting(zoneId, mode = "strict") {
     try {
-      const response = await this.cloudflareApi.zones.settings.ssl.edit(
-        zoneId,
+      const response = await this.cloudflareApi.zones.settings.edit('ssl',
         {
-          value: mode,
+        zone_id : zoneId,
         },
+        {
+          body : { value: mode},
+        }
       );
       console.log('SSL setting updated:', response);
     } catch (error) {
-      throw new UpdateSSLSettingException();
-      console.error('Error updating SSL setting:', error);
+      console.error('Full error:', error);
     }
   }
   // async createDockerComposeFile(
@@ -360,11 +365,10 @@ export class DnsService {
     if (userId) {
       await this.notificationQueueService.enqueueNotification({
         title: 'Domain Propagation',
-        message: message || `Your domain ${domain} is now live!`,
-        type: 'SYSTEM',
-        priority: 'HIGH',
-        userId: Number(userId),
-        metadata: { domain, projectId, zoneId, aRecordId, cnameRecordId },
+        message: message,
+        type: NotificationType.SYSTEM,
+        priority: NotificationPriority.HIGH,
+        userId: Number(userId)
       });
     }
     console.log(
