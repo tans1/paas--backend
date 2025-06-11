@@ -13,12 +13,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum UserStatus {
   ACTIVE
   SUSPENDED
   DELETED
 }
+
 model User {
   id                Int     @id @default(autoincrement())
   name              String  @db.VarChar(255)
@@ -30,15 +30,18 @@ model User {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  projects       Project[]       @relation("UserProjects")
-  payments       Payment[]
+  projects          Project[]     @relation("UserProjects")
+  // dailyUsageCosts DailyUsageCost[]
+  dailyUsageMetrics DailyMetric[]
+
+  billingRecords BillingRecord[]
   userAlerts     UserAlert[]
   oauthProviders OAuthProvider[]
 
-  Invoice Invoice[]
-  status     UserStatus   @default(ACTIVE)
-  suspendedAt DateTime?
-  notifications  Notification[]
+  Invoice                 Invoice[]
+  status                  UserStatus               @default(ACTIVE)
+  suspendedAt             DateTime?
+  notifications           Notification[]
   notificationPreferences NotificationPreferences?
 }
 
@@ -73,8 +76,8 @@ model Project {
   deployedPort         Int?     @map("deployed_port")
   deployedUrl          String?  @map("deployedUrl")
 
-  deployments Deployment[]
-  activeDeploymentId Int? @map("active_deployment_id")
+  deployments        Deployment[]
+  activeDeploymentId Int?         @map("active_deployment_id")
 
   localRepoPath String? @map("local_repo_path")
 
@@ -122,7 +125,6 @@ model DeploymentLog {
   logType      String     @map("log_type") @db.VarChar(20)
 }
 
-
 model Server {
   id                 Int      @id @default(autoincrement())
   resourceUsage      Json?    @map("resource_usage")
@@ -155,54 +157,114 @@ model OAuthProvider {
   createdAt   DateTime @default(now()) @map("created_at")
 }
 
+// model DailyUsageCost {
+//   id     Int  @id @default(autoincrement())
+//   user   User @relation(fields: [userId], references: [id])
+//   userId Int
+
+//   amount Float
+//   // status        PaymentTypes
+
+//   // recentPaidAmount Float @default(0.0)
+//   updatedAt DateTime @updatedAt
+// }
+
 model DailyMetric {
-  id            String   @id @default(cuid())
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId Int
+
   containerName String
-  date          DateTime
-  cpuSeconds    Float
-  memoryBytes   BigInt
-  netRxBytes    BigInt
-  netTxBytes    BigInt
+
+  date DateTime
+
+  amount Float
+
+  cpuSeconds  Float
+  memoryBytes BigInt
+  netRxBytes  BigInt
+  netTxBytes  BigInt
 }
 
-model MonthlyAggregate {
-  id            String   @id @default(cuid())
-  containerName String
-  periodStart   DateTime
-  periodEnd     DateTime
-  totalCpuSecs  Float
-  totalMemGbHrs Float
-  totalNetBytes BigInt
-}
+// model MonthlyAggregate {
+//   id            String   @id @default(cuid())
+//   containerName String
+//   periodStart   DateTime
+//   periodEnd     DateTime
+//   totalCpuSecs  Float
+//   totalMemGbHrs Float
+//   totalNetBytes BigInt
+// }
 
 model Invoice {
-  id      String   @id @default(cuid())
-  user    User     @relation(fields: [userId], references: [id])
-  userId  Int 
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId Int
 
-  amount  Float
-  status  String
-  dueDate DateTime
-  updatedAt DateTime @updatedAt  
+  amount      Float
+  status      String
+  dueDate     DateTime
+  updatedAt   DateTime @updatedAt
   paymentLink String?
-  TxRef String?
+  TxRef       String?
 
   @@index([userId])
 }
 
-enum PaymentTypes {
+enum BillingTypes {
   PAID
   PENDING
+  FAILED
 }
 
-model Payment {
-  id            Int      @id @default(autoincrement())
-  user          User     @relation(fields: [userId], references: [id])
-  userId        Int
+model BillingRecord {
+  id     Int  @id @default(autoincrement())
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
 
-  amount        Float  
-  status        PaymentTypes
+  amount Float
+  status BillingTypes
+  createdAt DateTime @default(now())
+}
 
-  recentPaidAmount Float @default(0.0)
-  updatedAt DateTime @updatedAt  
+enum NotificationType {
+  SYSTEM
+  DEPLOYMENT
+  SECURITY
+  UPDATE
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Notification {
+  id        String               @id @default(uuid())
+  title     String
+  message   String               @db.Text
+  type      NotificationType     @default(SYSTEM)
+  priority  NotificationPriority @default(MEDIUM)
+  isRead    Boolean              @default(false)
+  user      User?                @relation(fields: [userId], references: [id])
+  userId    Int?
+  metadata  Json?
+  createdAt DateTime             @default(now()) @map("created_at")
+  readAt    DateTime?            @map("read_at")
+}
+
+model NotificationPreferences {
+  id                 String               @id @default(uuid())
+  user               User                 @relation(fields: [userId], references: [id])
+  userId             Int                  @unique
+  enabledTypes       Json // Stores { SYSTEM: boolean, DEPLOYMENT: boolean, etc. }
+  emailNotifications Boolean              @default(true)
+  pushNotifications  Boolean              @default(true)
+  inAppNotifications Boolean              @default(true)
+  minimumPriority    NotificationPriority @default(MEDIUM)
+  notifyOnDeployment Boolean              @default(true)
+  notifyOnSecurity   Boolean              @default(true)
+  notifyOnSystem     Boolean              @default(true)
+  notifyOnUpdate     Boolean              @default(true)
 }

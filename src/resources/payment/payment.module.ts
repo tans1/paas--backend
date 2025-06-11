@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { StatusService } from './status/status.service';
+import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import { PrismaModule } from '../../infrastructure/database/prisma/prisma.module';
 import { HttpModule } from '@nestjs/axios';
+import { ContainerSetupModule } from '../../core/container-setup/container-setup.module';
 
 @Module({
-  providers: [StatusService],
+  providers: [PaymentService],
   controllers: [PaymentController],
-  imports: [PrismaModule, HttpModule],
+  imports: [PrismaModule, HttpModule, ContainerSetupModule],
 })
 export class PaymentModule {}

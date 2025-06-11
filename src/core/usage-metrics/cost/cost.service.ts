@@ -5,14 +5,16 @@ import { InvoiceType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../infrastructure/database/prisma/prisma-service/prisma-service.service';
+import { ManageContainerService } from '../../container-setup/manage-containers/manage-containers.service';
 
 @Injectable()
-export class PaymentService {
+export class CostService {
   constructor(
     private readonly httpService: HttpService,
     private readonly prisma: PrismaService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: LoggerService,
+    private readonly containerManagement: ManageContainerService,
   ) {}
 
   private generateUniqueTxRef(): string {
@@ -82,13 +84,13 @@ export class PaymentService {
     }
   }
 
-  // @Cron('0 */30 * * * *') // every 30 minutes generate a new url, since the chapa's url expires every 1 hour on production
-  @Cron('0 */3 * * * *') // every 3min on dev
+  @Cron('0 */30 * * * *') // every 30 minutes generate a new url, since the chapa's url expires every 1 hour on production
+  // @Cron('0 */3 * * * *') // every 3min on dev
   async generatePaymentLink() {
     try {
       const pendingInvoices = await this.prisma.invoice.findMany({
         where: {
-          status: { in: ['PENDING', 'GENERATED', 'FAILED'] },
+          status: { in: ['PENDING', 'GENERATED', 'FAILED', 'OVERDUE'] },
         },
         include: { user: true },
       });
@@ -124,8 +126,23 @@ export class PaymentService {
               },
             });
 
+            const paymentLink = await this.createInvoice({
+              id: invoice.id,
+              amount: invoice.amount.toString(),
+              email: invoice.user.email,
+              first_name: invoice.user.name || 'Customer',
+            });
+
+            await this.prisma.invoice.update({
+              where: { id: invoice.id },
+              data: {
+                paymentLink,
+                status: 'OVERDUE',
+              },
+            });
+
             // stop the user containers
-            
+            await this.stopUserContainers(invoice.userId);
           }
         } catch (error) {
           this.logger.error(
@@ -144,6 +161,21 @@ export class PaymentService {
       this.logger.error(
         `Payment link generation cron failed: ${error.message}`,
       );
+    }
+  }
+
+  private async stopUserContainers(userId: number) {
+    const projects = await this.prisma.project.findMany({
+      where: {
+        linkedByUserId: userId,
+      },
+    });
+
+    for (const project of projects) {
+      const activeDeployment = await this.prisma.deployment.findUnique({
+        where: { id: project.activeDeploymentId },
+      });
+      await this.containerManagement.stop('', activeDeployment);
     }
   }
 }

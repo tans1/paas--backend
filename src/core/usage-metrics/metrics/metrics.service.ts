@@ -31,8 +31,8 @@ export class MetricsService {
     );
   }
 
-  // @Cron('0 */10 * * * *') // every 10min on production
-  @Cron('0 */1 * * * *') // every 1min on dev
+  @Cron('0 */10 * * * *') // every 10min on production
+  // @Cron('0 */1 * * * *') // every 1min on dev
   async scrapeAllContainersMetrics() {
     try {
       const containers = await this.fetchContainerMetrics();
@@ -46,7 +46,7 @@ export class MetricsService {
 
   private async fetchContainerMetrics(): Promise<ContainerMetric[]> {
     const { data } = await this.httpService.axiosRef.get<ContainerMetric[]>(
-      'http://localhost:8080/api/v1.3/subcontainers',
+      process.env.C_ADVISOR_URL,
     );
     return data;
   }
@@ -71,8 +71,8 @@ export class MetricsService {
     );
   }
 
-  // @Cron('0 0 0 * * *') // runs once every day on production
-  @Cron('0 */3 * * * *') // every 3min on dev
+  @Cron('0 0 0 * * *') // runs once every day on production
+  // @Cron('0 */3 * * * *') // every 3min on dev
   async aggregateDaily() {
     try {
       const keys = await this.getAllRedisStreamKeys('metrics:*');
@@ -109,105 +109,50 @@ export class MetricsService {
     const first = this.parseStreamEntry(entries[0]);
     const last = this.parseStreamEntry(entries[entries.length - 1]);
 
+    const userId = await this.getUserIdByContainerName(containerName);
+    if (!userId) return;
+
+    const todaysAmount = this.calculateUsageCost({
+      totalCpuSecs: Math.max(0, (last.cpu - first.cpu) / 1e9),
+      totalMemGbHrs: Math.max(0, last.mem),
+      totalNetBytes: Math.max(0, last.rx - first.rx + (last.tx - first.tx)),
+    });
+
     await this.prisma.dailyMetric.create({
       data: {
+        userId,
         containerName,
+        amount: todaysAmount,
         date: new Date(new Date().toISOString()),
         cpuSeconds: (last.cpu - first.cpu) / 1e9,
         memoryBytes: last.mem,
-        netRxBytes: last.rx - first.rx,
-        netTxBytes: last.tx - first.tx,
+        netRxBytes: Math.max(0, last.rx - first.rx),
+        netTxBytes: Math.max(0, last.tx - first.tx),
       },
     });
 
-    const userId = await this.getUserIdByContainerName(containerName);
-    if (!userId) return;
-    console.log('in the metrics+++++++', userId);
-    const currPayment = await this.prisma.payment.findFirst({
-      where: {
-        userId,
-        status: 'PENDING',
-      },
-    });
-
-    const mostRecentInvoice = await this.prisma.invoice.findFirst({
-      where: { userId, status: 'PAID' },
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    const todaysAmount = this.calculateUsageCost({
-      totalCpuSecs: (last.cpu - first.cpu) / 1e9,
-      totalMemGbHrs: last.mem,
-      totalNetBytes: last.rx - first.rx + last.tx - first.tx,
-    });
-
-    if (currPayment) {
-      await this.prisma.payment.update({
-        where: { id: currPayment.id },
-        data: {
-          amount: todaysAmount + currPayment.amount,
-        },
-      });
-    } else {
-      await this.prisma.payment.create({
-        data: {
-          userId,
-          amount: todaysAmount,
-          status: 'PENDING',
-          recentPaidAmount: mostRecentInvoice ? mostRecentInvoice.amount : 0.0,
-        },
-      });
-    }
     await this.redisClient.del(streamKey);
   }
 
-  // @Cron('0 0 0 1 * *') // At second 0, minute 0, hour 0, on day 1 of every month: on the production
-  @Cron('0 */10 * * * *') // every 10min on dev
-  async aggregateMonthly() {
-    try {
-      const { firstDay, lastDay, hoursInMonth } = this.getPreviousMonthRange();
-
-      const aggregates = await this.prisma.dailyMetric.groupBy({
-        by: ['containerName'],
-        where: {
-          date: {
-            gte: firstDay.toISOString(),
-            lte: lastDay.toISOString(),
-          },
-        },
-        _sum: {
-          cpuSeconds: true,
-          memoryBytes: true,
-          netRxBytes: true,
-          netTxBytes: true,
-        },
-      });
-
-      for (const agg of aggregates) {
-        await this.prisma.monthlyAggregate.create({
-          data: {
-            containerName: agg.containerName,
-            periodStart: firstDay,
-            periodEnd: lastDay,
-            totalCpuSecs: agg._sum.cpuSeconds,
-            totalMemGbHrs:
-              (Number(agg._sum.memoryBytes) / 1024 ** 3) * hoursInMonth,
-            totalNetBytes: Number(agg._sum.netRxBytes + agg._sum.netTxBytes),
-          },
-        });
-      }
-    } catch (error) {
-      this.logger.error('Failed to aggregate monthly metrics', error.stack);
-    }
-  }
-  // @Cron('0 10 0 1 * *') // At second 0, minute 10, hour 0, on day 1 of every month, shortly after the monthly aggregation on production
-  @Cron('0 */11 * * * *') // every 11min on dev
+  @Cron('0 10 0 1 * *') // At second 0, minute 10, hour 0, on day 1 of every month, on production
+  // @Cron('0 */10 * * * *') // every 10min on dev
   async createInvoicesFromContainerAggregates() {
     const { firstDay, lastDay } = this.getPreviousMonthRange();
-    const aggregates = await this.prisma.monthlyAggregate.findMany({
+
+    const groupedAggregates = await this.prisma.dailyMetric.groupBy({
+      by: ['userId'],
       where: {
-        periodStart: { gte: new Date(firstDay.getTime() - 5 * 60 * 1000) },
-        periodEnd: { lte: new Date(lastDay.getTime() + 5 * 60 * 1000) },
+        date: {
+          gte: new Date(firstDay.getTime() - 5 * 60 * 1000),
+          lte: new Date(lastDay.getTime() + 5 * 60 * 1000),
+        },
+      },
+      _sum: {
+        cpuSeconds: true,
+        memoryBytes: true,
+        netRxBytes: true,
+        netTxBytes: true,
+        amount: true,
       },
     });
 
@@ -216,64 +161,38 @@ export class MetricsService {
       Omit<MonthlyAggregate, 'containerName'>
     >();
 
-    for (const agg of aggregates) {
-      const userId = await this.getUserIdByContainerName(agg.containerName);
-      if (userId === null) continue;
-
-      const existing = userUsage.get(userId) ?? {
-        periodStart: agg.periodStart,
-        periodEnd: agg.periodEnd,
-        totalCpuSecs: 0,
-        totalMemGbHrs: 0,
-        totalNetBytes: 0,
-      };
-
-      existing.totalCpuSecs += agg.totalCpuSecs;
-      existing.totalMemGbHrs += agg.totalMemGbHrs;
-      existing.totalNetBytes += Number(agg.totalNetBytes);
-
-      userUsage.set(userId, existing);
+    for (const record of groupedAggregates) {
+      userUsage.set(record.userId, {
+        amount: record._sum.amount ?? 0,
+        totalCpuSecs: record._sum.cpuSeconds ?? 0,
+        totalMemGbHrs: Number(record._sum.memoryBytes ?? 0),
+        totalNetBytes:
+          Number(record._sum.netRxBytes ?? 0) +
+          Number(record._sum.netTxBytes ?? 0),
+      });
     }
 
     for (const [userId, usage] of userUsage.entries()) {
-      const existingInvoice = await this.prisma.invoice.findFirst({
-        where: {
+      const dueDate = new Date(lastDay.getTime() + 5 * 60 * 1000);
+
+      await this.prisma.invoice.create({
+        data: {
           userId,
-          status: {
-            in: ['PENDING', 'GENERATED'],
-          },
+          amount: usage.amount,
+          status: 'PENDING',
+          dueDate,
         },
       });
-
-      const amount = this.calculateUsageCost(usage);
-      const dueDate = new Date(usage.periodEnd.getTime() + 3 * 86400 * 1000);
-
-      if (existingInvoice) {
-        await this.prisma.invoice.update({
-          where: { id: existingInvoice.id },
-          data: {
-            amount,
-            // dueDate,
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        await this.prisma.invoice.create({
-          data: {
-            userId,
-            amount,
-            status: 'PENDING',
-            dueDate,
-          },
-        });
-      }
     }
   }
 
   private calculateUsageCost(metric: UsedResourceMetrics): number {
-    const cpuCost = metric.totalCpuSecs * 2;
-    const memoryCost = metric.totalMemGbHrs * 1;
-    const networkCost = metric.totalNetBytes * 5;
+    const cpuCost =
+      metric.totalCpuSecs * parseFloat(process.env.PRICE_PER_CPU_SECOND);
+    const memoryCost =
+      metric.totalMemGbHrs * parseFloat(process.env.PRICE_PER_MEM_SECOND);
+    const networkCost =
+      metric.totalNetBytes * parseFloat(process.env.PRICE_PER_NET_SECOND);
     return cpuCost + memoryCost + networkCost;
   }
 
@@ -297,29 +216,31 @@ export class MetricsService {
     return metric;
   }
 
-  // private getPreviousMonthRange() {
-  //   const now = new Date();
-  //   const firstDay = new Date(
-  //     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
-  //   );
-  //   const lastDay = new Date(
-  //     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0),
-  //   );
-  //   return {
-  //     firstDay,
-  //     lastDay,
-  //     hoursInMonth: lastDay.getDate() * 24,
-  //   };
-  // }
-
+  // On production
   private getPreviousMonthRange() {
     const now = new Date();
-    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-
+    const firstDay = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+    );
+    const lastDay = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0),
+    );
     return {
-      firstDay: new Date(tenMinutesAgo.toISOString()),
-      lastDay: new Date(now.toISOString()),
-      hoursInMonth: 30 / 60,
+      firstDay,
+      lastDay,
+      hoursInMonth: lastDay.getDate() * 24,
     };
   }
+
+  // On dev stage
+  // private getPreviousMonthRange() {
+  //   const now = new Date();
+  //   const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
+  //   return {
+  //     firstDay: new Date(tenMinutesAgo.toISOString()),
+  //     lastDay: new Date(now.toISOString()),
+  //     hoursInMonth: 30 / 60,
+  //   };
+  // }
 }

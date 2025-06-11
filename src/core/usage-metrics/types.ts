@@ -32,8 +32,10 @@ export interface ContainerMetric {
 
 export interface MonthlyAggregate {
   containerName: string;
-  periodStart: Date;
-  periodEnd: Date;
+  // periodStart: Date;
+  // periodEnd: Date;
+  amount: number;
+  // userId: number;
   totalCpuSecs: number;
   totalMemGbHrs: number;
   totalNetBytes: number;

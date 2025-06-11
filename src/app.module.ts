@@ -27,6 +27,14 @@ import { ScheduleModule } from '@nestjs/schedule';
         port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
       },
     }),
+    RedisModule.forRoot({
+      type: 'single', // Specify connection type
+      url: 'redis://localhost:6379/0', // Direct URL configuration
+
+      // OR for cluster:
+      // nodes: [{ host: 'localhost', port: 6379 }],
+      // options: { clusterEnabled: true }
+    }),
     WinstonModule.forRoot({
       transports: [
         new winston.transports.Console({
