@@ -1,0 +1,11 @@
+{
+  "mcp": {
+    "servers": {
+      "my-mcp-server": {
+        "type": "stdio",
+        "command": "my-command",
+        "args": []
+      }
+    }
+  }
+}
