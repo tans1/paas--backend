@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   ConflictException,
 } from '@nestjs/common';
-import { UsersRepositoryInterface } from './../../interfaces/users-repository-interface/users-repository-interface.interface';
+import { UpdateUserDto, UsersRepositoryInterface } from './../../interfaces/users-repository-interface/users-repository-interface.interface';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
 import * as bcrypt from 'bcrypt';
 
@@ -13,6 +13,18 @@ import * as bcrypt from 'bcrypt';
 export class UsersRepositoryService implements UsersRepositoryInterface {
   constructor(private prisma: PrismaService) {}
 
+  async findAll() {
+    try {
+      const users = await this.prisma.user.findMany();
+
+      return users;
+    } catch (error) {
+      console.error('Error fetching user by id:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch users. Please try again later.',
+      );
+    }
+  }
   async findOneById(id: number) {
     try {
       const user = await this.prisma.user.findUnique({
@@ -103,6 +115,39 @@ export class UsersRepositoryService implements UsersRepositoryInterface {
       console.error('Error updating user by email:', error);
       throw new InternalServerErrorException(
         'Failed to update user. Please try again later.',
+      );
+    }
+  }
+
+  async update(id: number, payload: UpdateUserDto) {
+    
+    try {
+     
+      return await this.prisma.user.update({
+        where: {
+          id: id,
+        },
+        data: payload,
+      });
+    } catch (error) {
+      console.error('Error updating user by id:', error);
+      throw new InternalServerErrorException(
+        'Failed to update user. Please try again later.',
+      );
+    }
+  }
+
+  async remove(id: number) {
+    try {
+      return await this.prisma.user.delete({
+        where: {
+          id: id,
+        },
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw new InternalServerErrorException(
+        'Failed to delete user. Please try again later.',
       );
     }
   }

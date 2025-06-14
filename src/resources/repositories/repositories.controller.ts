@@ -38,6 +38,7 @@ import { EventNames } from '@/core/events/event.module';
 import { FrameworkDetectionService } from '@/core/framework-detector/framework-detection-service/framework-detection.service';
 import { CustomApiResponse } from '@/utils/api-responses/api-response';
 import { AuthGuard } from '../auth/guards/auth-guard/auth.guard';
+import { StatusGuard } from '../auth/guards/status-guard/user.status.guard';
 
 @ApiTags('Repositories')
 @Controller('repositories')
@@ -133,6 +134,8 @@ async redirectToGitHubAuth(
     const email = req.user.email;
     return this.listService.getRepoInfo(email, owner, repo);
   }
+
+  @UseGuards(StatusGuard)
   @ApiOperation({
     summary: 'Deploy',
     description:

@@ -19,12 +19,16 @@ enum UserStatus {
   DELETED
 }
 
+enum Role {
+  ADMIN
+  USER
+}
 model User {
   id                Int     @id @default(autoincrement())
   name              String  @db.VarChar(255)
   email             String  @unique @db.VarChar(255)
   password          String? @db.VarChar(255)
-  role              String? @db.VarChar(50)
+  role              Role   @default(USER)
   githubUsername    String? @unique @db.VarChar(255)
   githubAccessToken String? @map("access_token") @db.VarChar(255)
 
@@ -43,6 +47,16 @@ model User {
   suspendedAt             DateTime?
   notifications           Notification[]
   notificationPreferences NotificationPreferences?
+  resets    PasswordReset[]
+}
+
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // model GithubAuth {
@@ -71,7 +85,7 @@ model Project {
   name                 String   @db.VarChar(255)
   url                  String   @db.VarChar(2083)
   framework            String   @db.VarChar(100)
-  linkedByUser         User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
+  linkedByUser         User     @relation("UserProjects", fields: [linkedByUserId], references: [id], onDelete: Cascade)
   linkedByUserId       Int
   createdAt            DateTime @default(now()) @map("created_at")
   environmentVariables Json?    @map("environment_variables")
@@ -150,7 +164,7 @@ model Server {
 
 model UserAlert {
   id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
   message   String
   type      String   @db.VarChar(50)
@@ -166,7 +180,7 @@ model AdminAnalytics {
 
 model OAuthProvider {
   id          Int      @id @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      Int
   provider    String?  @db.VarChar(50)
   accessToken String   @map("access_token") @db.VarChar(255)
@@ -187,7 +201,7 @@ model OAuthProvider {
 
 model DailyMetric {
   id     String @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
 
   containerName String
@@ -214,7 +228,7 @@ model DailyMetric {
 
 model Invoice {
   id     String @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
 
   amount      Float
@@ -235,7 +249,7 @@ enum BillingTypes {
 
 model BillingRecord {
   id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
 
   amount Float
@@ -263,7 +277,7 @@ model Notification {
   type      NotificationType     @default(SYSTEM)
   priority  NotificationPriority @default(MEDIUM)
   isRead    Boolean              @default(false)
-  user      User?                @relation(fields: [userId], references: [id])
+  user      User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int?
   metadata  Json?
   createdAt DateTime             @default(now()) @map("created_at")
@@ -272,7 +286,7 @@ model Notification {
 
 model NotificationPreferences {
   id                 String               @id @default(uuid())
-  user               User                 @relation(fields: [userId], references: [id])
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             Int                  @unique
   enabledTypes       Json // Stores { SYSTEM: boolean, DEPLOYMENT: boolean, etc. }
   emailNotifications Boolean              @default(true)
