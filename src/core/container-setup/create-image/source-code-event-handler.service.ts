@@ -152,7 +152,17 @@ export class SourceCodeEventHandlerService {
         deployment.id,
         true,
       );
+      await this.projectRepositoryService.update(projectId, {
+        status: StatusEnum.RUNNING,
+        activeDeploymentId: deployment.id,
+      });
 
+      this.deploymentEventsGateway.sendDeploymentUpdateEvent(repoId, branch, {
+        deploymentId: deployment.id,
+        status: 'deployed',
+        timestamp: Date.now().toString(),
+      });
+      
       await this.dockerHubService.pushImage(
         imageName,
         repoId,
@@ -172,16 +182,16 @@ export class SourceCodeEventHandlerService {
         );
       }
 
-      await this.projectRepositoryService.update(projectId, {
-        status: StatusEnum.RUNNING,
-        activeDeploymentId: deployment.id,
-      });
+      // await this.projectRepositoryService.update(projectId, {
+      //   status: StatusEnum.RUNNING,
+      //   activeDeploymentId: deployment.id,
+      // });
 
-      this.deploymentEventsGateway.sendDeploymentUpdateEvent(repoId, branch, {
-        deploymentId: deployment.id,
-        status: 'deployed',
-        timestamp: Date.now().toString(),
-      });
+      // this.deploymentEventsGateway.sendDeploymentUpdateEvent(repoId, branch, {
+      //   deploymentId: deployment.id,
+      //   status: 'deployed',
+      //   timestamp: Date.now().toString(),
+      // });
     } catch (error) {
       console.error('Error during deployment process:', error);
 

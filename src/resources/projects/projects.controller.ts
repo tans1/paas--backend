@@ -25,6 +25,8 @@ import { EventNames } from '@/core/events/event.module';
 import { AlsService } from '@/utils/als/als.service';
 import { EnvironmentService } from '@/utils/environment/environment.service';
 import { StatusGuard } from '../auth/guards/status-guard/user.status.guard';
+import { Roles } from '../auth/guards/role-guard/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('projects')
 export class ProjectsController {
@@ -35,6 +37,21 @@ export class ProjectsController {
     private alsService: AlsService, 
     private environmentService: EnvironmentService
   ) {}
+
+  @ApiBearerAuth('JWT-auth')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Retrieve all projects' })
+  @ApiResponse({
+    status: 200,
+    description: 'All projects',
+    type: ProjectResponseDto,
+  })
+  @Get('all-projects')
+  async getAllProjects(
+    @Req() req: Request,
+  ) {
+    return await this.projectsService.getAllProjects();
+  }
 
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Retrieve all projects for the authenticated user' })
