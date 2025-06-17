@@ -1,107 +1,98 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NestJsProjectService } from './nestjs-project-service';
-import { NestJsProjectScannerService } from './nestjs-project-scanner/nestjs-project-scanner.service';
-import { NestJsDockerfileService } from './nestjs-docker-config/nestjs-dockerfile.service';
-import { NestJsDockerIgnoreFileService } from './nestjs-docker-config/nestjs-dockerignorefile.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EventNames } from '../../events/event.module';
 import { FrameworkMap } from '../../framework-detector/framework.config';
-
-interface ProjectPayload {
-  projectPath: string;
-  configFile: string;
-}
-
-interface ProjectConfig {
-  projectPath: string;
-  nodeVersion: string;
-  defaultBuildLocation?: string;
-}
+import { EventNames } from '../../events/event.module';
+import { PORT } from './constants';
 
 describe('NestJsProjectService', () => {
   let service: NestJsProjectService;
-  let nestJsProjectScannerService: jest.Mocked<NestJsProjectScannerService>;
-  let nestJsDockerfileService: jest.Mocked<NestJsDockerfileService>;
-  let nestJsDocerIgnoreFileService: jest.Mocked<NestJsDockerIgnoreFileService>;
-  let eventEmitter: jest.Mocked<EventEmitter2>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        NestJsProjectService,
-        {
-          provide: NestJsProjectScannerService,
-          useValue: {
-            scan: jest.fn(),
-          },
-        },
-        {
-          provide: NestJsDockerfileService,
-          useValue: {
-            createDockerfile: jest.fn(),
-          },
-        },
-        {
-          provide: NestJsDockerIgnoreFileService,
-          useValue: {
-            addDockerIgnoreFile: jest.fn(),
-          },
-        },
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
+  // Mocks for dependencies
+  const mockScannerService = { scan: jest.fn() };
+  const mockDockerfileService = { createDockerfile: jest.fn() };
+  const mockDockerIgnoreService = { addDockerIgnoreFile: jest.fn() };
+  const mockEventEmitter = { emit: jest.fn() };
+  const mockAlsService = { getrepositoryId: jest.fn(), getbranchName: jest.fn() };
+  const mockRepoService = { findByRepoAndBranch: jest.fn() };
 
-    service = module.get<NestJsProjectService>(NestJsProjectService);
-    nestJsProjectScannerService = module.get(NestJsProjectScannerService);
-    nestJsDockerfileService = module.get(NestJsDockerfileService);
-    nestJsDocerIgnoreFileService = module.get(NestJsDockerIgnoreFileService);
-    eventEmitter = module.get(EventEmitter2);
+  // Shared test data
+  const payload = { projectPath: '/test/path' };
+  const scannedConfig = {
+    projectPath: '/test/path',
+    nodeVersion: '18',
+    defaultBuildLocation: 'dist',
+  };
+  const repoProject = {
+    installCommand: 'npm ci',
+    buildCommand: 'npm run build',
+    outputDirectory: 'custom-out',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    service = new NestJsProjectService(
+      mockScannerService as any,
+      mockDockerfileService as any,
+      mockEventEmitter as any,
+      mockDockerIgnoreService as any,
+      mockAlsService as any,
+      mockRepoService as any,
+    );
+
+    mockScannerService.scan.mockResolvedValue(scannedConfig);
+    mockAlsService.getrepositoryId.mockReturnValue('repo123');
+    mockAlsService.getbranchName.mockReturnValue('feature-branch');
+    mockRepoService.findByRepoAndBranch.mockResolvedValue(repoProject);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('calls NestJsProjectScannerService.scan with the payload', async () => {
+    await service.processVueProject(payload);
+    expect(mockScannerService.scan).toHaveBeenCalledWith(payload);
   });
 
-  describe('processVueProject', () => {
-    it('should process NestJS project successfully', async () => {
-      const payload: ProjectPayload = {
-        projectPath: '/test/path',
-        configFile: 'package.json',
-      };
-      const mockConfig: ProjectConfig = {
-        projectPath: '/test/path',
-        nodeVersion: '16.0.0',
-        defaultBuildLocation: 'dist',
-      };
-
-      nestJsProjectScannerService.scan.mockResolvedValue(mockConfig);
-      nestJsDockerfileService.createDockerfile.mockResolvedValue(undefined);
-      nestJsDocerIgnoreFileService.addDockerIgnoreFile.mockResolvedValue(undefined);
-
-      await service.processVueProject(payload);
-
-      expect(nestJsProjectScannerService.scan).toHaveBeenCalledWith(payload);
-      expect(nestJsDockerfileService.createDockerfile).toHaveBeenCalledWith(mockConfig);
-      expect(nestJsDocerIgnoreFileService.addDockerIgnoreFile).toHaveBeenCalledWith(mockConfig);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(EventNames.SourceCodeReady, {
-        projectPath: payload.projectPath,
-      });
-    });
-
-    it('should handle errors during project processing', async () => {
-      const payload: ProjectPayload = {
-        projectPath: '/test/path',
-        configFile: 'package.json',
-      };
-
-      nestJsProjectScannerService.scan.mockRejectedValue(new Error('Scan failed'));
-
-      await expect(service.processVueProject(payload)).rejects.toThrow();
-    });
+  it('retrieves repo ID and branch name from AlsService', async () => {
+    await service.processVueProject(payload);
+    expect(mockAlsService.getrepositoryId).toHaveBeenCalled();
+    expect(mockAlsService.getbranchName).toHaveBeenCalled();
   });
-}); 
+
+  it('calls ProjectsRepositoryInterface.findByRepoAndBranch with correct args', async () => {
+    await service.processVueProject(payload);
+    expect(mockRepoService.findByRepoAndBranch).toHaveBeenCalledWith(
+      'repo123',
+      'feature-branch'
+    );
+  });
+
+  it('calls NestJsDockerfileService.createDockerfile with merged config', async () => {
+    await service.processVueProject(payload);
+    expect(mockDockerfileService.createDockerfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectPath: '/test/path',
+        nodeVersion: '18',
+        installCommand: 'npm ci',
+        buildCommand: 'npm run build',
+        outputDirectory: 'custom-out',
+        runCommand: FrameworkMap.NestJS.settings.runCommand.value,
+      })
+    );
+  });
+
+  it('calls NestJsDockerIgnoreFileService.addDockerIgnoreFile with scanned config', async () => {
+    await service.processVueProject(payload);
+    expect(mockDockerIgnoreService.addDockerIgnoreFile).toHaveBeenCalledWith(
+      scannedConfig
+    );
+  });
+
+  it('emits SourceCodeReady event with correct payload', async () => {
+    await service.processVueProject(payload);
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      EventNames.SourceCodeReady,
+      {
+        projectPath: '/test/path',
+        PORT: PORT,
+      }
+    );
+  });
+});

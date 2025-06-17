@@ -1,9 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ClientModule } from './client.module';
+import { Module } from '@nestjs/common';
+import { UploadModule } from './upload/upload.module';
+import { DeployModule } from './deploy/deploy.module';
 import { ClientController } from './client.controller';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ConfigModule } from '@nestjs/config';
-import { AuthModule } from 'src/resources/auth/auth.module';
+import { EventsModule } from '../events/event.module';
+import { AlsModule } from '../../utils/als/als.module';
+import { AlsService } from '@/utils/als/als.service';
+import { UsersModule } from '@/resources/users/users.module';
+import { ClientModule } from './client.module';
 
 describe('ClientModule', () => {
   let module: TestingModule;
@@ -11,24 +15,59 @@ describe('ClientModule', () => {
   beforeEach(async () => {
     module = await Test.createTestingModule({
       imports: [
-        ClientModule,
-        ConfigModule.forRoot({ isGlobal: true }),
-        AuthModule,
+        UploadModule,
+        DeployModule,
+        EventsModule,
+        AlsModule,
+        UsersModule,
       ],
+      providers: [AlsService],
+      controllers: [ClientController],
     }).compile();
   });
 
-  it('should be defined', () => {
-    expect(module).toBeDefined();
-  });
+  describe('Module Configuration', () => {
+    it('should compile the module', () => {
+      expect(module).toBeDefined();
+    });
 
-  it('should provide ClientController', () => {
-    const controller = module.get<ClientController>(ClientController);
-    expect(controller).toBeDefined();
-  });
+    it('should import required modules', () => {
+      const moduleMetadata = module.select(ClientModule).get<typeof Module>(Module);
+      
+      expect(moduleMetadata).toBeDefined();
+      
+      // Get module imports using the metadata
+      const imports = Reflect.getMetadata('module:imports', ClientModule);
+      expect(imports).toBeDefined();
+      expect(imports.length).toBe(5);
+      
+      // Verify each import
+      const importNames = imports.map(m => m.name);
+      expect(importNames).toContain(UploadModule.name);
+      expect(importNames).toContain(DeployModule.name);
+      expect(importNames).toContain(EventsModule.name);
+      expect(importNames).toContain(AlsModule.name);
+      expect(importNames).toContain(UsersModule.name);
+    });
 
-  it('should provide EventEmitter2', () => {
-    const eventEmitter = module.get<EventEmitter2>(EventEmitter2);
-    expect(eventEmitter).toBeDefined();
+    it('should provide required services', () => {
+      const moduleMetadata = module.select(ClientModule).get<typeof Module>(Module);
+      
+      // Get providers using metadata
+      const providers = Reflect.getMetadata('module:providers', ClientModule);
+      expect(providers).toBeDefined();
+      expect(providers.length).toBe(1);
+      expect(providers[0].name).toBe(AlsService.name);
+    });
+
+    it('should register required controllers', () => {
+      const moduleMetadata = module.select(ClientModule).get<typeof Module>(Module);
+      
+      // Get controllers using metadata
+      const controllers = Reflect.getMetadata('module:controllers', ClientModule);
+      expect(controllers).toBeDefined();
+      expect(controllers.length).toBe(1);
+      expect(controllers[0].name).toBe(ClientController.name);
+    });
   });
-}); 
+});

@@ -1,49 +1,75 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NestJsDockerfileService } from './nestjs-dockerfile.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { HttpException } from '@nestjs/common';
+import * as fs from 'fs';
+import * as ejs from 'ejs';
+import { join } from 'path';
+
+jest.mock('fs');
+jest.mock('ejs');
+
+const mockedFs = fs as jest.Mocked<typeof fs>;
+const mockedEjs = ejs as jest.Mocked<typeof ejs>;
 
 describe('NestJsDockerfileService', () => {
   let service: NestJsDockerfileService;
-  let eventEmitter: EventEmitter2;
+  const oldEnv = process.env;
 
-  beforeEach(async () => {
-    jest.spyOn(require('fs').promises, 'writeFile').mockResolvedValue(undefined as any);
+  beforeEach(() => {
+    service = new NestJsDockerfileService();
+    process.env = { ...oldEnv, DEPLOYMENT_HASH: 'testhash' };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        NestJsDockerfileService,
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<NestJsDockerfileService>(NestJsDockerfileService);
-    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
+    mockedFs.promises = {
+      readFile: jest.fn(),
+      writeFile: jest.fn(),
+    } as any;
+    jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    process.env = oldEnv;
   });
 
-  describe('createDockerfile', () => {
-    it('should create Dockerfile with correct configuration', async () => {
-      const mockConfig = {
-        projectPath: '/test/project/path',
-        nodeVersion: '18',
-        defaultBuildLocation: 'dist',
-      };
+  const config = {
+    projectPath: '/some/project',
+    nodeVersion: '18',
+    installCommand: 'yarn',
+    buildCommand: 'yarn build',
+    outputDirectory: 'dist',
+    runCommand: 'node main.js',
+  };
 
-      await service.createDockerfile(mockConfig);
-      expect(require('fs').promises.writeFile).toHaveBeenCalled();
-    });
+  it('creates a Dockerfile from the template', async () => {
+    (mockedFs.promises.readFile as jest.Mock).mockResolvedValueOnce('TEMPLATE');
+    mockedEjs.render.mockReturnValueOnce('DOCKERFILE_CONTENT');
+    (mockedFs.promises.writeFile as jest.Mock).mockResolvedValueOnce(undefined);
 
-    it('should handle errors during Dockerfile creation', async () => {
-      const mockConfig = null;
-      await expect(service.createDockerfile(mockConfig)).rejects.toThrow();
+    await service.createDockerfile(config);
+
+    // Reads the template
+    expect(mockedFs.promises.readFile).toHaveBeenCalledWith(
+      expect.stringContaining('Dockerfile.ejs'),
+      'utf-8'
+    );
+    // Renders using ejs
+    expect(mockedEjs.render).toHaveBeenCalledWith('TEMPLATE', {
+      nodeVersion: '18',
+      PORT: expect.any(Number), // From constants
+      installCommand: 'yarn',
+      buildCommand: 'yarn build',
+      outputDirectory: 'dist',
+      runCommand: 'node main.js',
     });
+    // Writes Dockerfile to disk
+    const expectedPath = join('/some/project', 'Dockerfile.testhash');
+    expect(mockedFs.promises.writeFile).toHaveBeenCalledWith(
+      expectedPath,
+      'DOCKERFILE_CONTENT',
+      'utf-8'
+    );
+  });
+
+  it('throws HttpException if something fails', async () => {
+    (mockedFs.promises.readFile as jest.Mock).mockRejectedValueOnce(new Error('fail!'));
+    await expect(service.createDockerfile(config)).rejects.toThrow(HttpException);
   });
 });

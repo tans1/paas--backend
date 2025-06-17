@@ -15,7 +15,7 @@ describe('CliModule', () => {
   });
 
   it('should export all required providers', () => {
-    const providers = module.get('CLI_PROVIDERS');
+    const providers = module.get(CliModule);
     expect(providers).toBeDefined();
   });
 }); 

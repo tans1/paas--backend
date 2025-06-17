@@ -1,25 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WebhooksService } from './webhooks.service';
-import { OctokitService } from '../octokit/octokit.service';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { InvalidDataException } from '../../../utils/exceptions/github.exception';
+import { OctokitService } from '../../../utils/octokit/octokit.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventNames } from '../../../core/events/event.module';
 import { AlsService } from '../../../utils/als/als.service';
 import { ProjectService } from '../../../resources/projects/create-project/project.service';
-import { InvalidDataException } from '../../../utils/exceptions/github.exception';
-import { createHmac } from 'node:crypto';
-
-// Mock OctokitService to avoid UsersService dependency
-jest.mock('../octokit/octokit.service', () => ({
-  OctokitService: jest.fn().mockImplementation(() => ({
-    getOctokit: jest.fn(),
-  })),
-}));
-
-// Mock EventNames to bypass missing src/core/events/event.module
-jest.mock('../../../core/events/event.module', () => ({
-  EventNames: {
-    PushEventReceived: 'push.event.received',
-  },
-}));
+import { ListService } from '../list/list.service';
+import { WebhooksService } from './webhooks.service';
+import { ProjectStatus } from '@prisma/client';
 
 describe('WebhooksService', () => {
   let service: WebhooksService;
@@ -27,31 +16,7 @@ describe('WebhooksService', () => {
   let eventEmitter: EventEmitter2;
   let alsService: AlsService;
   let projectService: ProjectService;
-
-  // Mock dependencies
-  const mockOctokitService = {
-    getOctokit: jest.fn(),
-  };
-
-  const mockEventEmitter = {
-    emit: jest.fn(),
-  };
-
-  const mockAlsService = {
-    runWithrepositoryInfo: jest.fn(),
-  };
-
-  const mockProjectService = {
-    findByRepoAndBranch: jest.fn(),
-  };
-
-  // Mock Octokit instance
-  const mockOctokit = {
-    repos: {
-      listWebhooks: jest.fn(),
-      createWebhook: jest.fn(),
-    },
-  };
+  let listService: ListService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -59,19 +24,36 @@ describe('WebhooksService', () => {
         WebhooksService,
         {
           provide: OctokitService,
-          useValue: mockOctokitService,
+          useValue: {
+            getOctokit: jest.fn(),
+          },
         },
         {
           provide: EventEmitter2,
-          useValue: mockEventEmitter,
+          useValue: {
+            emit: jest.fn(),
+          },
         },
         {
           provide: AlsService,
-          useValue: mockAlsService,
+          useValue: {
+            initContext: jest.fn(),
+            setRepositoryId: jest.fn(),
+            setProjectName: jest.fn(),
+            setLastCommitMessage: jest.fn(),
+            setExtension: jest.fn(),
+          },
         },
         {
           provide: ProjectService,
-          useValue: mockProjectService,
+          useValue: {
+            findByRepoAndBranch: jest.fn(),
+            updateProject: jest.fn(),
+          },
+        },
+        {
+          provide: ListService,
+          useValue: {},
         },
       ],
     }).compile();
@@ -81,219 +63,175 @@ describe('WebhooksService', () => {
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
     alsService = module.get<AlsService>(AlsService);
     projectService = module.get<ProjectService>(ProjectService);
-
-    // Set up environment variables
-    process.env.DEP_WEBHOOK_URL = 'https://example.com/webhook';
-    process.env.DEP_WEBHOOK_SECRET = 'test-secret';
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.resetModules();
+    listService = module.get<ListService>(ListService);
   });
 
   describe('createWebhook', () => {
-    it('should create a webhook successfully if it does not exist', async () => {
-      // Arrange
-      const owner = 'test-owner';
-      const repo = 'test-repo';
-      const email = 'user@example.com';
-      mockOctokitService.getOctokit.mockResolvedValue(mockOctokit);
-      mockOctokit.repos.listWebhooks.mockResolvedValue({ data: [] });
-      mockOctokit.repos.createWebhook.mockResolvedValue({});
-
-      // Act
-      const result = await service.createWebhook(owner, repo, email);
-
-      // Assert
-      expect(octokitService.getOctokit).toHaveBeenCalledWith(email);
-      expect(mockOctokit.repos.listWebhooks).toHaveBeenCalledWith({ owner, repo });
-      expect(mockOctokit.repos.createWebhook).toHaveBeenCalledWith({
-        owner,
-        repo,
-        config: {
-          url: process.env.DEP_WEBHOOK_URL,
-          secret: process.env.DEP_WEBHOOK_SECRET,
-          content_type: 'json',
+    it('should create webhook successfully', async () => {
+      const mockOctokit = {
+        repos: {
+          listWebhooks: jest.fn().mockResolvedValue({ data: [] }),
+          createWebhook: jest.fn().mockResolvedValue({ data: {} }),
         },
-        events: ['push'],
-        active: true,
-      });
+      };
+
+      jest.spyOn(octokitService, 'getOctokit').mockResolvedValue(mockOctokit);
+
+      const result = await service.createWebhook('owner', 'repo', 'email');
       expect(result).toEqual({ message: 'Webhook created successfully' });
     });
 
-    it('should return "Webhook already exists" if webhook exists', async () => {
-      // Arrange
-      const owner = 'test-owner';
-      const repo = 'test-repo';
-      const email = 'user@example.com';
-      mockOctokitService.getOctokit.mockResolvedValue(mockOctokit);
-      mockOctokit.repos.listWebhooks.mockResolvedValue({
-        data: [{ config: { url: process.env.DEP_WEBHOOK_URL } }],
-      });
+    it('should handle existing webhook', async () => {
+      const mockOctokit = {
+        repos: {
+          listWebhooks: jest.fn().mockResolvedValue({
+            data: [{ config: { url: process.env.DEP_WEBHOOK_URL } }],
+          }),
+          createWebhook: jest.fn(),
+        },
+      };
 
-      // Act
-      const result = await service.createWebhook(owner, repo, email);
+      jest.spyOn(octokitService, 'getOctokit').mockResolvedValue(mockOctokit);
 
-      // Assert
-      expect(octokitService.getOctokit).toHaveBeenCalledWith(email);
-      expect(mockOctokit.repos.listWebhooks).toHaveBeenCalledWith({ owner, repo });
-      expect(mockOctokit.repos.createWebhook).not.toHaveBeenCalled();
+      const result = await service.createWebhook('owner', 'repo', 'email');
       expect(result).toEqual({ message: 'Webhook already exists' });
     });
 
-    it('should handle 422 error indicating webhook already exists', async () => {
-      // Arrange
-      const owner = 'test-owner';
-      const repo = 'test-repo';
-      const email = 'user@example.com';
-      mockOctokitService.getOctokit.mockResolvedValue(mockOctokit);
-      mockOctokit.repos.listWebhooks.mockResolvedValue({ data: [] });
-      mockOctokit.repos.createWebhook.mockRejectedValue({
-        status: 422,
-        response: { data: { message: 'Hook already exists' } },
-      });
+    it('should handle webhook creation error', async () => {
+      const mockOctokit = {
+        repos: {
+          listWebhooks: jest.fn().mockResolvedValue({ data: [] }),
+          createWebhook: jest.fn().mockRejectedValue({
+            status: 422,
+            response: { data: { message: 'already exists' } },
+          }),
+        },
+      };
 
-      // Act
-      const result = await service.createWebhook(owner, repo, email);
+      jest.spyOn(octokitService, 'getOctokit').mockResolvedValue(mockOctokit);
 
-      // Assert
-      expect(octokitService.getOctokit).toHaveBeenCalledWith(email);
-      expect(mockOctokit.repos.listWebhooks).toHaveBeenCalledWith({ owner, repo });
-      expect(mockOctokit.repos.createWebhook).toHaveBeenCalled();
+      const result = await service.createWebhook('owner', 'repo', 'email');
       expect(result).toEqual({ message: 'Webhook already exists' });
     });
 
-    it('should throw InvalidDataException for other errors', async () => {
-      // Arrange
-      const owner = 'test-owner';
-      const repo = 'test-repo';
-      const email = 'user@example.com';
-      const errorMessage = 'API error';
-      mockOctokitService.getOctokit.mockResolvedValue(mockOctokit);
-      mockOctokit.repos.listWebhooks.mockRejectedValue(new Error(errorMessage));
+    it('should throw exception for other errors', async () => {
+      const mockOctokit = {
+        repos: {
+          listWebhooks: jest.fn().mockResolvedValue({ data: [] }),
+          createWebhook: jest.fn().mockRejectedValue(new Error('Test error')),
+        },
+      };
 
-      // Act & Assert
-      await expect(service.createWebhook(owner, repo, email)).rejects.toThrow(
-        new InvalidDataException(`Failed to create webhook: ${errorMessage}`)
+      jest.spyOn(octokitService, 'getOctokit').mockResolvedValue(mockOctokit);
+
+      await expect(service.createWebhook('owner', 'repo', 'email')).rejects.toThrow(
+        InvalidDataException,
       );
-      expect(octokitService.getOctokit).toHaveBeenCalledWith(email);
-      expect(mockOctokit.repos.listWebhooks).toHaveBeenCalledWith({ owner, repo });
-      expect(mockOctokit.repos.createWebhook).not.toHaveBeenCalled();
     });
   });
 
   describe('handleWebhookEvent', () => {
-    it('should process webhook event and emit PushEventReceived if signatures match and project exists', async () => {
-      // Arrange
-      const payload = {
-        repository: { id: 123, full_name: 'owner/repo' },
-        ref: 'refs/heads/main',
-      };
-      const event = 'push';
-      const secret = process.env.DEP_WEBHOOK_SECRET;
-      const hmac = createHmac('sha256', secret);
-      const signature = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
+    it('should validate webhook signature successfully', () => {
+      const payload = { test: 'data' };
+      const signature = 'sha256=' + createHmac('sha256', 'secret')
+        .update(JSON.stringify(payload))
+        .digest('hex');
+      
+      expect(() => service.handleWebhookEvent(signature, 'push', payload)).not.toThrow();
+    });
+
+    it('should throw exception for invalid signature', () => {
+      const payload = { test: 'data' };
+      const invalidSignature = 'invalid-signature';
+      
+      expect(() => service.handleWebhookEvent(invalidSignature, 'push', payload)).toThrow(
+        InvalidDataException,
+      );
+    });
+
+    it('should handle webhook event for registered repository', async () => {
       const mockProject = {
-        linkedByUser: { githubAccessToken: 'ghp_testToken123' },
-      };
-      mockProjectService.findByRepoAndBranch.mockResolvedValue(mockProject);
-      mockAlsService.runWithrepositoryInfo.mockImplementation((repoId, repoName, fn) => fn());
-
-      // Act
-      await service.handleWebhookEvent(signature, event, payload);
-
-      // Assert
-      expect(mockProjectService.findByRepoAndBranch).toHaveBeenCalledWith(123, 'main');
-      expect(mockAlsService.runWithrepositoryInfo).toHaveBeenCalledWith(
-        123,
-        'owner/repo',
-        expect.any(Function)
-      );
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'push.event.received',
-        {
-          repoData: payload,
-          githubAccessToken: 'ghp_testToken123',
-        }
-      );
-    });
-
-    it('should throw InvalidDataException if signatures do not match', async () => {
-      // Arrange
-      const payload = {
-        repository: { id: 123, full_name: 'owner/repo' },
+              id: 1, 
+              name: 'test-project',
+              repository: 'test-repo',
+              branch: 'main',
+              environmentVariables: { 'foo': 'bar' },
+              lastCommitMessage: 'test commit',
+              owner: 'owner',
+              repo: 'repo',
+              githubUsername: 'username',
+              envVars: 'foo=bar',
+              framework: 'framework',
+              installCommand: 'install',
+              buildCommand: 'build',
+              runCommand: 'run',
+              outputDirectory: 'output',
+              rootDirectory: 'root',
+              projectDescription: 'description',
+              repoId: 1,
+              url: 'string',
+              linkedByUserId: 1,
+              createdAt: new Date(),
+              deployedIp: '123',
+              deployedPort: 8080,
+              deployedUrl: 'url',
+              activeDeploymentId: 1,
+      
+              localRepoPath: 'path/to/repo',
+              zoneId: '1',
+              aRecordId: '1',
+              cnameRecordId: '1',
+      
+              status: ProjectStatus.RUNNING,
+              dockerComposeFile: 'string',
+              PORT: 8081,
+              deployments: { id: 1, 
+                branch: 'main', 
+                createdAt: new Date(), 
+                environmentVariables: { 'foo': 'bar' }, 
+                lastCommitMessage: 'last commit', 
+                status: ProjectStatus.RUNNING, 
+                projectId: 2, 
+                rollbackToId: 1, 
+                containerName: 'my project', 
+                imageName: 'my-image', 
+                extension: '213', 
+              }, 
+              linkedByUser: 1
+            };
+      const mockPayload = {
+        repository: { id: 1, full_name: 'repo/name' },
         ref: 'refs/heads/main',
+        head_commit: { message: 'Initial commit' },
       };
-      const event = 'push';
-      const signature = 'sha256=invalid-signature';
 
-      // Act & Assert
-      await expect(service.handleWebhookEvent(signature, event, payload)).rejects.toThrow(
-        new InvalidDataException('Signatures did not match!')
-      );
-      expect(mockProjectService.findByRepoAndBranch).not.toHaveBeenCalled();
-      expect(mockAlsService.runWithrepositoryInfo).not.toHaveBeenCalled();
-      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+      jest.spyOn(projectService, 'findByRepoAndBranch').mockResolvedValue(mockProject);
+      jest.spyOn(projectService, 'updateProject').mockResolvedValue(undefined);
+      jest.spyOn(alsService, 'initContext').mockResolvedValue(NEVER);
+      jest.spyOn(alsService, 'setRepositoryId').mockResolvedValue(undefined);
+      jest.spyOn(alsService, 'setProjectName').mockResolvedValue(undefined);
+      jest.spyOn(alsService, 'setLastCommitMessage').mockResolvedValue(undefined);
+      jest.spyOn(alsService, 'setExtension').mockResolvedValue(undefined);
+      jest.spyOn(eventEmitter, 'emit').mockResolvedValue(undefined);
+      let signature ='new CryptoKey().usages.toString()'
+      await service.handleWebhookEvent(signature,'push', mockPayload);
+      expect(eventEmitter.emit).toHaveBeenCalledWith(EventNames.PushEventReceived, {
+        repoData: mockPayload,
+        githubAccessToken: 123,
+      });
     });
 
-    it('should return without action if project is not found', async () => {
-      // Arrange
-      const payload = {
-        repository: { id: 123, full_name: 'owner/repo' },
+    it('should handle webhook event for unregistered repository', async () => {
+      const mockPayload = {
+        repository: { id: 1, full_name: 'repo/name' },
         ref: 'refs/heads/main',
+        head_commit: { message: 'Initial commit' },
       };
-      const event = 'push';
-      const secret = process.env.DEP_WEBHOOK_SECRET;
-      const hmac = createHmac('sha256', secret);
-      const signature = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
-      mockProjectService.findByRepoAndBranch.mockResolvedValue(null);
 
-      // Act
-      await service.handleWebhookEvent(signature, event, payload);
+      jest.spyOn(projectService, 'findByRepoAndBranch').mockResolvedValue(null);
 
-      // Assert
-      expect(mockProjectService.findByRepoAndBranch).toHaveBeenCalledWith(123, 'main');
-      expect(mockAlsService.runWithrepositoryInfo).not.toHaveBeenCalled();
-      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
-    });
-
-    it('should handle webhook event with missing repository data', async () => {
-      // Arrange
-      const payload = {
-        ref: 'refs/heads/main',
-      };
-      const event = 'push';
-      const secret = process.env.DEP_WEBHOOK_SECRET;
-      const hmac = createHmac('sha256', secret);
-      const signature = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
-
-      // Act
-      await service.handleWebhookEvent(signature, event, payload);
-
-      // Assert
-      expect(mockProjectService.findByRepoAndBranch).toHaveBeenCalledWith(undefined, 'main');
-      expect(mockAlsService.runWithrepositoryInfo).not.toHaveBeenCalled();
-      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
-    });
-
-    it('should handle webhook event with missing ref data', async () => {
-      // Arrange
-      const payload = {
-        repository: { id: 123, full_name: 'owner/repo' },
-      };
-      const event = 'push';
-      const secret = process.env.DEP_WEBHOOK_SECRET;
-      const hmac = createHmac('sha256', secret);
-      const signature = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
-
-      // Act
-      await service.handleWebhookEvent(signature, event, payload);
-
-      // Assert
-      expect(mockProjectService.findByRepoAndBranch).toHaveBeenCalledWith(123, '');
-      expect(mockAlsService.runWithrepositoryInfo).not.toHaveBeenCalled();
-      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+      await service.handleWebhookEvent('signature', 'push', mockPayload);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 });

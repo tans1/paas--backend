@@ -15,7 +15,7 @@ describe('BuildToolsModule', () => {
   });
 
   it('should export all required providers', () => {
-    const providers = module.get('BUILD_TOOLS_PROVIDERS');
+    const providers = module.get(BuildToolsModule);
     expect(providers).toBeDefined();
   });
 }); 

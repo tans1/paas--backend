@@ -1,58 +1,111 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { VueDockerfileService } from './vue-dockerfile.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import * as fs from 'fs';
+import * as ejs from 'ejs';
+import { HttpException } from '@nestjs/common';
+import { PORT } from '../constants';
+import { join } from 'path';
+
+jest.mock('fs');
+jest.mock('ejs');
+
+const mockedFs = fs as jest.Mocked<typeof fs>;
+const mockedEjs = ejs as jest.Mocked<typeof ejs>;
 
 describe('VueDockerfileService', () => {
   let service: VueDockerfileService;
-  let eventEmitter: EventEmitter2;
-  let writeFileSpy: jest.SpyInstance;
-  let readFileSpy: jest.SpyInstance;
-  let pathJoinSpy: jest.SpyInstance;
+  const OLD_ENV = process.env;
 
-  beforeEach(async () => {
-    process.env.DEPLOYMENT_HASH = 'testhash';
-    writeFileSpy = jest.spyOn(require('fs').promises, 'writeFile').mockResolvedValue(undefined);
-    readFileSpy = jest.spyOn(require('fs').promises, 'readFile').mockResolvedValue('FROM node:18\n');
-    pathJoinSpy = jest.spyOn(require('path'), 'join').mockImplementation((...args: string[]) => args.join('/'));
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        VueDockerfileService,
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<VueDockerfileService>(VueDockerfileService);
-    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
+  beforeEach(() => {
+    service = new VueDockerfileService();
+    process.env = { ...OLD_ENV, DEPLOYMENT_HASH: 'vh123' };
+    mockedFs.promises = {
+      readFile: jest.fn(),
+      writeFile: jest.fn(),
+    } as any;
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    process.env = OLD_ENV;
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('reads template from the correct path', async () => {
+    (mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce('tpl');
+    mockedEjs.render.mockReturnValueOnce('out');
+    await service.createDockerfile({
+      projectPath: '/vue',
+      installCommand: 'yarn',
+      buildCommand: 'yarn build',
+      outputDirectory: 'dist',
+      nodeVersion: '17',
+    });
+    const templatePath = join(__dirname,'templates', 'Dockerfile.ejs');
+    expect((mockedFs.promises.readFile as jest.Mock)).toHaveBeenCalledWith(
+      templatePath,
+      'utf-8',
+    );
   });
 
-  describe('createDockerfile', () => {
-    it('should create Dockerfile with correct configuration', async () => {
-      const mockConfig = {
-        projectPath: '/test/project/path',
-        nodeVersion: '18',
-        defaultBuildLocation: 'dist',
-      };
-
-      await service.createDockerfile(mockConfig);
-      expect(writeFileSpy).toHaveBeenCalled();
+  it('renders template with provided vars and PORT', async () => {
+    (mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce('tpl');
+    mockedEjs.render.mockReturnValueOnce('out');
+    await service.createDockerfile({
+      projectPath: '/vue',
+      installCommand: 'yarn',
+      buildCommand: 'yarn build',
+      outputDirectory: 'dist',
+      nodeVersion: '17',
     });
-
-    it('should handle errors during Dockerfile creation', async () => {
-      const mockConfig = null;
-      await expect(service.createDockerfile(mockConfig)).rejects.toThrow();
+    expect(mockedEjs.render).toHaveBeenCalledWith('tpl', {
+      nodeVersion: '17',
+      installCommand: 'yarn',
+      buildCommand: 'yarn build',
+      outputDirectory: 'dist',
+      PORT: PORT,
     });
+  });
+
+  it('writes Dockerfile.<hash> in projectPath', async () => {
+    (mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce('tpl');
+    mockedEjs.render.mockReturnValueOnce('out');
+    await service.createDockerfile({
+      projectPath: '/vue',
+      installCommand: 'yarn',
+      buildCommand: 'yarn build',
+      outputDirectory: 'dist',
+    });
+    const outputPath = join('/vue', 'Dockerfile.vh123');
+    expect(mockedFs.promises.writeFile).toHaveBeenCalledWith(
+      outputPath,
+      'out',
+      'utf-8',
+    );
+  });
+
+  it('defaults nodeVersion to "16" if omitted', async () => {
+    (mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce('tpl');
+    mockedEjs.render.mockReturnValueOnce('out');
+    await service.createDockerfile({
+      projectPath: '/vue',
+      installCommand: 'i',
+      buildCommand: 'b',
+      outputDirectory: 'o',
+    });
+    expect(mockedEjs.render).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ nodeVersion: '16' }),
+    );
+  });
+
+  it('throws HttpException if readFile errors', async () => {
+    (mockedFs.promises.readFile as jest.Mock)!.mockRejectedValueOnce(new Error('err'));
+    await expect(
+      service.createDockerfile({
+        projectPath: '/vue',
+        installCommand: 'i',
+        buildCommand: 'b',
+        outputDirectory: 'o',
+      }),
+    ).rejects.toThrow(HttpException);
   });
 });

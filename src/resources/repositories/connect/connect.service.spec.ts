@@ -1,172 +1,189 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConnectService } from './connect.service';
-import { UsersService } from '../../users/users.service';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
-import { CallBackFailedException, TokenNotFoundException } from '../../../utils/exceptions/github.exception';
-
-// Mock the UsersService
-jest.mock('../../users/users.service', () => ({
-  UsersService: jest.fn().mockImplementation(() => ({
-    updateByEmail: jest.fn(),
-  })),
-}));
-
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+import { UsersService } from '../../users/users.service';
+import { ConnectService } from './connect.service';
+import {
+  CallBackFailedException,
+  TokenNotFoundException,
+} from '../../../utils/exceptions/github.exception';
+import * as crypto from 'crypto';
 
 describe('ConnectService', () => {
-  let service: ConnectService;
+  let connectService: ConnectService;
   let usersService: UsersService;
-
-  const createMockAxiosResponse = (data: any) => ({
-    data,
-    status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: {} as any,
-  });
+  let mockAxios: jest.Mocked<typeof axios>;
 
   beforeEach(async () => {
+    mockAxios = {
+      get: jest.fn(),
+      post: jest.fn(),
+      ...axios,
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ConnectService,
-        UsersService,
+        {
+          provide: UsersService,
+          useValue: {
+            updateByEmail: jest.fn(),
+          },
+        },
+        {
+          provide: 'AXIOS_INSTANCE',
+          useValue: mockAxios,
+        },
       ],
     }).compile();
 
-    service = module.get<ConnectService>(ConnectService);
+    connectService = module.get<ConnectService>(ConnectService);
     usersService = module.get<UsersService>(UsersService);
-
-    // Set environment variables for tests
-    process.env.DEP_GITHUB_CLIENT_ID = 'test-client-id';
-    process.env.DEP_GITHUB_CLIENT_SECRET = 'test-client-secret';
-    process.env.DEP_GITHUB_REDIRECT_URL = 'http://localhost/callback';
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    // Clean up environment variables
-    delete process.env.DEP_GITHUB_CLIENT_ID;
-    delete process.env.DEP_GITHUB_CLIENT_SECRET;
-    delete process.env.DEP_GITHUB_REDIRECT_URL;
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
   });
 
   describe('redirectToGitHubAuth', () => {
-    it('should return correct GitHub authorization URL', () => {
-      process.env.DEP_GITHUB_CLIENT_ID = 'test-client-id';
-      process.env.DEP_GITHUB_REDIRECT_URL = 'http://localhost:3000/callback';
+    beforeEach(() => {
+      process.env.STATE_SECRET = 'test-secret-key';
+    });
 
-      const expectedUrl = 'https://github.com/login/oauth/authorize' +
-        '?client_id=test-client-id' +
-        '&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback' +
-        '&scope=repo,user:email';
-
-      const result = service.redirectToGitHubAuth();
-      expect(result).toBe(expectedUrl);
+    it('should generate correct GitHub auth URL', () => {
+      const mockUser = { email: 'test@example.com' };
+      const result = connectService.redirectToGitHubAuth(mockUser);
+      
+      expect(result).toContain('https://github.com/login/oauth/authorize');
+      expect(result).toContain(`client_id=${process.env.GITHUB_CLIENT_ID}`);
+      expect(result).toContain(`redirect_uri=${encodeURIComponent(process.env.GITHUB_CALLBACK_URL)}`);
+      expect(result).toContain('&scope=repo,user:email');
     });
   });
 
   describe('handleGitHubCallback', () => {
-    const mockCode = 'test-code';
-    const mockAccessToken = 'test-access-token';
-    const mockGithubUsername = 'testuser';
-    const mockEmail = 'test@example.com';
+    const mockState = 'base64.payload.signature';
+    const mockGitHubUser = {
+      username: 'testuser',
+      accessToken: 123,
+    };
 
+    it('should successfully handle callback with valid state', async () => {
+      jest.spyOn(connectService, 'verifyState').mockReturnValue({
+        flow: 'connect',
+        sub: { email: 'test@example.com' },
+      });
+      jest.spyOn(usersService, 'updateByEmail').mockResolvedValue(undefined);
+
+      const result = await connectService.handleGitHubCallback(mockState, mockGitHubUser);
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should throw CallBackFailedException for invalid state', async () => {
+      jest.spyOn(connectService, 'verifyState').mockImplementation(() => {
+        throw new Error('Invalid state');
+      });
+
+      await expect(connectService.handleGitHubCallback(mockState, mockGitHubUser)
+      ).rejects.toThrow(new HttpException('Callback failed', HttpStatus.BAD_REQUEST));
+    });
+
+    it('should throw TokenNotFoundException for missing accessToken', async () => {
+      const userWithoutToken = { ...mockGitHubUser, accessToken: undefined };
+      
+      await expect(
+        connectService.handleGitHubCallback(mockState, userWithoutToken)
+      ).rejects.toThrow(new HttpException('Callback failed', HttpStatus.BAD_REQUEST));
+    });
+
+    it('should throw HttpException for invalid flow type', async () => {
+      jest.spyOn(connectService, 'verifyState').mockReturnValue({
+        flow: 'invalid',
+        sub: { email: 'test@example.com' },
+      });
+
+      await expect(
+        connectService.handleGitHubCallback(mockState, mockGitHubUser)
+      ).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('createState', () => {
+    const mockPayload = { flow: 'connect', sub: { email: 'test@example.com' } };
+    const mockSecret = 'test-secret-key';
+    
     beforeEach(() => {
-      process.env.DEP_GITHUB_CLIENT_ID = 'test-client-id';
-      process.env.DEP_GITHUB_CLIENT_SECRET = 'test-client-secret';
+      process.env.STATE_SECRET = mockSecret;
     });
 
-    it('should successfully handle GitHub callback and update user', async () => {
-      // Mock token response
-      mockedAxios.post.mockResolvedValueOnce(createMockAxiosResponse({
-        access_token: mockAccessToken,
-        token_type: 'bearer',
-        scope: 'repo,user:email',
-      }));
-
-      // Mock user info response
-      mockedAxios.get.mockResolvedValueOnce(createMockAxiosResponse({
-        login: mockGithubUsername,
-        id: 123,
-        email: mockEmail,
-      }));
-
-      jest.spyOn(usersService, 'updateByEmail').mockResolvedValueOnce(undefined);
-
-      const result = await service.handleGitHubCallback(mockCode);
-
-      expect(result).toEqual({
-        message: 'Successfully connected to GitHub',
-        data: {
-          githubUsername: mockGithubUsername,
-        },
-      });
-
-      expect(usersService.updateByEmail).toHaveBeenCalledWith(mockEmail, {
-        githubUsername: mockGithubUsername,
-        githubAccessToken: mockAccessToken,
-      });
+    it('should create valid state string with signature', () => {
+      const result = connectService.createState(mockPayload);
+      
+      expect(result).toContain('.');
+      const [base64, signature] = result.split('.');
+      
+      // Verify base64 part
+      const decoded = Buffer.from(base64, 'base64').toString();
+      expect(decoded).toContain(JSON.stringify(mockPayload));
+      
+      // Verify signature
+      const expectedSig = crypto
+        .createHmac('sha256', mockSecret)
+        .update(Buffer.from(base64, 'base64').toString())
+        .digest('hex');
+      
+      expect(signature).toBe(expectedSig);
     });
 
-    it('should fetch email from emails endpoint if not provided in user info', async () => {
-      // Mock token response
-      mockedAxios.post.mockResolvedValueOnce(createMockAxiosResponse({
-        access_token: mockAccessToken,
-        token_type: 'bearer',
-        scope: 'repo,user:email',
-      }));
-
-      // Mock user info response without email
-      mockedAxios.get.mockResolvedValueOnce(createMockAxiosResponse({
-        login: mockGithubUsername,
-        id: 123,
-      }));
-
-      // Mock emails response
-      mockedAxios.get.mockResolvedValueOnce(createMockAxiosResponse([
-        {
-          email: mockEmail,
-          primary: true,
-          verified: true,
-          visibility: 'public',
-        },
-      ]));
-
-      jest.spyOn(usersService, 'updateByEmail').mockResolvedValueOnce(undefined);
-
-      const result = await service.handleGitHubCallback(mockCode);
-
-      expect(result).toEqual({
-        message: 'Successfully connected to GitHub',
-        data: {
-          githubUsername: mockGithubUsername,
-        },
-      });
-
-      expect(usersService.updateByEmail).toHaveBeenCalledWith(mockEmail, {
-        githubUsername: mockGithubUsername,
-        githubAccessToken: mockAccessToken,
-      });
+    it('should handle empty payload', () => {
+      const result = connectService.createState({});
+      expect(result).toContain('.');
     });
 
-    it('should throw CallBackFailedException when access token is not received', async () => {
-      mockedAxios.post.mockResolvedValueOnce(createMockAxiosResponse({
-        token_type: 'bearer',
-        scope: 'repo,user:email',
-      }));
-
-      await expect(service.handleGitHubCallback(mockCode)).rejects.toThrow(CallBackFailedException);
+    it('should handle complex payload structure', () => {
+      const complexPayload = {
+        flow: 'connect',
+        sub: {
+          email: 'test@example.com',
+          metadata: {
+            timestamp: Date.now(),
+            source: 'github'
+          }
+        }
+      };
+      
+      const result = connectService.createState(complexPayload);
+      expect(result).toContain('.');
+      
+      const [base64] = result.split('.');
+      const decoded = Buffer.from(base64, 'base64').toString();
+      expect(decoded).toContain(JSON.stringify(complexPayload));
     });
 
-    it('should throw CallBackFailedException when GitHub API call fails', async () => {
-      mockedAxios.post.mockRejectedValueOnce(new Error('API Error'));
+    it('should handle special characters in payload', () => {
+      const payloadWithSpecialChars = {
+        flow: 'connect',
+        sub: {
+          email: 'test+special@example.com',
+          name: 'Test User!@#$%^&*()'
+        }
+      };
+      
+      const result = connectService.createState(payloadWithSpecialChars);
+      expect(result).toContain('.');
+      
+      const [base64] = result.split('.');
+      const decoded = Buffer.from(base64, 'base64').toString();
+      expect(decoded).toContain(JSON.stringify(payloadWithSpecialChars));
+    });
+});
+describe('missing STATE_SECRET', () => {
+    let mockPayload = { flow: 'connect', sub: { email: 'test@example.com' } };
+    beforeEach(() => {
+      process.env.STATE_SECRET = '';
+    });
 
-      await expect(service.handleGitHubCallback(mockCode)).rejects.toThrow(CallBackFailedException);
+    it('should throw error for missing STATE_SECRET', () => {
+      delete process.env.STATE_SECRET;
+      expect(() => connectService.createState(mockPayload)).toThrow(
+        'The \"key\" argument must be of type string or an instance of ArrayBuffer, Buffer, TypedArray, DataView, KeyObject, or CryptoKey. Received undefined'
+      );
     });
   });
 });

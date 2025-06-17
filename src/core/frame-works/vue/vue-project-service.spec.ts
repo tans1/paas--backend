@@ -1,94 +1,85 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { VueProjectService } from './vue-project-service';
-import { VueProjectScannerService } from './vue-project-scanner/vue-project-scanner.service';
-import { VueDockerfileService } from './vue-docker-config/vue-dockerfile.service';
-import { VueDockerIgnoreFileService } from './vue-docker-config/vue-dockerignorefile.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EventNames } from '../../events/event.module';
 import { FrameworkMap } from '../../framework-detector/framework.config';
+import { EventNames } from '../../events/event.module';
+import { PORT } from './constants';
 
 describe('VueProjectService', () => {
   let service: VueProjectService;
-  let vueProjectScannerService: jest.Mocked<VueProjectScannerService>;
-  let vueDockerfileService: jest.Mocked<VueDockerfileService>;
-  let vueDockerIgnoreFileService: jest.Mocked<VueDockerIgnoreFileService>;
-  let eventEmitter: jest.Mocked<EventEmitter2>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        VueProjectService,
-        {
-          provide: VueProjectScannerService,
-          useValue: {
-            scan: jest.fn(),
-          },
-        },
-        {
-          provide: VueDockerfileService,
-          useValue: {
-            createDockerfile: jest.fn(),
-          },
-        },
-        {
-          provide: VueDockerIgnoreFileService,
-          useValue: {
-            addDockerIgnoreFile: jest.fn(),
-          },
-        },
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
+  // mocks
+  const mockScanner = { scan: jest.fn() };
+  const mockDockerfile = { createDockerfile: jest.fn() };
+  const mockIgnorefile = { addDockerIgnoreFile: jest.fn() };
+  const mockEmitter = { emit: jest.fn() };
+  const mockAls = { getrepositoryId: jest.fn(), getbranchName: jest.fn() };
+  const mockRepo = { findByRepoAndBranch: jest.fn() };
 
-    service = module.get<VueProjectService>(VueProjectService);
-    vueProjectScannerService = module.get(VueProjectScannerService);
-    vueDockerfileService = module.get(VueDockerfileService);
-    vueDockerIgnoreFileService = module.get(VueDockerIgnoreFileService);
-    eventEmitter = module.get(EventEmitter2);
+  const payload = { projectPath: '/vue-app' };
+  const scanned = {
+    projectPath: '/vue-app',
+    nodeVersion: '18',
+    defaultBuildLocation: 'dist',
+  };
+  const repoData = {
+    installCommand: undefined,
+    buildCommand: 'npm run build',
+    outputDirectory: undefined,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    service = new VueProjectService(
+      mockScanner as any,
+      mockDockerfile as any,
+      mockEmitter as any,
+      mockIgnorefile as any,
+      mockAls as any,
+      mockRepo as any,
+    );
+    mockScanner.scan.mockResolvedValue(scanned);
+    mockAls.getrepositoryId.mockReturnValue('rid');
+    mockAls.getbranchName.mockReturnValue('branch');
+    mockRepo.findByRepoAndBranch.mockResolvedValue(repoData);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('invokes scan with payload', async () => {
+    await service.processVueProject(payload);
+    expect(mockScanner.scan).toHaveBeenCalledWith(payload);
   });
 
-  describe('processVueProject', () => {
-    it('should process Vue project successfully', async () => {
-      const payload = {
-        projectPath: '/test/path',
-      };
-      const mockConfig = {
-        projectPath: '/test/path',
-        nodeVersion: '16',
-        defaultBuildLocation: 'dist',
-      };
-
-      vueProjectScannerService.scan.mockResolvedValue(mockConfig);
-      vueDockerfileService.createDockerfile.mockResolvedValue(undefined);
-      vueDockerIgnoreFileService.addDockerIgnoreFile.mockResolvedValue(undefined);
-
-      await service.processVueProject(payload);
-
-      expect(vueProjectScannerService.scan).toHaveBeenCalledWith(payload);
-      expect(vueDockerfileService.createDockerfile).toHaveBeenCalledWith(mockConfig);
-      expect(vueDockerIgnoreFileService.addDockerIgnoreFile).toHaveBeenCalledWith(mockConfig);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(EventNames.SourceCodeReady, {
-        projectPath: payload.projectPath,
-      });
-    });
-
-    it('should handle errors during project processing', async () => {
-      const payload = {
-        projectPath: '/test/path',
-      };
-
-      vueProjectScannerService.scan.mockRejectedValue(new Error('Scan failed'));
-
-      await expect(service.processVueProject(payload)).rejects.toThrow();
-    });
+  it('fetches repo ID and branch', async () => {
+    await service.processVueProject(payload);
+    expect(mockAls.getrepositoryId).toHaveBeenCalled();
+    expect(mockAls.getbranchName).toHaveBeenCalled();
   });
-}); 
+
+  it('finds project from repository service', async () => {
+    await service.processVueProject(payload);
+    expect(mockRepo.findByRepoAndBranch).toHaveBeenCalledWith('rid', 'branch');
+  });
+
+  it('calls createDockerfile with merged defaults and settings', async () => {
+    await service.processVueProject(payload);
+    expect(mockDockerfile.createDockerfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectPath: '/vue-app',
+        installCommand: FrameworkMap.Vue.settings.installCommand.value,
+        buildCommand: 'npm run build',
+        outputDirectory: 'dist',
+      }),
+    );
+  });
+
+  it('calls addDockerIgnoreFile with scanned config', async () => {
+    await service.processVueProject(payload);
+    expect(mockIgnorefile.addDockerIgnoreFile).toHaveBeenCalledWith(scanned);
+  });
+
+  it('emits SourceCodeReady with projectPath and PORT', async () => {
+    await service.processVueProject(payload);
+    expect(mockEmitter.emit).toHaveBeenCalledWith(
+      EventNames.SourceCodeReady,
+      { projectPath: '/vue-app', PORT: PORT },
+    );
+  });
+});

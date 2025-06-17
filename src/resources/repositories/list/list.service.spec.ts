@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ListService } from './list.service';
-import { OctokitService } from '../octokit/octokit.service';
+import { OctokitService } from '@/utils/octokit/octokit.service';
 
 describe('ListService', () => {
   let service: ListService;

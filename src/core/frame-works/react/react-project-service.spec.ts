@@ -1,91 +1,84 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ReactProjectService } from './react-project-service';
-import { ReactProjectScannerService } from './react-project-scanner/react-project-scanner.service';
-import { ReactDockerfileService } from './react-docker-config/react-dockerfile.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ReactDockerIgnoreFileService } from './react-docker-config/react-dockerignorefile.service';
-import { EventNames } from '../../events/event.module';
 import { FrameworkMap } from '../../framework-detector/framework.config';
+import { EventNames } from '../../events/event.module';
 
 describe('ReactProjectService', () => {
   let service: ReactProjectService;
-  let scannerService: ReactProjectScannerService;
-  let dockerfileService: ReactDockerfileService;
-  let eventEmitter: EventEmitter2;
-  let dockerIgnoreService: ReactDockerIgnoreFileService;
 
-  const mockProjectPath = '/test/project/path';
-  const mockProjectConfig = {
-    dependencies: ['react', 'react-dom'],
-    devDependencies: ['@types/react'],
+  // mocks
+  const mockScanner = { scan: jest.fn() };
+  const mockDockerfile = { createDockerfile: jest.fn() };
+  const mockIgnorefile = { addDockerIgnoreFile: jest.fn() };
+  const mockEmitter = { emit: jest.fn() };
+  const mockAls = { getrepositoryId: jest.fn(), getbranchName: jest.fn() };
+  const mockRepo = { findByRepoAndBranch: jest.fn() };
+
+  const payload = { projectPath: '/app' };
+  const scanned = {
+    projectPath: '/app',
+    nodeVersion: '18',
+    defaultBuildLocation: 'build',
+  };
+  const repoData = {
+    installCommand: 'npm ci',
+    buildCommand: undefined,
+    outputDirectory: undefined,
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ReactProjectService,
-        {
-          provide: ReactProjectScannerService,
-          useValue: {
-            scan: jest.fn().mockResolvedValue(mockProjectConfig),
-          },
-        },
-        {
-          provide: ReactDockerfileService,
-          useValue: {
-            createDockerfile: jest.fn().mockResolvedValue(undefined),
-          },
-        },
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-        {
-          provide: ReactDockerIgnoreFileService,
-          useValue: {
-            addDockerIgnoreFile: jest.fn().mockResolvedValue(undefined),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<ReactProjectService>(ReactProjectService);
-    scannerService = module.get<ReactProjectScannerService>(ReactProjectScannerService);
-    dockerfileService = module.get<ReactDockerfileService>(ReactDockerfileService);
-    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
-    dockerIgnoreService = module.get<ReactDockerIgnoreFileService>(ReactDockerIgnoreFileService);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    service = new ReactProjectService(
+      mockScanner as any,
+      mockDockerfile as any,
+      mockEmitter as any,
+      mockIgnorefile as any,
+      mockAls as any,
+      mockRepo as any,
+    );
+    mockScanner.scan.mockResolvedValue(scanned);
+    mockAls.getrepositoryId.mockReturnValue('rid');
+    mockAls.getbranchName.mockReturnValue('br');
+    mockRepo.findByRepoAndBranch.mockResolvedValue(repoData);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('calls scanner.scan with the event payload', async () => {
+    await service.processReactProject(payload);
+    expect(mockScanner.scan).toHaveBeenCalledWith(payload);
   });
 
-  describe('processReactProject', () => {
-    it('should process React project correctly', async () => {
-      const payload = { projectPath: mockProjectPath };
-      
-      await service.processReactProject(payload);
-
-      expect(scannerService.scan).toHaveBeenCalledWith(payload);
-      expect(dockerfileService.createDockerfile).toHaveBeenCalledWith(mockProjectConfig);
-      expect(dockerIgnoreService.addDockerIgnoreFile).toHaveBeenCalledWith(mockProjectConfig);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(EventNames.SourceCodeReady, {
-        projectPath: mockProjectPath,
-      });
-    });
-
-    it('should handle errors gracefully', async () => {
-      const error = new Error('Test error');
-      jest.spyOn(scannerService, 'scan').mockRejectedValueOnce(error);
-      
-      const payload = { projectPath: mockProjectPath };
-      
-      await expect(service.processReactProject(payload)).rejects.toThrow(error);
-      expect(dockerfileService.createDockerfile).not.toHaveBeenCalled();
-      expect(dockerIgnoreService.addDockerIgnoreFile).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
-    });
+  it('retrieves repo ID and branch from AlsService', async () => {
+    await service.processReactProject(payload);
+    expect(mockAls.getrepositoryId).toHaveBeenCalled();
+    expect(mockAls.getbranchName).toHaveBeenCalled();
   });
-}); 
+
+  it('calls projectRepositoryService.findByRepoAndBranch correctly', async () => {
+    await service.processReactProject(payload);
+    expect(mockRepo.findByRepoAndBranch).toHaveBeenCalledWith('rid', 'br');
+  });
+
+  it('calls createDockerfile with merged config and fallbacks', async () => {
+    await service.processReactProject(payload);
+    expect(mockDockerfile.createDockerfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectPath: '/app',
+        installCommand: 'npm ci',
+        buildCommand: FrameworkMap.React.settings.buildCommand.value,
+        outputDirectory: 'build',
+      }),
+    );
+  });
+
+  it('calls addDockerIgnoreFile with the scanned config', async () => {
+    await service.processReactProject(payload);
+    expect(mockIgnorefile.addDockerIgnoreFile).toHaveBeenCalledWith(scanned);
+  });
+
+  it('emits SourceCodeReady event with correct payload', async () => {
+    await service.processReactProject(payload);
+    expect(mockEmitter.emit).toHaveBeenCalledWith(
+      EventNames.SourceCodeReady,
+      { projectPath: '/app' },
+    );
+  });
+});

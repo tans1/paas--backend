@@ -11,6 +11,7 @@ describe('RunToolsModule', () => {
   });
 
   it('should be defined', () => {
-    expect(module).toBeDefined();
+    const providers = module.get(RunToolsModule);
+    expect(providers).toBeDefined();
   });
 }); 

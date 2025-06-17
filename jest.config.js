@@ -10,6 +10,7 @@ module.exports = {
   testEnvironment: 'node',
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/$1',
+     '^@/(.*)$': '<rootDir>/$1'
   },
   transformIgnorePatterns: [
     'node_modules/(?!(strip-json-comments)/)',

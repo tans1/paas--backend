@@ -1,59 +1,98 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ReactProjectScannerService } from './react-project-scanner.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import * as fs from 'fs';
+import * as path from 'path';
+import { BundlerMap } from '../bundler.constants';
+
+jest.mock('fs');
+jest.mock('path', () => ({
+  ...jest.requireActual('path'),
+  join: jest.fn((...parts: string[]) => parts.join('/')),
+}));
+jest.mock('../bundler.constants', () => ({
+  BundlerMap: {
+    webpack: { dependancy: 'webpack', defaultBuildLocation: 'build/webpack' },
+    vite:   { dependancy: 'vite',   defaultBuildLocation: 'build/vite'   },
+  },
+}));
+
+const mockedFs = fs as jest.Mocked<typeof fs>;
 
 describe('ReactProjectScannerService', () => {
   let service: ReactProjectScannerService;
-  let eventEmitter: EventEmitter2;
-  let readFileSpy: jest.SpyInstance;
-  let pathJoinSpy: jest.SpyInstance;
 
-  beforeEach(async () => {
-    readFileSpy = jest.spyOn(require('fs').promises, 'readFile').mockImplementation(async (filePath: string) => {
-      if (filePath.endsWith('package.json')) {
-        return JSON.stringify({ dependencies: { react: '^18.0.0' }, devDependencies: { jest: '^29.0.0' } });
-      }
-      throw new Error('File not found');
-    });
-    pathJoinSpy = jest.spyOn(require('path'), 'join').mockImplementation((...args: string[]) => args.join('/'));
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ReactProjectScannerService,
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<ReactProjectScannerService>(ReactProjectScannerService);
-    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
+  beforeEach(() => {
+    service = new ReactProjectScannerService();
+    jest.clearAllMocks();
+    mockedFs.promises = {
+      readFile: jest.fn(),
+    } as any;
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
+  it('reads package.json from the correct path', async () => {
+   ( mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce(`{}`);
+    await service.scan({ projectPath: '/p', configFile: 'pkg.json' });
+    expect(mockedFs.promises.readFile).toHaveBeenCalledWith(
+      '/p/pkg.json',
+      'utf-8'
+    );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('returns default nodeVersion 18 and defaultBuildLocation webpack when no engines or bundlers present', async () => {
+   ( mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce(
+      JSON.stringify({ dependencies: {}, devDependencies: {} })
+    );
+
+    const res = await service.scan({ projectPath: '/p', configFile: 'pkg.json' });
+    expect(res).toEqual({
+      projectPath: '/p',
+      nodeVersion: '18',
+      defaultBuildLocation: 'build/webpack',
+    });
   });
 
-  describe('scan', () => {
-    it('should scan project and return configuration', async () => {
-      const mockProjectPath = '/test/project/path';
-      const result = await service.scan({ projectPath: mockProjectPath, configFile: 'package.json' });
+  it('picks up nodeVersion from engines.node if present', async () => {
+   ( mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce(
+      JSON.stringify({
+        engines: { node: '14' },
+        dependencies: {},
+        devDependencies: {},
+      })
+    );
 
-      expect(result).toBeDefined();
-      expect(result).toHaveProperty('dependencies');
-      expect(result).toHaveProperty('devDependencies');
-    });
+    const res = await service.scan({ projectPath: '/p', configFile: 'pkg.json' });
+    expect(res.nodeVersion).toBe('14');
+  });
 
-    it('should handle errors during scanning', async () => {
-      const mockProjectPath = '/invalid/path';
-      await expect(service.scan({ projectPath: mockProjectPath, configFile: 'package.json' })).rejects.toThrow();
-    });
+  it('chooses a bundler based on dependencies keys', async () => {
+   ( mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce(
+      JSON.stringify({
+        dependencies: { vite: '^3.0.0' },
+        devDependencies: {},
+      })
+    );
+
+    const res = await service.scan({ projectPath: '/p', configFile: 'pkg.json' });
+    expect(res.defaultBuildLocation).toBe('build/vite');
+  });
+
+  it('chooses a bundler based on devDependencies keys', async () => {
+   ( mockedFs.promises.readFile as jest.Mock)!.mockResolvedValueOnce(
+      JSON.stringify({
+        dependencies: {},
+        devDependencies: { webpack: '^5.0.0' },
+      })
+    );
+
+    const res = await service.scan({ projectPath: '/p', configFile: 'pkg.json' });
+    expect(res.defaultBuildLocation).toBe('build/webpack');
+  });
+
+  it('throws an Error when readFile fails', async () => {
+   ( mockedFs.promises.readFile as jest.Mock)!.mockRejectedValueOnce(new Error('oops'));
+    await expect(
+      service.scan({ projectPath: '/p', configFile: 'pkg.json' })
+    ).rejects.toThrow(
+      'Failed to scan the react project. Please ensure the project path and config file are correct.'
+    );
   });
 });

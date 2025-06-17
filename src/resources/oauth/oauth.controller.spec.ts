@@ -5,6 +5,7 @@ import { GithubService } from './github-auth/github.service';
 import { Response } from 'express';
 import { UsersService } from '../users/users.service';
 import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ConnectService } from '../repositories/connect/connect.service';
 
 describe('OauthController', () => {
   let controller: OauthController;
@@ -14,7 +15,7 @@ describe('OauthController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OauthController],
-      providers: [
+      providers: [ConnectService,
         {
           provide: GoogleService,
           useValue: {
@@ -129,14 +130,14 @@ describe('OauthController', () => {
       const res = {
         redirect: jest.fn(),
       } as unknown as Response;
-      const payload = { jwt_token: 'test-token', username: 'test-user' };
+      const payload = { access_token: 'test-token'};
       jest.spyOn(githubService, 'githubLogin').mockResolvedValue(payload);
 
-      await controller.githubAuthRedirect(req, res);
+      await controller.githubAuthRedirect(req, res, 'test-state');
 
       expect(githubService.githubLogin).toHaveBeenCalledWith(req);
       expect(res.redirect).toHaveBeenCalledWith(
-        `${process.env.FRONT_END_URL}/login-success?token=${payload.jwt_token}&username=${payload.username}`,
+        `${process.env.FRONT_END_URL}/login-success?token=${payload.access_token}`,
       );
     });
 
@@ -147,7 +148,7 @@ describe('OauthController', () => {
       } as unknown as Response;
       jest.spyOn(githubService, 'githubLogin').mockResolvedValue(undefined);
 
-      await controller.githubAuthRedirect(req, res);
+      await controller.githubAuthRedirect(req, res, 'test-state');
 
       expect(githubService.githubLogin).toHaveBeenCalledWith(req);
       expect(res.redirect).toHaveBeenCalledWith(
@@ -162,7 +163,7 @@ describe('OauthController', () => {
       } as unknown as Response;
       jest.spyOn(githubService, 'githubLogin').mockRejectedValue(new NotFoundException());
 
-      await controller.githubAuthRedirect(req, res);
+      await controller.githubAuthRedirect(req, res, 'test-state');
 
       expect(githubService.githubLogin).toHaveBeenCalledWith(req);
       expect(res.redirect).toHaveBeenCalledWith(
@@ -177,7 +178,7 @@ describe('OauthController', () => {
       } as unknown as Response;
       jest.spyOn(githubService, 'githubLogin').mockRejectedValue(new InternalServerErrorException());
 
-      await controller.githubAuthRedirect(req, res);
+      await controller.githubAuthRedirect(req, res, 'test-state');
 
       expect(githubService.githubLogin).toHaveBeenCalledWith(req);
       expect(res.redirect).toHaveBeenCalledWith(

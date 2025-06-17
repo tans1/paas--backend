@@ -9,6 +9,7 @@ import { CliModule } from './cli/cli.module';
 import { FileSystemModule } from './file-system/file-system.module';
 import { ClientModule } from './client/client.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { UsageMetricsModule } from './usage-metrics/usage-metrics.module';
 
 describe('CoreModule', () => {
   let module: TestingModule;
@@ -37,5 +38,6 @@ describe('CoreModule', () => {
     expect(module.get(FileSystemModule)).toBeDefined();
     expect(module.get(ClientModule)).toBeDefined();
     expect(module.get(EventEmitterModule)).toBeDefined();
+    expect(module.get(UsageMetricsModule)).toBeDefined();
   });
 }); 

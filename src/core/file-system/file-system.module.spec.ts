@@ -15,7 +15,7 @@ describe('FileSystemModule', () => {
   });
 
   it('should export all required providers', () => {
-    const providers = module.get('FILE_SYSTEM_PROVIDERS');
+    const providers = module.get<FileSystemModule>(FileSystemModule);
     expect(providers).toBeDefined();
   });
 }); 

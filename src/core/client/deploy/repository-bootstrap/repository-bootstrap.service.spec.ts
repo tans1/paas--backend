@@ -20,7 +20,7 @@ describe('RepositoryBootstrapService', () => {
     service = module.get<RepositoryBootstrapService>(RepositoryBootstrapService);
 
     // Reset mocks before each test
-    // jest.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('bootstrapRepository', () => {

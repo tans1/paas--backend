@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OctokitService } from './octokit.service';
-import { UsersService } from '../../users/users.service';
+import { UsersService } from '../../resources/users/users.service';
 import { Octokit } from '@octokit/rest';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
