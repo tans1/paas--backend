@@ -1,29 +1,46 @@
-name: Deploy
+# .github/workflows/ci-deploy.yml
+name: CI & Deploy
 
-on: 
+on:
   push:
-    paths:
-      - prisma/migrations/**
     branches:
       - main
 
 jobs:
+  # test:
+  #   name: 🧪 Run Tests
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Use Node.js 18
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 18
+
+  #     - name: Install dependencies
+  #       run: npm ci
+
+  #     - name: Run tests
+  #       run: npm test
+
   deploy:
+    name: 🚀 Deploy to Remote
+    # needs: test
+    # if: ${{ needs.test.result == 'success' }}
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: SSH & Deploy over Password
+        uses: appleboy/ssh-action@v0.1.9
         with:
-          node-version:
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Apply all pending migrations to the database
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          host: ${{ secrets.SSH_HOST }}       
+          username: ${{ secrets.SSH_USER }}    
+          password: ${{ secrets.SSH_PASSWORD }}# your server password
+          port: 22
+          ssh-strict: false                   
+          script: |
+            cd ~/final-year/paas--backend
+            docker-compose down
+            git pull origin main
+            docker-compose up --build -d
