@@ -35,6 +35,5 @@ jobs:
           script: |
             cd ~/final-year/paas--backend
             docker compose down
-            git config --global --add safe.directory "$(pwd)"
-            git pull origin main
+            git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git main
             NODE_ENV=production docker compose up --build app -d
