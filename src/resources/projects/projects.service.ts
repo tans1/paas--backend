@@ -4,6 +4,9 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class ProjectsService {
     constructor(private projectsRepositoryService : ProjectsRepositoryInterface){}
+    async getAllProjects() {
+        return await this.projectsRepositoryService.getAllProjects();
+    }
     async getProjects(userId: number) {
         return await this.projectsRepositoryService.findByUserId(userId);
     }

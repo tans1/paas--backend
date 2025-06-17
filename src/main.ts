@@ -3,15 +3,16 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 
-const envFile =
-  process.env.NODE_ENV === 'production'
-    ? '.env.production'
-    : '.env.development';
-dotenv.config({ path: envFile });
+// const envFile =
+//   process.env.NODE_ENV === 'production'
+//     ? '.env.production'
+//     : '.env.development';
+// dotenv.config({ path: envFile });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  console.log("REDIS_HOST:", process.env.REDIS_HOST);
+  console.log("REDIS_PORT:", process.env.REDIS_PORT);
   // Configure CORS
   app.enableCors({
     origin: process.env.FRONTEND_URL || '*',

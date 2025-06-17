@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 // import { CreateImageService } from './create-image/create-image.service';
-import { ImageBuildGateway } from './gateway/Image-build-gateway';
+import { ImageBuildGateway } from './gateway/image-build/Image-build-gateway';
 import { AlsModule } from '@/utils/als/als.module';
 import { FileService } from './create-image/file.service';
 import { DockerLogService } from './create-image/docker-log.service';
@@ -10,11 +10,14 @@ import { InterfacesModule } from '@/infrastructure/database/interfaces/interface
 import { RuntimeLogService } from './create-image/containter-runtime-log.service';
 import { DeploymentUtilsService } from './deployment-utils/deployment-utils.service';
 import { ManageContainerService } from './manage-containers/manage-containers.service';
-import { DeploymentEventsGateway } from './gateway/deployment-events.gateway';
+import { DeploymentEventsGateway } from './gateway/deployment-event/deployment-events.gateway';
 import { DockerHubService } from './create-image/docker-hub.service';
 import { EnvironmentModule } from '@/utils/environment/environment.module';
 import { DockerComposeFileService } from './docker-compose/dockerComposeFile.service';
 import { DockerComposeService } from './docker-compose/dockerCompose.service';
+import { BullModule } from '@nestjs/bullmq';
+import { DeploymentEventsProcessor } from './gateway/deployment-event/deployment-events.processor';
+import { BuildLogsProcessor } from './gateway/image-build/build-logs.processor';
 
 @Module({
   providers: [
@@ -30,9 +33,19 @@ import { DockerComposeService } from './docker-compose/dockerCompose.service';
     ManageContainerService,
     DockerHubService,
     DockerComposeFileService,
-    DockerComposeService
+    DockerComposeService,
+    DeploymentEventsProcessor,
+    BuildLogsProcessor
   ],
-  imports: [AlsModule, InterfacesModule, EnvironmentModule],
+  imports: [
+    AlsModule, 
+    InterfacesModule, 
+    EnvironmentModule,
+    BullModule.registerQueue(
+        { name: 'build-logs' },
+        { name: 'deployment-events' },
+  ),
+  ],
   exports: [ManageContainerService, ImageBuildService, DeploymentUtilsService],
 })
 export class ContainerSetupModule {}

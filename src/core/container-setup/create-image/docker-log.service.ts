@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ImageBuildGateway } from '../gateway/Image-build-gateway';
+import { ImageBuildGateway } from '../gateway/image-build/Image-build-gateway';
 import { AlsService } from '@/utils/als/als.service';
 import {
   DeploymentRepositoryInterface,
