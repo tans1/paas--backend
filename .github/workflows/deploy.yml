@@ -43,4 +43,4 @@ jobs:
             cd ~/final-year/paas--backend
             docker compose down
             git pull origin main
-            docker compose up --build -d
+            NODE_ENV=production docker compose up --build app -d
