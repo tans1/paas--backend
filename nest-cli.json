@@ -6,7 +6,7 @@
     "deleteOutDir": true,
     "assets": [
     {
-      "include": "**/*.ejs",
+      "include": ["**/*.ejs","**/*.hbs"],
       "watchAssets": true ,
       "outDir": "dist"
     },
