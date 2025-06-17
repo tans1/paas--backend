@@ -1,4 +1,3 @@
-# .github/workflows/ci-deploy.yml
 name: CI & Deploy
 
 on:
@@ -7,40 +6,35 @@ on:
       - main
 
 jobs:
+  # Uncomment tests when ready
   # test:
   #   name: 🧪 Run Tests
   #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Use Node.js 18
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 18
-
-  #     - name: Install dependencies
-  #       run: npm ci
-
-  #     - name: Run tests
-  #       run: npm test
+  #   steps: [...]
 
   deploy:
     name: 🚀 Deploy to Remote
+    # Uncomment when tests are enabled:
     # needs: test
     # if: ${{ needs.test.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: SSH & Deploy over Password
+      - name: Configure Git Credentials
+        run: |
+          git config --global credential.helper store
+          echo "https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
+
+      - name: SSH & Deploy
         uses: appleboy/ssh-action@v1.2.2
         with:
-          host: ${{ secrets.SSH_HOST }}       
-          username: ${{ secrets.SSH_USER }}    
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: 22
-          ssh-strict: false                   
+          ssh-strict: false
           script: |
             cd ~/final-year/paas--backend
             docker compose down
+            git config --global --add safe.directory "$(pwd)"
             git pull origin main
             NODE_ENV=production docker compose up --build app -d
