@@ -41,6 +41,6 @@ jobs:
           ssh-strict: false                   
           script: |
             cd ~/final-year/paas--backend
-            docker-compose down
+            docker compose down
             git pull origin main
-            docker-compose up --build -d
+            docker compose up --build -d
