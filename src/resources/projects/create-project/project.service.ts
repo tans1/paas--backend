@@ -2,8 +2,8 @@ import {
   ProjectsRepositoryInterface,
   CreateProjectDTO,
   UpdateProjectDTO,
-} from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
-import { UsersRepositoryInterface } from '@/infrastructure/database/interfaces/users-repository-interface/users-repository-interface.interface';
+} from '../../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
+import { UsersRepositoryInterface } from '../../../infrastructure/database/interfaces/users-repository-interface/users-repository-interface.interface';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()

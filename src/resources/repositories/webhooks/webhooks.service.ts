@@ -3,9 +3,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { InvalidDataException } from '../../../utils/exceptions/github.exception';
 import { OctokitService } from '../../../utils/octokit/octokit.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EventNames } from 'src/core/events/event.module';
-import { AlsService } from '@/utils/als/als.service';
-import { ProjectService } from '@/resources/projects/create-project/project.service';
+import { EventNames } from '../../../core/events/event.module';
+import { AlsService } from '../../../utils/als/als.service';
+import { ProjectService } from '../../../resources/projects/create-project/project.service';
 import { ListService } from '../list/list.service';
 
 @Injectable()
@@ -70,14 +70,14 @@ export class WebhooksService {
     );
     const checksum = Buffer.from(signature, 'utf8');
 
-    if (!timingSafeEqual(digest, checksum)) {
+    if (digest.length !== checksum.length || !timingSafeEqual(digest, checksum)) {
       throw new InvalidDataException('Signatures did not match!');
     }
 
     const repositoryId = payload.repository?.id;
     const repositoryName = payload.repository?.full_name;
-    const branch = payload.ref.replace('refs/heads/', '');
-    const owner = payload.repository?.owner?.login;
+    const branch = payload.ref ? payload.ref.replace('refs/heads/', '') : '';
+    const owner = payload.repository?.owner?.login; 
 
     // if this is an even from an registered repository and branch
     // return

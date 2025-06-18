@@ -1,4 +1,4 @@
-import { ProjectsRepositoryInterface } from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
+import { ProjectsRepositoryInterface } from '../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

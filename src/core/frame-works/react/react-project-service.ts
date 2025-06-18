@@ -3,7 +3,7 @@ import { ReactProjectScannerService } from './react-project-scanner/react-projec
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ReactDockerfileService } from './react-docker-config/react-dockerfile.service';
 import { FrameworkMap } from '../../framework-detector/framework.config';
-import { EventNames } from '@/core/events/event.module';
+import { EventNames } from '../../events/event.module';
 import { ReactDockerIgnoreFileService } from './react-docker-config/react-dockerignorefile.service';
 import { AlsService } from '@/utils/als/als.service';
 import { ProjectsRepositoryInterface } from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';

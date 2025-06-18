@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
 
 export class DNSDto {
   @ApiProperty({
@@ -10,8 +10,11 @@ export class DNSDto {
   @IsString()
   domain: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    example: 123,
+    description: 'The ID of the project',
+  })
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   projectId: number;
 }

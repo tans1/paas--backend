@@ -1,18 +1,26 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaServiceService } from './prisma-service.service';
+import { PrismaService } from './prisma-service.service';
 
-describe('PrismaServiceService', () => {
-  let service: PrismaServiceService;
+describe('PrismaService', () => {
+  let service: PrismaService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PrismaServiceService],
-    }).compile();
+  beforeEach(() => {
+    service = new PrismaService();
+    // Prevent real database connection
+    jest.spyOn(service, '$connect').mockResolvedValue(undefined);
+  });
 
-    service = module.get<PrismaServiceService>(PrismaServiceService);
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('onModuleInit', () => {
+    it('calls $connect once', async () => {
+      await service.onModuleInit();
+      expect(service.$connect).toHaveBeenCalledTimes(1);
+    });
   });
 });

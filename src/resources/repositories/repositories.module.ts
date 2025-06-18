@@ -7,7 +7,7 @@ import { InterfacesModule } from '../../infrastructure/database/interfaces/inter
 import { OctokitService } from '../../utils/octokit/octokit.service';
 import { UsersService } from '../users/users.service';
 import { ProjectService } from '../projects/create-project/project.service';
-import { AlsModule } from '@/utils/als/als.module';
+import { AlsModule } from '../../utils/als/als.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { GitHubFileService } from '../../utils/octokit/github-services/github-file.service';
 import { OctoktModule } from '@/utils/octokit/octokit.module';

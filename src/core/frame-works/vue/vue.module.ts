@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { VueProjectScannerService } from './vue-project-scanner/vue-project-scanner.service';
 import { VueProjectService } from './vue-project-service';
 import { VueDockerfileService } from './vue-docker-config/vue-dockerfile.service';
-import { AlsModule } from '@/utils/als/als.module';
+import { AlsModule } from '../../../utils/als/als.module';
 import { VueDockerIgnoreFileService } from './vue-docker-config/vue-dockerignorefile.service';
 import { InterfacesModule } from '@/infrastructure/database/interfaces/interfaces.module';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Module({
   providers: [
@@ -12,7 +13,9 @@ import { InterfacesModule } from '@/infrastructure/database/interfaces/interface
     VueProjectService,
     VueDockerfileService,
     VueDockerIgnoreFileService,
+    EventEmitter2,
   ],
   imports: [AlsModule, InterfacesModule],
+  exports: [VueProjectScannerService],
 })
 export class VueModule {}

@@ -4,7 +4,7 @@ import { ProfileService } from './profile/profile.service';
 import { AlertService } from './alert/alert.service';
 import { DtoModule } from './dto/dto.module';
 import { UsersService } from './users.service';
-import { InterfacesModule } from 'src/infrastructure/database/interfaces/interfaces.module';
+import { InterfacesModule } from '../../infrastructure/database/interfaces/interfaces.module';
 
 @Module({
   controllers: [UsersController],

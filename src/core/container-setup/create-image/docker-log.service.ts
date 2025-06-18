@@ -4,7 +4,7 @@ import { AlsService } from '@/utils/als/als.service';
 import {
   DeploymentRepositoryInterface,
   CreateDeploymentLogDTO,
-} from '@/infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
+} from '../../../infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
 @Injectable()
 export class DockerLogService {
   constructor(
