@@ -1,29 +1,39 @@
-name: Deploy
+name: CI & Deploy
 
-on: 
+on:
   push:
-    paths:
-      - prisma/migrations/**
     branches:
       - main
 
 jobs:
+  # Uncomment tests when ready
+  # test:
+  #   name: 🧪 Run Tests
+  #   runs-on: ubuntu-latest
+  #   steps: [...]
+
   deploy:
+    name: 🚀 Deploy to Remote
+    # Uncomment when tests are enabled:
+    # needs: test
+    # if: ${{ needs.test.result == 'success' }}
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Configure Git Credentials
+        run: |
+          git config --global credential.helper store
+          echo "https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com" > ~/.git-credentials
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: SSH & Deploy
+        uses: appleboy/ssh-action@v1.2.2
         with:
-          node-version:
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Apply all pending migrations to the database
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          ssh-strict: false
+          script: |
+            cd ~/final-year/paas--backend
+            docker compose down
+            git pull https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git main
+            NODE_ENV=production docker compose up --build app -d

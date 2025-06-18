@@ -1,35 +1,54 @@
 import { Injectable } from '@nestjs/common';
 import { AuthRepositoryInterface } from './../../interfaces/auth-repository-interface/auth-repository-interface.interface';
 import { PrismaService } from '../../prisma/prisma-service/prisma-service.service';
-import { CreateUserDto } from '@/resources/users/dto/create-user.dto';
-import { Prisma } from '@prisma/client';
-
+import { PasswordReset, User } from '@prisma/client';
 @Injectable()
 export class AuthRepositoryService
-  extends PrismaService
   implements AuthRepositoryInterface {
-  async findOneBy(email: string) {
-    return this.user.findUnique({
-      where: { email },
-    });
+
+    constructor(private prisma: PrismaService){}
+
+    async findUserByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { email } });
   }
 
-  async create(userData: CreateUserDto) {
-    const { id, confirmPassword, ...data } = userData;
-    return this.user.create({
+  /** Create a PasswordReset record */
+  async createPasswordReset(data: {
+    userId: number;
+    token: string;
+    expiresAt: Date;
+  }): Promise<PasswordReset> {
+    return this.prisma.passwordReset.create({
       data: {
-        ...data,
-        name: data.email.split('@')[0], // Default name from email
-        role: 'user', // Default role
+        userId: data.userId,
+        token: data.token,
+        expiresAt: data.expiresAt,
       },
     });
   }
 
-  async updateByEmail(email: string, userData: Partial<CreateUserDto>) {
-    const { id, confirmPassword, ...data } = userData;
-    return this.user.update({
-      where: { email },
-      data,
+  /** Look up a PasswordReset record by token, including the related user */
+  async findPasswordResetByToken(
+    token: string,
+  ): Promise<PasswordReset & { user: User } | null> {
+    return this.prisma.passwordReset.findUnique({
+      where: { token },
+      include: { user: true },
     });
   }
-}
+
+  /** Update a user’s password hash */
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+  }
+
+  /** Delete all PasswordReset records for a given user */
+  async deletePasswordResetsByUser(userId: number): Promise<{ count: number }> {
+    return this.prisma.passwordReset.deleteMany({
+      where: { userId },
+    });
+  }
+  }

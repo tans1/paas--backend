@@ -24,6 +24,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventNames } from '@/core/events/event.module';
 import { AlsService } from '@/utils/als/als.service';
 import { EnvironmentService } from '@/utils/environment/environment.service';
+import { StatusGuard } from '../auth/guards/status-guard/user.status.guard';
+import { Roles } from '../auth/guards/role-guard/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('projects')
 export class ProjectsController {
@@ -34,6 +37,21 @@ export class ProjectsController {
     private alsService: AlsService, 
     private environmentService: EnvironmentService
   ) {}
+
+  @ApiBearerAuth('JWT-auth')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Retrieve all projects' })
+  @ApiResponse({
+    status: 200,
+    description: 'All projects',
+    type: ProjectResponseDto,
+  })
+  @Get('all-projects')
+  async getAllProjects(
+    @Req() req: Request,
+  ) {
+    return await this.projectsService.getAllProjects();
+  }
 
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Retrieve all projects for the authenticated user' })
@@ -64,7 +82,7 @@ export class ProjectsController {
   ) {
     return await this.projectsService.getProject(repoId, branch);
   }
-
+  @UseGuards(StatusGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Start project' })
   @ApiBody({
@@ -86,7 +104,7 @@ export class ProjectsController {
       `Successfully started the project`,
     );
   }
-
+  @UseGuards(StatusGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Stop project' })
   @ApiBody({
@@ -98,6 +116,7 @@ export class ProjectsController {
     description: 'Project stopped succesfully',
     type: CustomApiResponse,
   })
+  @UseGuards(StatusGuard)
   @Post('stop-project')
   async stopProject(@Body() body: ProjectDto) {
     const { id } = body;
@@ -142,6 +161,8 @@ export class ProjectsController {
     description: 'Returns the project.',
     type: CustomApiResponse,
   })
+
+  @UseGuards(StatusGuard)
   @Post('rollback-project')
   async rollBackProject(@Body() body: ProjectRollbackDto) {
     const { projectId, deploymentId } = body;
@@ -167,6 +188,8 @@ export class ProjectsController {
     description: 'Project updated successfully',
     type: CustomApiResponse,
   })
+  
+  @UseGuards(StatusGuard)
   @Post('update-project')
   async updateProject(@Body() body: ProjectUpdateDto) {
     const { id, ...updateData } = body;

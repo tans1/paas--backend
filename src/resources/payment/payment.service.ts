@@ -90,7 +90,7 @@ export class PaymentService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        role: 'ACTIVE',
+        status: 'ACTIVE',
       },
     });
 

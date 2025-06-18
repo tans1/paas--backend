@@ -1,3 +1,6 @@
+// src/gateways/image-build.gateway.ts
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -7,12 +10,16 @@ import {
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-  namespace: '/build-logs',  // Added namespace for build logs
-  cors: true
+  namespace: '/build-logs',
+  cors: true,
 })
 export class ImageBuildGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
-  private buildSubscribers = new Map<string, Socket>();
+  public buildSubscribers = new Map<string, Socket>();
+
+  constructor(
+    @InjectQueue('build-logs') public readonly buildLogQueue: Queue,
+  ) {}
 
   handleConnection(client: Socket) {
     const repositoryId = client.handshake.query.repositoryId;
@@ -20,11 +27,7 @@ export class ImageBuildGateway implements OnGatewayConnection, OnGatewayDisconne
     const logType = client.handshake.query.type as string;
 
     if (repositoryId && branch && logType) {
-      const key = this.getKey(
-        Number(repositoryId),
-        branch,
-        logType
-      );
+      const key = this.getKey(Number(repositoryId), branch, logType);
       this.buildSubscribers.set(key, client);
       console.log(`Build subscriber connected: ${key}`);
     }
@@ -34,30 +37,30 @@ export class ImageBuildGateway implements OnGatewayConnection, OnGatewayDisconne
     const key = Array.from(this.buildSubscribers.entries()).find(
       ([, socket]) => socket.id === client.id,
     )?.[0];
-    
+
     if (key) {
       this.buildSubscribers.delete(key);
       console.log(`Build subscriber disconnected: ${key}`);
     }
   }
 
-  sendLogToUser(
+  async sendLogToUser(
     repositoryId: number,
     branch: string,
     logType: string,
     logMessage: string,
-    complete = false
+    complete = false,
   ) {
-    const key = this.getKey(repositoryId, branch, logType);
-    const subscriber = this.buildSubscribers.get(key);
-
-    if (subscriber) {
-      let eventName = complete ? 'buildComplete' : `${logType}Log`;
-      subscriber.emit(eventName, logMessage);
-    }
+    await this.buildLogQueue.add('log-line', {
+      repositoryId,
+      branch,
+      logType,
+      logMessage,
+      complete,
+    });
   }
 
-  private getKey(repositoryId: number, branch: string, logType: string) {
+  getKey(repositoryId: number, branch: string, logType: string) {
     return `${repositoryId}:${branch}:${logType}`;
   }
 }

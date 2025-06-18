@@ -8,20 +8,19 @@ import {
 } from '../../../infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
 import { AlsService } from '../../../utils/als/als.service';
 import { DockerLogService } from './docker-log.service';
-import { ProjectsRepositoryInterface,StatusEnum } from '../../../infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
-import * as os from 'os';
-import { PORT } from '../../frame-works/angular/constants';
-import { branch } from 'isomorphic-git';
+import {
+  ProjectsRepositoryInterface,
+  StatusEnum,
+} from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
+import { PORT } from '@/core/frame-works/angular/constants';
 import { RuntimeLogService } from './containter-runtime-log.service';
 import { DeploymentUtilsService } from '../deployment-utils/deployment-utils.service';
-import { LogType } from '../enums/log-type.enum';
 import { ManageContainerService } from '../manage-containers/manage-containers.service';
-import { last } from 'rxjs';
-import { ImageBuildGateway } from '../gateway/Image-build-gateway';
-import { DeploymentEventsGateway } from '../gateway/deployment-events.gateway';
-import { DockerComposeFileService } from '../docker-compose/dockerComposeFile.service'
+import { DeploymentEventsGateway } from '../gateway/deployment-event/deployment-events.gateway';
+import { DockerComposeFileService } from '../docker-compose/dockerComposeFile.service';
 import { DockerComposeService } from '../docker-compose/dockerCompose.service';
 import { DockerHubService } from './docker-hub.service';
+import { LogType } from '../enums/log-type.enum';
 @Injectable()
 export class SourceCodeEventHandlerService {
   constructor(
@@ -30,13 +29,13 @@ export class SourceCodeEventHandlerService {
     private alsService: AlsService,
     private dockerLogService: DockerLogService,
     private projectRepositoryService: ProjectsRepositoryInterface,
-    private runtimeLogService : RuntimeLogService,
-    private deploymentUtilsService : DeploymentUtilsService,
-    private manageContainerService : ManageContainerService,
-    private deploymentEventsGateway : DeploymentEventsGateway, 
-    private dockerComposeFileService : DockerComposeFileService,
-    private dockerComposeService : DockerComposeService,
-    private dockerHubService: DockerHubService
+    private runtimeLogService: RuntimeLogService,
+    private deploymentUtilsService: DeploymentUtilsService,
+    private manageContainerService: ManageContainerService,
+    private deploymentEventsGateway: DeploymentEventsGateway,
+    private dockerComposeFileService: DockerComposeFileService,
+    private dockerComposeService: DockerComposeService,
+    private dockerHubService: DockerHubService,
   ) {}
 
   @OnEvent(EventNames.SourceCodeReady)
@@ -52,7 +51,7 @@ export class SourceCodeEventHandlerService {
     const repoId = this.alsService.getrepositoryId();
     const branch = this.alsService.getbranchName();
     const projectName = this.alsService.getprojectName();
-    const extension = this.alsService.getExtension()
+    const extension = this.alsService.getExtension();
     let lastCommitMessage = this.alsService.getLastCommitMessage();
     try {
       const project = await this.projectRepositoryService.findByRepoAndBranch(
@@ -60,10 +59,14 @@ export class SourceCodeEventHandlerService {
         branch,
       );
       const deployments = project.deployments || [];
-      const latestContainerName = this.deploymentUtilsService.getLatestContainerName(deployments);
-      const latestImageName = this.deploymentUtilsService.getLatestImageName(deployments);
+      const latestContainerName =
+        this.deploymentUtilsService.getLatestContainerName(deployments);
+      const latestImageName =
+        this.deploymentUtilsService.getLatestImageName(deployments);
       const projectId = project.id;
-      lastCommitMessage = lastCommitMessage ? lastCommitMessage : project.lastCommitMessage 
+      lastCommitMessage = lastCommitMessage
+        ? lastCommitMessage
+        : project.lastCommitMessage;
 
       await this.projectRepositoryService.update(projectId, {
         localRepoPath: payload.projectPath,
@@ -74,12 +77,12 @@ export class SourceCodeEventHandlerService {
         branch: branch,
         environmentVariables: payload.environmentVariables,
         lastCommitMessage: lastCommitMessage,
-        extension: extension
+        extension: extension,
       };
 
       deployment =
         await this.deploymentRepositoryService.create(createDeploymentDTO);
-        this.dockerLogService.logMessage(
+      this.dockerLogService.logMessage(
         `Deployment started for project: ${projectId}`,
         repoId,
         branch,
@@ -87,18 +90,15 @@ export class SourceCodeEventHandlerService {
         deployment.id,
       );
 
-      this.deploymentEventsGateway.sendNewDeploymentEvent(
-        repoId,
-        branch,
-        {
-          deploymentId : deployment.id,
-          branch : branch,
-          timestamp : Date.now().toString()
-        }
-      )
+      this.deploymentEventsGateway.sendNewDeploymentEvent(repoId, branch, {
+        deploymentId: deployment.id,
+        branch: branch,
+        timestamp: Date.now().toString(),
+      });
 
-      const deployedUrl = this.deploymentUtilsService.getDeployedUrl(projectName);
-      const [imageName, containerName,dockerComposeFile] =
+      const deployedUrl =
+        this.deploymentUtilsService.getDeployedUrl(projectName);
+      const [imageName, containerName, dockerComposeFile] =
         await this.dockerComposeFileService.createDockerComposeFile(
           payload.projectPath,
           projectName,
@@ -122,20 +122,20 @@ export class SourceCodeEventHandlerService {
         dockerComposeFile,
         extension,
         projectName,
-      )
-      
+      );
+
       this.runtimeLogService.streamContainerLogs(
         containerName,
         repoId,
         branch,
-        deployment.id
+        deployment.id,
       );
-    
+
       await this.projectRepositoryService.update(projectId, {
         deployedUrl: deployedUrl,
-        dockerComposeFile : dockerComposeFile,
-        name : projectName,
-        PORT : PORT
+        dockerComposeFile: dockerComposeFile,
+        name: projectName,
+        PORT: PORT,
       });
 
       await this.deploymentRepositoryService.update(deployment.id, {
@@ -144,21 +144,30 @@ export class SourceCodeEventHandlerService {
         containerName: containerName,
       });
 
-   
       this.dockerLogService.logMessage(
         `Project ${projectId} is now running on ${deployedUrl}`,
         repoId,
         branch,
         LogType.BUILD,
         deployment.id,
-        true
+        true,
       );
+      await this.projectRepositoryService.update(projectId, {
+        status: StatusEnum.RUNNING,
+        activeDeploymentId: deployment.id,
+      });
 
+      this.deploymentEventsGateway.sendDeploymentUpdateEvent(repoId, branch, {
+        deploymentId: deployment.id,
+        status: 'deployed',
+        timestamp: Date.now().toString(),
+      });
+      
       await this.dockerHubService.pushImage(
         imageName,
         repoId,
         branch,
-        deployment.id
+        deployment.id,
       );
       if (latestContainerName) {
         await this.manageContainerService.rm(
@@ -173,22 +182,16 @@ export class SourceCodeEventHandlerService {
         );
       }
 
-      await this.projectRepositoryService.update(projectId,{
-        status : StatusEnum.RUNNING,
-        activeDeploymentId : deployment.id
-      })
+      // await this.projectRepositoryService.update(projectId, {
+      //   status: StatusEnum.RUNNING,
+      //   activeDeploymentId: deployment.id,
+      // });
 
-      this.deploymentEventsGateway.sendDeploymentUpdateEvent(
-        repoId,
-        branch,
-        {
-          deploymentId : deployment.id,
-          status : "deployed",
-          timestamp : Date.now().toString()
-        }
-      )
-
-
+      // this.deploymentEventsGateway.sendDeploymentUpdateEvent(repoId, branch, {
+      //   deploymentId: deployment.id,
+      //   status: 'deployed',
+      //   timestamp: Date.now().toString(),
+      // });
     } catch (error) {
       console.error('Error during deployment process:', error);
 
@@ -204,15 +207,11 @@ export class SourceCodeEventHandlerService {
           deployment.id,
         );
 
-        this.deploymentEventsGateway.sendDeploymentUpdateEvent(
-          repoId,
-          branch,
-          {
-            deploymentId : deployment.id,
-            status : "failed",
-            timestamp : Date.now().toString()
-          }
-        )
+        this.deploymentEventsGateway.sendDeploymentUpdateEvent(repoId, branch, {
+          deploymentId: deployment.id,
+          status: 'failed',
+          timestamp: Date.now().toString(),
+        });
       }
 
       throw new HttpException(
@@ -221,6 +220,4 @@ export class SourceCodeEventHandlerService {
       );
     }
   }
-
-
 }
