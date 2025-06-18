@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AlsService } from '@/utils/als/als.service';
+import { ProjectsService } from '@/resources/projects/projects.service';
 
 @Injectable()
 export class PushEventListenerService {
@@ -15,7 +16,7 @@ export class PushEventListenerService {
     process.env.PROJECTS_BASE_PATH || path.join(process.cwd(), 'projects');
 
   constructor(
-    private readonly repositoryBootstrapService: RepositoryBootstrapService,
+    private projectService : ProjectsService,
     private readonly repositorySyncService: RepositorySyncService,
     private eventEmitter: EventEmitter2,
     private alsService: AlsService,
@@ -24,6 +25,7 @@ export class PushEventListenerService {
   @OnEvent(EventNames.PushEventReceived)
   async processProject(payload: any) {
     const { repoData, githubAccessToken } = payload;
+    const repositoryId = payload.repository?.id;
     const repoFullName = repoData?.repository?.full_name;
     const cloneUrl = repoData?.repository?.clone_url;
     const userName = repoData?.repository?.owner?.name;
@@ -46,9 +48,26 @@ export class PushEventListenerService {
         branch,
         githubAccessToken,
       );
+      // this.eventEmitter.emit(EventNames.SourceCodeReady, {
+      //   projectPath: localRepoPath,
+      // });
+
+
+      const project = await this.projectService.getProject(
+        repositoryId,
+        branch,
+      );
+
+      const dockerFile = project.framework === 'Docker'
+      ? 'Dockerfile'
+      : undefined;
+
       this.eventEmitter.emit(EventNames.SourceCodeReady, {
-        projectPath: localRepoPath,
-      });
+      projectPath: localRepoPath,
+      PORT: project.PORT,
+      dockerFile,             
+    });
+
     } catch (error) {
       this.logger.error(
         `Error processing repository ${repoFullName}: ${error.message}`,

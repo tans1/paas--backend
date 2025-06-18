@@ -213,9 +213,15 @@ export class ProjectsController {
           projectPath : project.localRepoPath,
       }
       )
-      this.eventEmitter.emit(EventNames.SourceCodeReady, {
-        projectPath: project.localRepoPath,
-      });
+      const dockerFile = project.framework === 'Docker'
+      ? 'Dockerfile'
+      : undefined;
+    
+    this.eventEmitter.emit(EventNames.SourceCodeReady, {
+      projectPath: project.localRepoPath,
+      PORT: project.PORT,
+      dockerFile,              // will be 'Dockerfile' or undefined
+    });
 
     }
     return CustomApiResponse.success(
