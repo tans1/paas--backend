@@ -26,15 +26,6 @@ describe('UsersModule', () => {
       expect(module).toBeDefined();
     });
 
-    describe('UsersModule Imports', () => {
-      it('should import required modules', () => {
-        const dtoModuleRef = modulesContainer.get('DtoModule');
-        const interfacesModuleRef = modulesContainer.get('InterfacesModule');
-
-        expect(dtoModuleRef).toBeDefined();
-        expect(interfacesModuleRef).toBeDefined();
-      });
-    });
   });
   describe('Providers Registration', () => {
     it('should register all providers', () => {

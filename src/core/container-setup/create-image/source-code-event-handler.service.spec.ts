@@ -7,7 +7,7 @@ import { ProjectsRepositoryInterface, StatusEnum } from '../../../infrastructure
 import { RuntimeLogService } from './containter-runtime-log.service';
 import { DeploymentUtilsService } from '../deployment-utils/deployment-utils.service';
 import { ManageContainerService } from '../manage-containers/manage-containers.service';
-import { DeploymentEventsGateway } from '../gateway/deployment-events.gateway';
+import { DeploymentEventsGateway } from '../gateway/deployment-event/deployment-events.gateway';
 import { DockerComposeFileService } from '../docker-compose/dockerComposeFile.service';
 import { DockerComposeService } from '../docker-compose/dockerCompose.service';
 import { DockerHubService } from './docker-hub.service';

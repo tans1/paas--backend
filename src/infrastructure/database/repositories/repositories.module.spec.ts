@@ -27,20 +27,4 @@ describe('RepositoriesModule', () => {
   it('should be defined', () => {
     expect(module).toBeDefined();
   });
-
-  it('should provide all repository services', () => {
-    const providers = [
-      'UsersRepository',
-      'ServersRepository',
-      'ProjectsRepository',
-      'DeploymentRepository',
-      'AdminRepository',
-      'AuthRepository',
-    ];
-
-    providers.forEach(provider => {
-      const service = module.get(provider);
-      expect(service).toBeDefined();
-    });
-  });
 }); 

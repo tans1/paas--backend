@@ -1,5 +1,5 @@
 import { DockerLogService } from './docker-log.service';
-import { ImageBuildGateway } from '../gateway/Image-build-gateway';
+import { ImageBuildGateway } from '../gateway/image-build/Image-build-gateway';
 import { DeploymentRepositoryInterface } from '@/infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
 import { Readable } from 'stream';
 

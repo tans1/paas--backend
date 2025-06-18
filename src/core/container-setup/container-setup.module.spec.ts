@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContainerSetupModule } from './container-setup.module';
-import { ImageBuildGateway } from './gateway/Image-build-gateway';
+import { ImageBuildGateway } from './gateway/image-build/Image-build-gateway';
 
 describe('ContainerSetupModule', () => {
   let module: TestingModule;

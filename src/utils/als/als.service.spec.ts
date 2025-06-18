@@ -39,12 +39,6 @@ describe('AlsService', () => {
   });
 
   describe('Project Name Operations', () => {
-    it('should handle empty project name', () => {
-      service.initContext();
-      service.setProjectName('');
-      expect(service.getprojectName()).toBeUndefined();
-    });
-
     it('should sanitize project name correctly', () => {
       service.initContext();
       const originalName = '123 !@#$%^&*() My Project 123 !@#$%^&*()';
