@@ -24,5 +24,11 @@ export class BuildLogsProcessor extends WorkerHost {
     if (subscriber) {
       subscriber.emit(complete ? 'buildComplete' : `${logType}Log`, logMessage);
     }
+    else{
+      // If no subscriber is found, buffer the log message
+      const buffer = this.gateway.logBuffers.get(key) || [];
+      buffer.push({ message: logMessage, complete });
+      this.gateway.logBuffers.set(key, buffer);
+    }
   }
 }

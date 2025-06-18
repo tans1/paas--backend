@@ -7,6 +7,9 @@ import { EventNames } from 'src/core/events/event.module';
 import { AlsService } from '@/utils/als/als.service';
 import { ProjectService } from '@/resources/projects/create-project/project.service';
 import { ListService } from '../list/list.service';
+import { DeploymentRepositoryInterface } from '@/infrastructure/database/interfaces/deployment-repository-interface/deployment-repository-interface.interface';
+import { Deployment, Project } from '@prisma/client';
+import { EnvironmentService } from '@/utils/environment/environment.service';
 
 @Injectable()
 export class WebhooksService {
@@ -15,7 +18,9 @@ export class WebhooksService {
     private eventEmitter: EventEmitter2,
     private alsService: AlsService,
     private projectService: ProjectService,
-    private listService: ListService
+    private listService: ListService,
+    private deploymentRepositoryService: DeploymentRepositoryInterface,
+    private environmentService: EnvironmentService
   ) {}
 
   async createWebhook(owner: string, repo: string, email: string) {
@@ -90,6 +95,7 @@ export class WebhooksService {
       return;
     }
 
+
     // let's get the last commit message here and add it to the als service
 
     const user = project.linkedByUser;
@@ -97,7 +103,6 @@ export class WebhooksService {
 
     const lastCommitMessage = payload.head_commit.message
     
-    // update the projects last commit message here
     await this.projectService.updateProject(project.id,
       {
         lastCommitMessage : lastCommitMessage
@@ -113,8 +118,21 @@ export class WebhooksService {
         githubAccessToken: githubAccessToken,
       });
 
+      const activeDeployment = await this.getActiveDeployment(project);
+      const extenstion = activeDeployment.extension;
+      
+      await this.environmentService.copyEnvironmentFile({projectPath: project.localRepoPath, oldExtension: extenstion});
 
     console.log(`Received event: ${event}`);
     console.log('Payload:', JSON.stringify(payload, null, 2));
   }
+  
+   private async getActiveDeployment(project: Project): Promise<Deployment> {
+      const activeDeploymentId = project.activeDeploymentId;
+      const activeDeployment =
+        this.deploymentRepositoryService.findById(activeDeploymentId);
+      return activeDeployment;
+    }
 }
+
+

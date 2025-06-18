@@ -18,7 +18,7 @@ export class ReactProjectService {
     private projectRepositoryService: ProjectsRepositoryInterface,
   ) {}
   @OnEvent(
-    `${EventNames.FRAMEWORK_DETECTED}.${FrameworkMap.CreateReactApp.name}`,
+    `${EventNames.FRAMEWORK_DETECTED}.${FrameworkMap.React.name}`,
   )
   async processReactProject(payload: any) {
     console.log('React project service', payload);

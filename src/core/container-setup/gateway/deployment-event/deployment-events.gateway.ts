@@ -1,4 +1,3 @@
-// src/gateways/deployment-events.gateway.ts
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import {
@@ -10,36 +9,53 @@ import {
 import { Server, Socket } from 'socket.io';
 import { NewDeployment, DeploymentUpdate } from '../dto/deployment.event.dto';
 
+interface BufferedEvent {
+  type: 'new' | 'update';
+  payload: NewDeployment | DeploymentUpdate;
+}
+
 @WebSocketGateway({
   namespace: '/deployments',
   cors: true,
 })
 export class DeploymentEventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
-  public deployments = new Map<string, Socket>();
+
+  public deployments   = new Map<string, Socket>();
+  private eventBuffers = new Map<string, BufferedEvent[]>();
 
   constructor(
     @InjectQueue('deployment-events') public readonly deployQueue: Queue,
   ) {}
 
   handleConnection(client: Socket) {
-    const repositoryId = client.handshake.query.repositoryId;
-    const branch = client.handshake.query.branch as string;
+    const repositoryIdRaw = client.handshake.query.repositoryId;
+    const branch          = client.handshake.query.branch as string;
+    if (!repositoryIdRaw || !branch) return;
 
-    if (repositoryId && branch) {
-      const key = this.getKey(Number(repositoryId), branch);
-      this.deployments.set(key, client);
-      console.log(`Deployment listener connected -> ${key}`);
+    const repositoryId = Number(repositoryIdRaw);
+    const key          = this.getKey(repositoryId, branch);
+    this.deployments.set(key, client);
+    console.log(`Deployment listener connected -> ${key}`);
+
+    // flush any buffered events
+    const buf = this.eventBuffers.get(key);
+    if (buf && buf.length) {
+      for (const entry of buf) {
+        const eventName = entry.type === 'new' ? 'newDeployment' : 'deploymentUpdate';
+        client.emit(eventName, entry.payload);
+      }
+      this.eventBuffers.delete(key);
     }
   }
 
   handleDisconnect(client: Socket) {
-    const key = Array.from(this.deployments.entries()).find(
+    const found = Array.from(this.deployments.entries()).find(
       ([, socket]) => socket.id === client.id,
-    )?.[0];
-    if (key) {
-      this.deployments.delete(key);
-      console.log(`Deployment listener disconnected: ${key}`);
+    );
+    if (found) {
+      this.deployments.delete(found[0]);
+      console.log(`Deployment listener disconnected: ${found[0]}`);
     }
   }
 
@@ -49,7 +65,7 @@ export class DeploymentEventsGateway implements OnGatewayConnection, OnGatewayDi
     event: NewDeployment,
   ) {
     await this.deployQueue.add('new', { repositoryId, branch, event });
-  } 
+  }
 
   async sendDeploymentUpdateEvent(
     repositoryId: number,
@@ -57,6 +73,13 @@ export class DeploymentEventsGateway implements OnGatewayConnection, OnGatewayDi
     event: DeploymentUpdate,
   ) {
     await this.deployQueue.add('update', { repositoryId, branch, event });
+  }
+
+  /** Called by the processor when no client is connected */
+  bufferEvent(key: string, type: 'new' | 'update', payload: any) {
+    const buf = this.eventBuffers.get(key) ?? [];
+    buf.push({ type, payload });
+    this.eventBuffers.set(key, buf);
   }
 
   getKey(repositoryId: number, branch: string) {

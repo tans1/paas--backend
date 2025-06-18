@@ -1,4 +1,3 @@
-// src/processors/deployment-events.processor.ts
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { DeploymentEventsGateway } from './deployment-events.gateway';
@@ -10,23 +9,31 @@ export class DeploymentEventsProcessor extends WorkerHost {
   }
 
   async process(
-    job: Job<{ repositoryId: number; branch: string; event: any }>,
+    job: Job<{ repositoryId: number; branch: string; event: any }> & { name: string },
   ) {
     const { repositoryId, branch, event } = job.data;
-    const key = this.gateway.getKey(repositoryId, branch);
+    const key    = this.gateway.getKey(repositoryId, branch);
     const client = this.gateway.deployments.get(key);
 
     switch (job.name) {
       case 'new':
-        client?.emit('newDeployment', event);
+        if (client) {
+          client.emit('newDeployment', event);
+        } else {
+          this.gateway.bufferEvent(key, 'new', event);
+        }
         break;
 
       case 'update':
-        client?.emit('deploymentUpdate', event);
+        if (client) {
+          client.emit('deploymentUpdate', event);
+        } else {
+          this.gateway.bufferEvent(key, 'update', event);
+        }
         break;
 
       default:
-        // optionally handle unknown job names
+        // unrecognized job types could also be buffered or logged here
         break;
     }
   }

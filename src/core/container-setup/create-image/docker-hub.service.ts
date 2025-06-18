@@ -32,13 +32,13 @@ export class DockerHubService {
         .getImage(localImageName)
         .push({ authconfig: authConfig });
 
-      await this.dockerLogService.handleDockerStream(
-        pushStream,
-        repositoryId,
-        branch,
-        LogType.BUILD,
-        deploymentId
-      );
+      // await this.dockerLogService.handleDockerStream(
+      //   pushStream,
+      //   repositoryId,
+      //   branch,
+      //   LogType.BUILD,
+      //   deploymentId
+      // );
 
       this.logger.log(`Image pushed to Docker Hub: ${localImageName}`);
     } catch (error) {

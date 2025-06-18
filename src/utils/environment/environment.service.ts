@@ -1,8 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
-import { writeFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { AlsService } from '../als/als.service';
+import * as fs from 'fs';
 
 @Injectable()
 export class EnvironmentService {
@@ -41,5 +42,34 @@ export class EnvironmentService {
       .join('\n');
 
     await writeFile(envFilePath, content, 'utf-8');
+  }
+
+  // let's just add a method that copys the current environment file and change's it's name
+
+  async copyEnvironmentFile({
+    projectPath,
+    oldExtension,
+  }: {
+    projectPath: string;
+    oldExtension: string;
+  }) {
+    const projectName = this.alsService.getprojectName();
+    const extension = this.alsService.getExtension();
+
+    const oldEnvFileName = `${projectName}.${oldExtension}.env`;
+    const oldEnvFilePath = path.join(projectPath, oldEnvFileName);
+
+    const newEnvFileName = `${projectName}.${extension}.env`;
+    const newEnvFilePath = path.join(projectPath, newEnvFileName);
+
+    try {
+      // copy only if the old file exists
+      const oldFileExists = fs.existsSync(oldEnvFilePath);
+      if (oldFileExists){
+        await writeFile(newEnvFilePath, await readFile(oldEnvFilePath), 'utf-8');
+      }
+    } catch (error) {
+      throw new BadRequestException('Failed to copy environment file');
+    }
   }
 }

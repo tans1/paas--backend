@@ -12,7 +12,6 @@ import {
   ProjectsRepositoryInterface,
   StatusEnum,
 } from '@/infrastructure/database/interfaces/projects-repository-interface/projects-repository-interface.interface';
-import { PORT } from '@/core/frame-works/angular/constants';
 import { RuntimeLogService } from './containter-runtime-log.service';
 import { DeploymentUtilsService } from '../deployment-utils/deployment-utils.service';
 import { ManageContainerService } from '../manage-containers/manage-containers.service';
@@ -104,7 +103,7 @@ export class SourceCodeEventHandlerService {
           projectName,
           deployedUrl,
           extension,
-          PORT,
+          payload.PORT,
           payload.dockerFile,
         );
 
@@ -135,7 +134,7 @@ export class SourceCodeEventHandlerService {
         deployedUrl: deployedUrl,
         dockerComposeFile: dockerComposeFile,
         name: projectName,
-        PORT: PORT,
+        PORT: payload.PORT,
       });
 
       await this.deploymentRepositoryService.update(deployment.id, {
