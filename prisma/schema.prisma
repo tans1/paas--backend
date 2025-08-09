@@ -9,8 +9,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:dev.db?mode=memory&cache=shared"
 }
 
 enum UserStatus {
@@ -18,19 +18,19 @@ enum UserStatus {
   SUSPENDED
   DELETED
 }
-
 enum Role {
   ADMIN
   USER
 }
+
 model User {
   id                Int     @id @default(autoincrement())
-  name              String  @db.VarChar(255)
-  email             String  @unique @db.VarChar(255)
-  password          String? @db.VarChar(255)
-  role              Role   @default(USER)
-  githubUsername    String? @unique @db.VarChar(255)
-  githubAccessToken String? @map("access_token") @db.VarChar(255)
+  name              String 
+  email             String  @unique
+  password          String?
+  role              String?
+  githubUsername    String? @unique
+  githubAccessToken String? @map("access_token")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -47,7 +47,7 @@ model User {
   suspendedAt             DateTime?
   notifications           Notification[]
   notificationPreferences NotificationPreferences?
-  resets    PasswordReset[]
+    resets    PasswordReset[]
 }
 
 model PasswordReset {
@@ -63,7 +63,7 @@ model PasswordReset {
 //   id             Int    @id @default(autoincrement())
 //   githubUsername String @unique
 
-//   accessToken String   @map("access_token") @db.VarChar(255)
+//   accessToken String   @map("access_token")
 //   createdAt   DateTime @default(now()) @map("created_at")
 
 //   expired      Boolean?
@@ -81,11 +81,11 @@ enum ProjectStatus {
 model Project {
   id                   Int      @id @default(autoincrement())
   repoId               Int      @map("repo_id")
-  branch               String   @db.VarChar(100)
-  name                 String   @db.VarChar(255)
-  url                  String   @db.VarChar(2083)
-  framework            String   @db.VarChar(100)
-  linkedByUser         User     @relation("UserProjects", fields: [linkedByUserId], references: [id], onDelete: Cascade)
+  branch               String  
+  name                 String  
+  url                  String  
+  framework            String  
+  linkedByUser         User     @relation("UserProjects", fields: [linkedByUserId], references: [id])
   linkedByUserId       Int
   createdAt            DateTime @default(now()) @map("created_at")
   environmentVariables Json?    @map("environment_variables")
@@ -100,15 +100,15 @@ model Project {
   zoneId String? @map("zone_id")
   aRecordId String? @map("a_name_record_id")
   cnameRecordId String? @map("cname_record_id")
-  installCommand String?   @db.VarChar(2083)
-  buildCommand String?   @db.VarChar(2083)
-  runCommand String?   @db.VarChar(2083)
-  outputDirectory String?   @db.VarChar(2083)
-  rootDirectory String?   @db.VarChar(2083)
-  projectDescription String? @db.VarChar(2083)
-  lastCommitMessage String  @db.VarChar(2083)
+  installCommand String?  
+  buildCommand String?  
+  runCommand String?  
+  outputDirectory String?  
+  rootDirectory String?  
+  projectDescription String?
+  lastCommitMessage String 
   status ProjectStatus  @default(PENDING)
-  dockerComposeFile String? @db.VarChar(2083)
+  dockerComposeFile String?
   PORT Int?
   customDomains CustomDomain[]
   @@unique([repoId, branch], name: "repoId_branch")
@@ -131,8 +131,8 @@ model Deployment {
   id                    Int          @id @default(autoincrement())
   project                  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId                Int
-  status                String       @db.VarChar(50)
-  branch                String       @db.VarChar(100)
+  status                String      
+  branch                String      
   environmentVariables  Json?        @map("environment_variables")
   rollbackTo            Deployment?  @relation("Rollback", fields: [rollbackToId], references: [id])
   rollbackToId          Int?         @map("rollback_to_id")
@@ -140,19 +140,19 @@ model Deployment {
   containerName       String?      @map("container_name")
   imageName           String?      @map("image_name")
   createdAt DateTime        @default(now()) @map("created_at")
-  lastCommitMessage String @db.VarChar(2083)
+  lastCommitMessage String
   logs      DeploymentLog[]
-  extension String @db.VarChar(2083)
+  extension String
 }
 
 model DeploymentLog {
   id           Int        @id @default(autoincrement())
   deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
   deploymentId Int
-  logLevel     String     @map("log_level") @db.VarChar(20)
+  logLevel     String     @map("log_level")
   message      String
   timestamp    DateTime   @default(now()) @map("timestamp")
-  logType      String     @map("log_type") @db.VarChar(20)
+  logType      String     @map("log_type")
 }
 
 model Server {
@@ -164,26 +164,26 @@ model Server {
 
 model UserAlert {
   id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
   userId    Int
   message   String
-  type      String   @db.VarChar(50)
+  type      String  
   createdAt DateTime @default(now()) @map("created_at")
 }
 
 model AdminAnalytics {
   id        Int      @id @default(autoincrement())
-  metric    String   @db.VarChar(100)
+  metric    String  
   value     Json?
   createdAt DateTime @default(now()) @map("created_at")
 }
 
 model OAuthProvider {
   id          Int      @id @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
   userId      Int
-  provider    String?  @db.VarChar(50)
-  accessToken String   @map("access_token") @db.VarChar(255)
+  provider    String? 
+  accessToken String   @map("access_token")
   createdAt   DateTime @default(now()) @map("created_at")
 }
 
@@ -201,7 +201,7 @@ model OAuthProvider {
 
 model DailyMetric {
   id     String @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
   userId Int
 
   containerName String
@@ -228,7 +228,7 @@ model DailyMetric {
 
 model Invoice {
   id     String @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
   userId Int
 
   amount      Float
@@ -249,7 +249,7 @@ enum BillingTypes {
 
 model BillingRecord {
   id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id])
   userId Int
 
   amount Float
@@ -273,11 +273,11 @@ enum NotificationPriority {
 model Notification {
   id        String               @id @default(uuid())
   title     String
-  message   String               @db.Text
+  message   String              
   type      NotificationType     @default(SYSTEM)
   priority  NotificationPriority @default(MEDIUM)
   isRead    Boolean              @default(false)
-  user      User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?                @relation(fields: [userId], references: [id])
   userId    Int?
   metadata  Json?
   createdAt DateTime             @default(now()) @map("created_at")
@@ -286,7 +286,7 @@ model Notification {
 
 model NotificationPreferences {
   id                 String               @id @default(uuid())
-  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                 @relation(fields: [userId], references: [id])
   userId             Int                  @unique
   enabledTypes       Json // Stores { SYSTEM: boolean, DEPLOYMENT: boolean, etc. }
   emailNotifications Boolean              @default(true)
