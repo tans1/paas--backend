@@ -4,14 +4,14 @@ import * as path from 'path';
 import { readFile, writeFile } from 'fs/promises';
 import { AlsService } from '../als/als.service';
 import * as fs from 'fs';
-
+import { File as MulterFile } from 'multer';
 @Injectable()
 export class EnvironmentService {
   constructor(private alsService: AlsService) {}
 
   async processEnvironment(
     envVars?: string,
-    envFile?: Express.Multer.File,
+    envFile?: MulterFile,
   ): Promise<Record<string, string>> {
     let fileEnv: Record<string, string> = {};
     let parsedEnvVars = envVars ? JSON.parse(envVars) : {};
