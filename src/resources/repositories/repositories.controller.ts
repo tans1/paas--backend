@@ -39,7 +39,7 @@ import { FrameworkDetectionService } from '@/core/framework-detector/framework-d
 import { CustomApiResponse } from '@/utils/api-responses/api-response';
 import { AuthGuard } from '../auth/guards/auth-guard/auth.guard';
 import { StatusGuard } from '../auth/guards/status-guard/user.status.guard';
-
+import { File as MulterFile } from 'multer';
 @ApiTags('Repositories')
 @Controller('repositories')
 export class RepositoriesController {
@@ -157,7 +157,7 @@ async redirectToGitHubAuth(
   async createWebhook(
     @Req() req: AuthenticatedRequest,
     @Body() body: DeployDto,
-    @UploadedFile() envFile?: Express.Multer.File,
+    @UploadedFile() envFile?: MulterFile,
   ) {
     try {
       const {
